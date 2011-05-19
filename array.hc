@@ -1,0 +1,647 @@
+
+/*
+
+(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+Except as contained in this notice, the name of a copyright holder shall not
+be used in advertising or otherwise to promote the sale, use or other dealings
+in this Software without prior written authorization of the copyright holder.
+
+*/
+
+#ifndef C_once_44A7F9A5_269A_48D5_AABB_F08291F9087B
+#define C_once_44A7F9A5_269A_48D5_AABB_F08291F9087B
+
+#include "core.hc"
+
+#ifdef _YOYO_ARRAY_BUILTIN
+# define _YOYO_ARRAY_BUILTIN_CODE(Code) Code
+# define _YOYO_ARRAY_EXTERN 
+#else
+# define _YOYO_ARRAY_BUILTIN_CODE(Code)
+# define _YOYO_ARRAY_EXTERN extern 
+#endif
+
+_YOYO_ARRAY_EXTERN char Oj_Sort_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = ">>>/@" );
+_YOYO_ARRAY_EXTERN char Oj_Push_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = "$+/@*" );
+_YOYO_ARRAY_EXTERN char Oj_Pop_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = "$-/@" );
+_YOYO_ARRAY_EXTERN char Oj_Pop_Npl_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = "`$-/@" );
+_YOYO_ARRAY_EXTERN char Oj_Sorted_Insert_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = ">1>/@*" );
+_YOYO_ARRAY_EXTERN char Oj_Sorted_Find_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = ">?>/@*" );
+_YOYO_ARRAY_EXTERN char Oj_Push_Front_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = "+$/@*" );
+_YOYO_ARRAY_EXTERN char Oj_Pop_Front_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = "-$/@" );
+_YOYO_ARRAY_EXTERN char Oj_Pop_Front_Npl_OjMID[] _YOYO_ARRAY_BUILTIN_CODE ( = "`-$/@" );
+
+void Oj_Sort(void *self)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void (*sort)(void *) = Yo_Find_Method_Of(&self,Oj_Sort_OjMID,YO_RAISE_ERROR);
+    sort(self);
+  }
+#endif
+  ;
+
+void Oj_Sorted_Insert(void *self, void *val)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void (*insert)(void *, void *) = Yo_Find_Method_Of(&self,Oj_Sorted_Insert_OjMID,YO_RAISE_ERROR);
+    insert(self,val);
+  }
+#endif
+  ;
+
+void *Oj_Sorted_Find(void *self, void *val)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *(*find)(void *, void *) = Yo_Find_Method_Of(&self,Oj_Sorted_Find_OjMID,YO_RAISE_ERROR);
+    return find(self,val);
+  }
+#endif
+  ;
+
+void Oj_Push(void *self, void *val)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void (*push)(void *, void *) = Yo_Find_Method_Of(&self,Oj_Push_OjMID,YO_RAISE_ERROR);
+    push(self,val);
+  }
+#endif
+  ;
+
+void *Oj_Pop(void *self)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *(*pop)(void *) = Yo_Find_Method_Of(&self,Oj_Pop_OjMID,YO_RAISE_ERROR);
+    return pop(self);
+  }
+#endif
+  ;
+
+void *Oj_Pop_Npl(void *self)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *(*pop)(void *) = Yo_Find_Method_Of(&self,Oj_Pop_Npl_OjMID,YO_RAISE_ERROR);
+    return pop(self);
+  }
+#endif
+  ;
+
+void Oj_Push_Front(void *self, void *val)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void (*push)(void *, void *) = Yo_Find_Method_Of(&self,Oj_Push_Front_OjMID,YO_RAISE_ERROR);
+    push(self,val);
+  }
+#endif
+  ;
+
+void *Oj_Pop_Front_Npl(void *self)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *(*pop)(void *) = Yo_Find_Method_Of(&self,Oj_Pop_Front_Npl_OjMID,YO_RAISE_ERROR);
+    return pop(self);
+  }
+#endif
+  ;
+
+void *Oj_Pop_Front(void *self)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *(*pop)(void *) = Yo_Find_Method_Of(&self,Oj_Pop_Front_OjMID,YO_RAISE_ERROR);
+    return pop(self);
+  }
+#endif
+  ;
+
+void *Lower_Boundary(void **S, int S_len, void *compare, void *val, int *found)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    typedef int (*Tcmp)(void *,void*);
+    int cmp_r = 0;
+    void **iS = S;
+    void **middle = iS;
+    int half;
+    int len = S_len;
+
+    if ( len  )
+      {
+        if ( len > 1 )
+          while (len > 0)
+            {
+              half = len >> 1;
+              middle = iS + half;
+              if ( (cmp_r = ((Tcmp)compare)(*middle,val)) < 0 )
+                {
+                  iS = middle;
+                  ++iS;
+                  len = len - half - 1;
+                }
+              else
+                len = half;
+            }
+        else
+          middle = 0;
+          
+        if ( middle != iS && iS < S+S_len )
+          cmp_r = ((Tcmp)compare)(*iS,val);
+      }
+      
+    *found = !cmp_r;
+    return iS;
+  }
+#endif
+  ;
+
+typedef struct _YOYO_ARRAY
+  {
+    void **at;
+    int count;
+  } YOYO_ARRAY;
+
+void Array_Del(YOYO_ARRAY *a,int pos,int n)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    int i;
+    void *self = a;
+    void (*destruct)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
+
+    if ( pos < 0 ) pos = a->count + pos;
+    if ( n < 0 || pos + n > a->count ) n = a->count-pos;
+    if ( pos < 0 || pos+n > a->count ) 
+      Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+
+    if ( destruct )
+      for ( i = 0; i < n; ++i )
+        destruct((a->at)[i+pos]);
+    
+    if ( pos != a->count-n )
+      memmove(a->at+pos,a->at+(pos+n),(a->count-(pos+n))*sizeof(void*));
+    a->count -= n;
+  }
+#endif
+  ;
+
+void *Array_Take_Npl(YOYO_ARRAY *a,int pos)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *Q = 0;
+    
+    if ( pos < 0 ) pos = a->count + pos;
+    if ( pos < 0 || pos >= a->count ) 
+      Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+
+    Q = (a->at)[pos];
+    
+    if ( pos != a->count-1 )
+      memmove(a->at+pos,a->at+(pos+1),(a->count-(pos+1))*sizeof(void*));
+    a->count -= 1;
+    
+    return Q;
+  }
+#endif
+  ;
+
+void *Array_Take(YOYO_ARRAY *a,int pos)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *self = a;
+    void (*destruct)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,YO_RAISE_ERROR);
+    void *Q = Array_Take_Npl(a,pos);
+    
+    if ( Q )
+      Yo_Pool_Ptr(Q,destruct);
+    
+    return Q;
+  }
+#endif
+  ;
+
+void Array_Insert(YOYO_ARRAY *a,int pos,void *p)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    uint_t capacity = 0;
+    
+    if ( pos < 0 ) pos = a->count + pos + 1;
+    if ( pos < 0 || pos > a->count ) 
+      {
+        void *self = a;
+        void (*destruct)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
+        if ( destruct ) destruct(p);
+        Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+      }
+    
+    capacity = Min_Pow2((a->count+1)*sizeof(void*));
+    if ( !a->at || malloc_size(a->at) < capacity )
+      a->at = Yo_Realloc_Npl(a->at,capacity);
+    if ( pos < a->count )
+      memmove(a->at+pos+1,a->at+pos,(a->count-pos)*sizeof(void*));
+    a->at[pos] = p;
+    ++a->count;
+  }
+#endif
+  ;
+
+void Array_Set(YOYO_ARRAY *a,int pos,void *val)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *self = a;
+    void (*destruct)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
+
+    if ( pos < 0 ) pos = a->count + pos;
+    if ( pos < 0 || pos >= a->count ) 
+      {
+        if ( destruct ) destruct(val);
+        Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+      }
+      
+    if ( destruct )
+      destruct((a->at)[pos]);
+
+    a->at[pos] = val;
+  }
+#endif
+  ;
+
+int Array_Sorted_Lower_Boundary(YOYO_ARRAY *a,void *val,int *found,int except)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *self = a;
+    int (*compare)(void *, void *);
+    
+    if ( !a->count ) 
+      {
+        *found = 0;
+        return 0;
+      }
+    
+    if ( 0 != (compare = Yo_Find_Method_Of(&self,Oj_Compare_Elements_OjMID,0)) )
+      {
+        void **p = Lower_Boundary(a->at,a->count,compare,val,found);
+        return p - a->at;
+      }
+    else if (except)
+      Yo_Raise(YO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+    else
+      return -1;
+      
+    return 0;
+  }
+#endif
+  ;
+
+void Array_Sorted_Insert(YOYO_ARRAY *a,void *p)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    if ( !a->count )
+      Array_Insert(a,-1,p);
+    else
+      {
+        int found = 0;
+        int pos ;
+        
+        pos = Array_Sorted_Lower_Boundary(a,p,&found,0);
+        
+        if ( pos < 0 )
+          {
+            void *self = a;
+            void (*destructor)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
+            if ( destructor )
+              destructor(p);
+            Yo_Raise(YO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+          }
+          
+        if ( !found )
+          Array_Insert(a,pos,p);
+        else
+          Array_Set(a,pos,p);
+      }
+  }
+#endif
+  ;
+
+void *Array_Binary_Find(YOYO_ARRAY *a, void *p)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    int found = 0;
+    int pos = Array_Sorted_Lower_Boundary(a,p,&found,1);
+    return found ? a->at[pos] : 0;
+  }
+#endif
+  ;
+
+#ifdef _YOYO_ARRAY_BUILTIN
+int Array_Sort_Qsort_Compare(int (*compare)(void *a,void *b), void **a, void **b)
+  {
+    return compare(*a,*b);
+  }
+int (*Array_Sort_Qsort_Compare_Static_Compare)(void *a,void *b) = 0;
+int Array_Sort_Qsort_Compare_Static(void **a, void **b)
+  {
+    return Array_Sort_Qsort_Compare_Static_Compare(*a,*b);
+  }
+#endif
+
+void Array_Sort(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *self = a;
+    void *compare;
+    if ( a->at && a->count )
+      {
+        if ( 0 != (compare = Yo_Find_Method_Of(&self,Oj_Compare_Elements_OjMID,0)) )
+          {
+          #ifndef __windoze  
+            qsort_r(a->at,a->count,sizeof(void*),compare,(void*)Array_Sort_Qsort_Compare);
+          #elif _MSC_VER > 1400 
+            qsort_s(a->at,a->count,sizeof(void*),compare,(void*)Array_Sort_Qsort_Compare);
+          #else
+            __Xchg_Interlock
+              {
+                Array_Sort_Qsort_Compare_Static_Compare = compare;
+                qsort(a->at,a->count,sizeof(void*),(void*)Array_Sort_Qsort_Compare_Static);
+              }
+          #endif
+          }
+        else
+          Yo_Raise(YO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+      }
+  }
+#endif
+  ;
+
+#define Array_COUNT(Arr)          ((int)((YOYO_ARRAY *)(Arr))->count+0)
+#define Array_BEGIN(Arr)          (((YOYO_ARRAY *)(Arr))->at)
+#define Array_END(Arr)            (Array_BEGIN(Arr)+Array_COUNT(Arr))
+#define Array_AT(Arr,Idx)         ((((YOYO_ARRAY *)(Arr))->at)[Idx])
+#define Array_Push(Arr,Val)       Array_Insert(Arr,-1,Val)
+#define Array_Pop(Arr)            Array_Take(Arr,-1)
+#define Array_Pop_Npl(Arr)        Array_Take_Npl(Arr,-1)
+#define Array_Push_Front(Arr,Val) Array_Insert(Arr,0,Val)
+#define Array_Pop_Front(Arr)      Array_Take(Arr,0)
+#define Array_Pop_Front_Npl(Arr)  Array_Take_Npl(Arr,0)
+
+void Array_Push_Oj(YOYO_ARRAY *a, void *val)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    Array_Push(a,val);
+  }
+#endif
+  ;
+
+void *Array_Pop_Oj(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    return Array_Pop(a);
+  }
+#endif
+  ;
+
+void *Array_Pop_Npl_Oj(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    return Array_Pop_Npl(a);
+  }
+#endif
+  ;
+
+void Array_Push_Front_Oj(YOYO_ARRAY *a, void *val)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    Array_Push_Front(a,val);
+  }
+#endif
+  ;
+
+void *Array_Pop_Front_Oj(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    return Array_Pop_Front(a);
+  }
+#endif
+  ;
+
+void *Array_Pop_Front_Npl_Oj(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    return Array_Pop_Front_Npl(a);
+  }
+#endif
+  ;
+
+int Array_Count(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    if ( a )
+      return Array_COUNT(a);
+    return 0;
+  }
+#endif
+  ;
+  
+void *Array_Begin(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    if ( a )
+      return Array_BEGIN(a);
+    return 0;
+  }
+#endif
+  ;
+
+void *Array_End(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    if ( a )
+      return Array_END(a);
+    return 0;
+  }
+#endif
+  ;
+
+void *Array_At(YOYO_ARRAY *a,int pos)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    if ( a )
+      {
+        if ( pos < 0 ) pos = a->count + pos;
+        if ( pos < 0 || pos >= a->count ) 
+          Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+        return Array_AT(a,pos);
+      }
+    return 0;
+  }
+#endif
+  ;
+
+void Array_Destruct(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    int i = 0;
+    void *self = a;
+    void (*destructor)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
+    if ( destructor )
+      for ( i = 0; i < a->count; ++i )
+        if ( a->at[i] ) 
+          destructor(a->at[i]);
+    if ( a->at )
+      free(a->at);
+    Yo_Object_Destruct(a);
+  }
+#endif
+  ;
+
+void Array_Clear(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    int i = 0;
+    void *self = a;
+    void (*destructor)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
+    if ( destructor )
+      for ( i = 0; i < a->count; ++i )
+        destructor(a->at[i]);
+    if ( a->at )
+      memset(a->at,0,a->count*sizeof(a->at[0]));
+    a->count = 0;
+  }
+#endif
+  ;
+
+void *Array_Void(void)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,         Array_Destruct},
+        {Oj_Sort_OjMID,             Array_Sort},
+        {Oj_Sorted_Insert_OjMID,    Array_Sorted_Insert},
+        {Oj_Sorted_Find_OjMID,      Array_Binary_Find},
+        {Oj_Push_OjMID,             Array_Push_Oj},
+        {Oj_Push_Front_OjMID,       Array_Push_Front_Oj},
+        {Oj_Count_OjMID,            Array_Count},
+        {Oj_Pop_Npl_OjMID,          Array_Pop_Npl_Oj},
+        {Oj_Pop_Front_Npl_OjMID,    Array_Pop_Front_Npl_Oj},
+        {0}};
+    YOYO_ARRAY *arr = Yo_Object(sizeof(YOYO_ARRAY),funcs);
+    return arr;
+  }
+#endif
+  ;
+
+void *Array_Refs(void)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,         Array_Destruct},
+        {Oj_Destruct_Element_OjMID, Yo_Unrefe},
+        {Oj_Sort_OjMID,             Array_Sort},
+        {Oj_Sorted_Insert_OjMID,    Array_Sorted_Insert},
+        {Oj_Sorted_Find_OjMID,      Array_Binary_Find},
+        {Oj_Push_OjMID,             Array_Push_Oj},
+        {Oj_Pop_OjMID,              Array_Pop_Oj},
+        {Oj_Push_Front_OjMID,       Array_Push_Front_Oj},
+        {Oj_Pop_Front_OjMID,        Array_Pop_Front_Oj},
+        {Oj_Count_OjMID,            Array_Count},
+        {Oj_Pop_Npl_OjMID,          Array_Pop_Npl_Oj},
+        {Oj_Pop_Front_Npl_OjMID,    Array_Pop_Front_Npl_Oj},
+        {0}};
+    YOYO_ARRAY *arr = Yo_Object(sizeof(YOYO_ARRAY),funcs);
+    return arr;
+  }
+#endif
+  ;
+
+void *Array_Ptrs(void)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,         Array_Destruct},
+        {Oj_Destruct_Element_OjMID, free},
+        {Oj_Sort_OjMID,             Array_Sort},
+        {Oj_Sorted_Insert_OjMID,    Array_Sorted_Insert},
+        {Oj_Sorted_Find_OjMID,      Array_Binary_Find},
+        {Oj_Push_OjMID,             Array_Push_Oj},
+        {Oj_Pop_OjMID,              Array_Pop_Oj},
+        {Oj_Push_Front_OjMID,       Array_Push_Front_Oj},
+        {Oj_Pop_Front_OjMID,        Array_Pop_Front_Oj},
+        {Oj_Count_OjMID,            Array_Count},
+        {Oj_Pop_Npl_OjMID,          Array_Pop_Npl_Oj},
+        {Oj_Pop_Front_Npl_OjMID,    Array_Pop_Front_Npl_Oj},
+        {0}};
+    YOYO_ARRAY *arr = Yo_Object(sizeof(YOYO_ARRAY),funcs);
+    return arr;
+  }
+#endif
+  ;
+
+void *Array_Pchars(void)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,         Array_Destruct},
+        {Oj_Destruct_Element_OjMID, free},
+        {Oj_Compare_Elements_OjMID, strcmp},
+        {Oj_Sort_OjMID,             Array_Sort},
+        {Oj_Sorted_Insert_OjMID,    Array_Sorted_Insert},
+        {Oj_Sorted_Find_OjMID,      Array_Binary_Find},
+        {Oj_Push_OjMID,             Array_Push_Oj},
+        {Oj_Pop_OjMID,              Array_Pop_Oj},
+        {Oj_Push_Front_OjMID,       Array_Push_Front_Oj},
+        {Oj_Pop_Front_OjMID,        Array_Pop_Front_Oj},
+        {Oj_Count_OjMID,            Array_Count},
+        {Oj_Pop_Npl_OjMID,          Array_Pop_Npl_Oj},
+        {Oj_Pop_Front_Npl_OjMID,    Array_Pop_Front_Npl_Oj},
+        {0}};
+    YOYO_ARRAY *arr = Yo_Object(sizeof(YOYO_ARRAY),funcs);
+    return arr;
+  }
+#endif
+  ;
+
+void *Array_Pwide(void)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,         Array_Destruct},
+        {Oj_Destruct_Element_OjMID, free},
+        {Oj_Compare_Elements_OjMID, wcscmp},
+        {Oj_Sort_OjMID,             Array_Sort},
+        {Oj_Sorted_Insert_OjMID,    Array_Sorted_Insert},
+        {Oj_Sorted_Find_OjMID,      Array_Binary_Find},
+        {Oj_Push_OjMID,             Array_Push_Oj},
+        {Oj_Pop_OjMID,              Array_Pop_Oj},
+        {Oj_Push_Front_OjMID,       Array_Push_Front_Oj},
+        {Oj_Pop_Front_OjMID,        Array_Pop_Front_Oj},
+        {Oj_Count_OjMID,            Array_Count},
+        {Oj_Pop_Npl_OjMID,          Array_Pop_Npl_Oj},
+        {Oj_Pop_Front_Npl_OjMID,    Array_Pop_Front_Npl_Oj},
+        {0}};
+    YOYO_ARRAY *arr = Yo_Object(sizeof(YOYO_ARRAY),funcs);
+    return arr;
+  }
+#endif
+  ;
+
+#endif /* C_once_44A7F9A5_269A_48D5_AABB_F08291F9087B */
+
