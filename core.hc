@@ -180,6 +180,7 @@ enum _YOYO_ERRORS
     YO_ERROR_DECOMPRESS_DATA  = YO_ENCODING_ERROR_GROUP|(YO_ERROR_BASE+20),
     YO_ERROR_DECRYPT_DATA     = YO_ENCODING_ERROR_GROUP|(YO_ERROR_BASE+21),
     YO_ERROR_INVALID_PARAM    = YO_RUNTIME_ERROR_GROUP|(YO_ERROR_BASE+22),
+    YO_ERROR_UNEXPECTED_VALUE = YO_FATAL_ERROR_GROUP|(YO_ERROR_BASE+23),
   };
 
 #define YO_ERROR_IS_USER_ERROR(err) !(err&YO_XXXX_ERROR_GROUP)
@@ -1366,11 +1367,16 @@ void Error_Exit(char *pfx)
 #define __Raise(Err,Msg)    Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
 #define __Raise_If_Occured() Yo_Raise_If_Occured()
 #define __Fatal(Err,Ctx)    Yo_Fatal(Err,Ctx,__Yo_FILE__,__LINE__)
-#define __Malloc(Size)      Yo_Malloc(Size)
-#define __Memcopy(Ptr,Size) Yo_Memcopy(Ptr,Size)
-#define __Realloc(Ptr,Size) Yo_Realloc(Ptr,Size)
-#define __Resize(Ptr,Size,Gran) Yo_Resize(Ptr,Size,Gran)
 #define __Format            Yo_Format
+
+#define __Malloc(Size)          Yo_Malloc(Size)
+#define __Malloc_Npl(Size)      Yo_Malloc_Npl(Size)
+#define __Memcopy(Ptr,Size)     Yo_Memcopy(Ptr,Size)
+#define __Memcopy_Npl(Ptr,Size) Yo_Memcopy_Npl(Ptr,Size)
+#define __Realloc(Ptr,Size)     Yo_Realloc(Ptr,Size)
+#define __Realloc_Npl(Ptr,Size) Yo_Realloc_Npl(Ptr,Size)
+#define __Resize(Ptr,Size,Gran) Yo_Resize(Ptr,Size,Gran)
+#define __Resize_Npl(Ptr,Size,Gran) Yo_Resize_Npl(Ptr,Size,Gran)
 
 #define __Object(Size,Funcs)            Yo_Object(Size,Funcs)
 #define __Object_Dtor(Size,Dtor)        Yo_Object_Dtor(Size,Dtor)

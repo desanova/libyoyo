@@ -232,7 +232,7 @@ void *WinReg_Open_Or_Create_Hkey(HKEY master, char *subkey, int create_if_need, 
         ret = Yo_Object(sizeof(YOYO_WINREG),funcs);
         name = Str_Utf8_To_Unicode(subkey);
         if ( parent_name )
-          ret->name = Str_Join_Npl('\\',parent_name,subkey,0);
+          ret->name = Str_Join_Npl_2('\\',parent_name,subkey);
         else
           ret->name = Str_Concat_Npl(Yo_Format("%08x\\",master),subkey);
         

@@ -632,7 +632,7 @@ char *Str_Join_Va_Npl(char sep, va_list va)
 #endif
   ;
 
-char *Str_Join_Npl(char sep, ...)
+char *Str_Join_Npl_(char sep, ...)
 #ifdef _YOYO_STRING_BUILTIN
   {
     char *out;
@@ -645,7 +645,13 @@ char *Str_Join_Npl(char sep, ...)
 #endif
   ;
   
-char *Str_Join(char sep, ...)
+#define Str_Join_Npl_2(Sep,S1,S2) Str_Join_Npl_(Sep,S1,S2,0)
+#define Str_Join_Npl_3(Sep,S1,S2,S3) Str_Join_Npl_(Sep,S1,S2,S3,0)
+#define Str_Join_Npl_4(Sep,S1,S2,S3,S4) Str_Join_Npl_(Sep,S1,S2,S3,S4,0)
+#define Str_Join_Npl_5(Sep,S1,S2,S3,S4,S5) Str_Join_Npl_(Sep,S1,S2,S3,S4,S5,0)
+#define Str_Join_Npl_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_Npl_(Sep,S1,S2,S3,S4,S5,S6,0)
+
+char *Str_Join_(char sep, ...)
 #ifdef _YOYO_STRING_BUILTIN
   {
     char *out;
@@ -657,6 +663,12 @@ char *Str_Join(char sep, ...)
   }
 #endif
   ;
+
+#define Str_Join_2(Sep,S1,S2) Str_Join_(Sep,S1,S2,0)
+#define Str_Join_3(Sep,S1,S2,S3) Str_Join_(Sep,S1,S2,S3,0)
+#define Str_Join_4(Sep,S1,S2,S3,S4) Str_Join_(Sep,S1,S2,S3,S4,0)
+#define Str_Join_5(Sep,S1,S2,S3,S4,S5) Str_Join_(Sep,S1,S2,S3,S4,S5,0)
+#define Str_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_(Sep,S1,S2,S3,S4,S5,S6,0)
 
 int Str_Starts_With(char *S, char *pat)
 #ifdef _YOYO_STRING_BUILTIN

@@ -111,6 +111,21 @@ void *Dicto_Get(YOYO_DICTO *o, char *key, void *dflt)
 #endif
   ;
 
+void *Dicto_Get_Key_Ptr(YOYO_DICTO *o, char *key)
+#ifdef _YOYO_DICTO_BUILTIN  
+  {
+    if ( key )
+      {
+        byte_t hashcode = Crc_8_Of_Cstr(key);
+        YOYO_DICTO_REC *Q = *Dicto_Backet(o,hashcode,key);
+        if ( Q )
+          return Q->key;
+      }
+    return 0;
+  }
+#endif
+  ;
+
 int Dicto_Has(YOYO_DICTO *o, char *key)
 #ifdef _YOYO_DICTO_BUILTIN  
   {
@@ -125,7 +140,7 @@ int Dicto_Has(YOYO_DICTO *o, char *key)
 #endif
   ;
 
-void Dicto_Put(YOYO_DICTO *o, char *key, void *val)
+void *Dicto_Put(YOYO_DICTO *o, char *key, void *val)
 #ifdef _YOYO_DICTO_BUILTIN  
   {
     if ( key )
@@ -149,7 +164,10 @@ void Dicto_Put(YOYO_DICTO *o, char *key, void *val)
             if ( o->count > o->width*3 )
               Dicto_Rehash(o);
           }
+        return (*Q)->key;
       }
+    else
+      return 0;
   }
 #endif
   ;
@@ -298,6 +316,15 @@ void *Dicto_Ptrs(void)
         {Oj_Destruct_Element_OjMID, free},
         {0}};
     YOYO_DICTO *dicto = Yo_Object(sizeof(YOYO_DICTO),funcs);
+    return dicto;
+  }
+#endif
+  ;
+
+void *Dicto_Init(void)
+#ifdef _YOYO_DICTO_BUILTIN  
+  {
+    YOYO_DICTO *dicto = Yo_Object_Dtor(sizeof(YOYO_DICTO),Dicto_Destruct);
     return dicto;
   }
 #endif
