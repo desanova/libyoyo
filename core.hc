@@ -1432,5 +1432,9 @@ void Error_Exit(char *pfx)
       else \
         YOYO_LOCAL_ID(Do_Code):
 
+#define __Gogo \
+  if ( 1 ) goto YOYO_LOCAL_ID(__gogo); \
+  else YOYO_LOCAL_ID(__gogo):
+
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
 
