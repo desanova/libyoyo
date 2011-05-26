@@ -50,6 +50,10 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_BLOWFISH_BUILTIN
 #define _YOYO_PEFILE_BUILTIN
 #define _YOYO_LZSS_BUILTIN
+#define _YOYO_XDATA_BUILTIN
+#define _YOYO_XDATACO_BUILTIN
+#define _YOYO_DEFPARS_BUILTIN
+#define _YOYO_XTMPL_BUILTIN
 #endif
 
 #include "core.hc"
@@ -68,6 +72,10 @@ in this Software without prior written authorization of the copyright holder.
 #include "blowfish.hc"
 #include "pefile.hc"
 #include "lzss.hc"
+#include "xdata.hc"
+#include "defpars.hc"
+#include "xdataco.hc"
+#include "xtmpl.hc"
 
 /*
 #include "tcpip.hc"

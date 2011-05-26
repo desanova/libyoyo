@@ -237,6 +237,12 @@ _YOYO_STRING_EXTERN char Str_5bit_Encoding_Table_Upper[] /* 32 */
 #endif
   ;
 
+_YOYO_STRING_EXTERN char Str_6bit_Encoding_Table[] /* 64 */ 
+#ifdef _YOYO_STRING_BUILTIN
+  = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"
+#endif
+  ;
+
 char *Str_5bit_Encode(void *data,int len)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -261,7 +267,7 @@ void *Str_Xbit_Decode(char *inS, int len, int BC, byte_t *bit_table, void *out)
       {
         byte_t bits = bit_table[*S--];
         if ( bits == 255 )
-          Yo_Raise(YO_ERROR_CORRUPTED,
+          Yo_Raise(YOYO_ERROR_CORRUPTED,
             Yo_Format("bad symbol '%c' in encoded sequence",S[1])
             ,__Yo_FILE__,__LINE__);
         Bits_Push(bits,out,&count,BC);
@@ -353,6 +359,14 @@ char *Str_Hex_Encode(void *data, int len)
 #endif
   ;
 
+#define Str_Unhex_Half_Octet(c,r,i) \
+          if ( *c >= '0' && *c <= '9' ) \
+            r |= (*c-'0') << i; \
+          else if ( *c >= 'a' && *c <= 'f' ) \
+            r |= (*c-'a'+10) << i; \
+          else if ( *c >= 'A' && *c <= 'F' ) \
+            r |= (*c-'A'+10) << i; \
+
 byte_t Str_Unhex_Byte(char *S,int pfx,int *cnt)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -366,14 +380,9 @@ byte_t Str_Unhex_Byte(char *S,int pfx,int *cnt)
         else if ( *c == '%' ) ++c;
       }
     for ( i=4; i >= 0; i-=4, ++c )
-       {
-          if ( *c >= '0' && *c <= '9' ) 
-            r |= (*c-'0') << i;
-          else if ( *c >= 'a' && *c <= 'f' ) 
-            r |= (*c-'a'+10) << i;
-          else if ( *c >= 'A' && *c <= 'F' ) 
-            r |= (*c-'A'+10) << i;
-       }
+      {
+        Str_Unhex_Half_Octet(c,r,i);
+      }
     if ( cnt ) *cnt = c-(byte_t*)S;
     return r;
   }
@@ -397,6 +406,28 @@ void *Str_Hex_Decode(char *S,int *len)
       }
     
     return 0;
+  }
+#endif
+  ;
+
+void Unsigned_To_Hex8(uint_t val,char *out)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i;
+    for ( i = 0; i < 4; ++i )
+      Str_Hex_Byte((byte_t)(val>>(i*8)),0,out+i*2);
+  }
+#endif
+  ;
+
+uint_t Hex8_To_Unsigned(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    uint_t ret = 0;
+    int i;
+    for ( i = 0; i < 4; ++i )
+      ret |= ( (uint_t)Str_Unhex_Byte(S+i*2,0,0) << (i*8) );
+    return ret;
   }
 #endif
   ;
@@ -678,6 +709,60 @@ int Str_Starts_With(char *S, char *pat)
         return 0;
     return !*pat;
   }
+#endif
+  ;
+
+char *Str_From_Int(int value, int base)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+  }
+#endif
+  ;
+
+char *Str_From_Flt(double value, int perc)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+  }
+#endif
+  ;
+
+int Str_To_Bool(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+  }
+#endif
+  ;
+
+int Str_To_Int(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+  }
+#endif
+  ;
+
+int Str_To_Flt(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+  }
+#endif
+  ;
+
+int Str_Icmp(char *cs, char *ct, int count)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    if (count <= 0)
+      return 0;
+      
+    do 
+      {
+        if (tolower(*cs) != tolower(*ct++))
+          return 0;
+        if (*cs++ == 0)
+          break;
+      } while (--count != 0);
+
+    return 1;
+  }    
 #endif
   ;
 

@@ -55,10 +55,10 @@ void _Oj_Check_Buffer_Size_N_Alignment_8(int S_len)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
     if ( S_len < 8 ) 
-      Yo_Raise(YO_ERROR_NO_ENOUGH,"data buffer to small",__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_NO_ENOUGH,"data buffer to small",__Yo_FILE__,__LINE__);
     
     if ( S_len % 8 )
-      Yo_Raise(YO_ERROR_UNALIGNED,"data buffer should be aligned to 8 bytes",__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_UNALIGNED,"data buffer should be aligned to 8 bytes",__Yo_FILE__,__LINE__);
   }
 #endif
   ;

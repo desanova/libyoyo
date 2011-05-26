@@ -338,7 +338,7 @@ void Buffer_LZSS_Compress(YOYO_BUFFER *bf)
     free(b);
     
     if ( q < 0 )
-      Yo_Raise(YO_ERROR_COMPRESS_DATA,"uncompressable data",__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_COMPRESS_DATA,"uncompressable data",__Yo_FILE__,__LINE__);
   }
 #endif
   ;
@@ -348,7 +348,7 @@ void Buffer_LZSS_Decompress(YOYO_BUFFER *bf)
   {
     uint_t sz = Four_To_Unsigned(bf->at);
     if ( sz > bf->count*30 ) 
-      Yo_Raise(YO_ERROR_CORRUPTED,"is not LZSS compressed buffer",__Yo_FILE__,__LINE__); 
+      Yo_Raise(YOYO_ERROR_CORRUPTED,"is not LZSS compressed buffer",__Yo_FILE__,__LINE__); 
     else
       {
         void *b = Yo_Malloc_Npl(sz);
@@ -362,7 +362,7 @@ void Buffer_LZSS_Decompress(YOYO_BUFFER *bf)
         free(b);
     
         if ( q < 0 )
-          Yo_Raise(YO_ERROR_DECOMPRESS_DATA,"failed to decompress buffer",__Yo_FILE__,__LINE__);
+          Yo_Raise(YOYO_ERROR_DECOMPRESS_DATA,"failed to decompress buffer",__Yo_FILE__,__LINE__);
       }
   }
 #endif

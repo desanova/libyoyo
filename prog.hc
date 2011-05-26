@@ -163,13 +163,13 @@ void Prog_Parse_Command_Line(int argc, char **argv, char *patt, unsigned flags)
                         ++i;
                       }
                     else
-                        Yo_Raise(YO_ERROR_ILLFORMED,
+                        Yo_Raise(YOYO_ERROR_ILLFORMED,
                                   Yo_Format("comandline option -%s requires parameter",(L->at)[0]),
                                   __FILE__,__LINE__);
                   }
                                 
                 if ( a->features == PROG_PARAM_HAS_NO_ARGUMENT && L->count > 1 )
-                      Yo_Raise(YO_ERROR_ILLFORMED,
+                      Yo_Raise(YOYO_ERROR_ILLFORMED,
                                 Yo_Format("comandline option -%s does not have parameter",(L->at)[0]),
                                 __FILE__,__LINE__);
                 *a->present = 1;
@@ -177,7 +177,7 @@ void Prog_Parse_Command_Line(int argc, char **argv, char *patt, unsigned flags)
                   Array_Push(a->vals,Array_Take_Npl(L,1));
               }
             else
-                Yo_Raise(YO_ERROR_ILLFORMED,
+                Yo_Raise(YOYO_ERROR_ILLFORMED,
                           Yo_Format("unknown comandline option -%s",(L->at)[0]),
                           __FILE__,__LINE__);
           }

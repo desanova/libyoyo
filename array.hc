@@ -186,7 +186,7 @@ void Array_Del(YOYO_ARRAY *a,int pos,int n)
     if ( pos < 0 ) pos = a->count + pos;
     if ( n < 0 || pos + n > a->count ) n = a->count-pos;
     if ( pos < 0 || pos+n > a->count ) 
-      Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
 
     if ( destruct )
       for ( i = 0; i < n; ++i )
@@ -206,7 +206,7 @@ void *Array_Take_Npl(YOYO_ARRAY *a,int pos)
     
     if ( pos < 0 ) pos = a->count + pos;
     if ( pos < 0 || pos >= a->count ) 
-      Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
 
     Q = (a->at)[pos];
     
@@ -245,7 +245,7 @@ void Array_Insert(YOYO_ARRAY *a,int pos,void *p)
         void *self = a;
         void (*destruct)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
         if ( destruct ) destruct(p);
-        Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+        Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
       }
     
     capacity = Min_Pow2((a->count+1)*sizeof(void*));
@@ -269,7 +269,7 @@ void Array_Set(YOYO_ARRAY *a,int pos,void *val)
     if ( pos < 0 || pos >= a->count ) 
       {
         if ( destruct ) destruct(val);
-        Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+        Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
       }
       
     if ( destruct )
@@ -298,7 +298,7 @@ int Array_Sorted_Lower_Boundary(YOYO_ARRAY *a,void *val,int *found,int except)
         return p - a->at;
       }
     else if (except)
-      Yo_Raise(YO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
     else
       return -1;
       
@@ -325,7 +325,7 @@ void Array_Sorted_Insert(YOYO_ARRAY *a,void *p)
             void (*destructor)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
             if ( destructor )
               destructor(p);
-            Yo_Raise(YO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+            Yo_Raise(YOYO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
           }
           
         if ( !found )
@@ -381,7 +381,7 @@ void Array_Sort(YOYO_ARRAY *a)
           #endif
           }
         else
-          Yo_Raise(YO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+          Yo_Raise(YOYO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
       }
   }
 #endif
@@ -483,7 +483,7 @@ void *Array_At(YOYO_ARRAY *a,int pos)
       {
         if ( pos < 0 ) pos = a->count + pos;
         if ( pos < 0 || pos >= a->count ) 
-          Yo_Raise(YO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+          Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
         return Array_AT(a,pos);
       }
     return 0;

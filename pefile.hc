@@ -327,7 +327,7 @@ void Pe_Validate_Headers(void *pe)
 #ifdef _YOYO_PEFILE_BUILTIN
   {
     if ( !Pe_Headers_Is_Valid(pe) )
-      __Raise(YO_ERROR_CORRUPTED,"there is not PE headers");
+      __Raise(YOYO_ERROR_CORRUPTED,"there is not PE headers");
   }
 #endif
   ;

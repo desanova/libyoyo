@@ -48,7 +48,7 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_RANDOM_EXTERN extern
 #endif
 
-void System_Random(void *bits,int count)
+void System_Random(void *bits,int count /* of bytes*/ )
 #ifdef _YOYO_RANDOM_BUILTIN
   {
   #ifndef __windoze
@@ -61,7 +61,7 @@ void System_Random(void *bits,int count)
             if ( rd < 0 )
               {
                 close(fd);
-                Yo_Raise(YO_ERROR_IO,
+                Yo_Raise(YOYO_ERROR_IO,
                   _YOYO_DEV_RANDOM " does not have required data: failed to read",
                   __FILE__,__LINE__);
               }
@@ -95,7 +95,7 @@ void System_Random(void *bits,int count)
   #endif      
   simulate:
   #ifdef _STRICT
-    Yo_Raise(YO_ERROR_IO,_YOYO_DEV_RANDOM " is not accessable",__Yo_FILE__,__LINE__);
+    Yo_Raise(YOYO_ERROR_IO,_YOYO_DEV_RANDOM " is not accessable",__Yo_FILE__,__LINE__);
   #else
     if ( 1 )
       {

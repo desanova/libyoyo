@@ -36,6 +36,7 @@ in this Software without prior written authorization of the copyright holder.
 
 #ifndef __windoze
 # include <dirent.h>
+# include <sys/file.h>
 #endif
 
 #ifdef _YOYO_FILE_BUILTIN
@@ -57,7 +58,15 @@ char *Path_Basename(char *path, char *sfx)
 char *Path_Dirname(char *path)
 #ifdef _YOYO_FILE_BUILTIN
   {
-    return 0;
+    char *ret = 0;
+    char *p = strrchr(path,'/');
+  #ifdef __windoze
+    char *p2 = strrchr(path,'\\');
+    if ( !p || p < p2 ) p = p2;
+  #endif
+    if ( p )
+      ret = Str_Copy(path,p-path);
+    return ret;
   }
 #endif
   ;
@@ -112,12 +121,15 @@ void File_Check_Error(char *op, FILE *f, char *fname, int look_to_errno)
       }
     
     if (err)
-      Yo_Raise(YO_ERROR_IO,
+      Yo_Raise(YOYO_ERROR_IO,
         Yo_Format("%s failed on file '%s': %s",op,fname,errS),
         __FILE__,__LINE__);
   }
 #endif
   ;
+
+#define Raise_If_File_Error(Op,Fname) File_Check_Error(Op,0,Fname,1)
+  
 
 typedef struct _YOYO_FILE_STATS
   {
@@ -409,7 +421,7 @@ int Raise_If_Cfile_Is_Not_Opened(YOYO_CFILE *f)
 #ifdef _YOYO_FILE_BUILTIN
   {
     if ( !f || !f->fd )
-      Yo_Raise(YO_ERROR_IO,
+      Yo_Raise(YOYO_ERROR_IO,
         Yo_Format("file '%s' is already closed",f->name)
         ,__Yo_FILE__,__LINE__);
     return 1;
@@ -530,7 +542,7 @@ int Cfile_Read(YOYO_CFILE *f, void *buf, int count, int min_count)
                     if ( cc >= min_count ) 
                       break;
                     else 
-                      Yo_Raise(YO_ERROR_IO,
+                      Yo_Raise(YOYO_ERROR_IO,
                         Yo_Format("end of file '%s'",f->name), __FILE__,__LINE__);
                   }
                 else 
@@ -725,7 +737,7 @@ YOYO_BUFFER *Cfile_Read_All(YOYO_CFILE *f)
         void *L;
         quad_t len = Cfile_Available(f);
         if ( len > INT_MAX )
-          Yo_Raise(YO_ERROR_IO,
+          Yo_Raise(YOYO_ERROR_IO,
             "file to big to be read in one pass",__Yo_FILE__,__LINE__);
         L = Buffer_Init((int)len);
         if ( len )
@@ -830,19 +842,19 @@ void File_Check_Access_Is_Satisfied(char *path, uint_t access)
 
     if ( (access & YOYO_FILE_CREATE_PATH) && !st.f.exists )
       Create_Required_Dirs(path);
-
+      
     if ( st.f.exists )
       if (st.f.is_directory )
-        Yo_Raise(YO_ERROR_IO,
+        Yo_Raise(YOYO_ERROR_IO,
           Yo_Format("file '%s' is directory",path),__Yo_FILE__,__LINE__);
       else if ( (access & YOYO_FILE_CREATE_MASK) == YOYO_FILE_CREATENEW  )
-        Yo_Raise(YO_ERROR_IO,
+        Yo_Raise(YOYO_ERROR_IO,
           Yo_Format("file '%s' already exists",path),__Yo_FILE__,__LINE__);
       else if ( (access & YOYO_FILE_CREATE_MASK) == YOYO_FILE_CREATEALWAYS )
         File_Unlink(path,0);
       else;
     else if ( (access & YOYO_FILE_CREATE_MASK) == YOYO_FILE_OPENEXISTS )
-      Yo_Raise(YO_ERROR_DOESNT_EXIST,
+      Yo_Raise(YOYO_ERROR_DOESNT_EXIST,
         Yo_Format("file '%s' does not exist",path),__Yo_FILE__,__LINE__);
   }
 #endif
@@ -864,6 +876,7 @@ uint_t File_Access_From_Str(char *S)
             |YOYO_FILE_OPENALWAYS;
           case 'w': access |= YOYO_FILE_WRITE|YOYO_FILE_OVERWRITE; break;
           case 'c': access |= YOYO_FILE_WRITE|YOYO_FILE_CREATEALWAYS; break;
+          case 'n': access |= YOYO_FILE_WRITE|YOYO_FILE_CREATENEW; break;
           case 't': access |= YOYO_FILE_TEXT; break;
           case 'P': access |= YOYO_FILE_CREATE_PATH; break;
           default: break;
@@ -874,6 +887,60 @@ uint_t File_Access_From_Str(char *S)
   ;
 
 #define File_Open(Name,Access) Cfile_Open(Name,Access)
+
+void Cfile_Remove_Nonstandard_AC(char *nonst, char *ac)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int ac_a = 0;
+    int ac_r = 0;
+    int ac_w = 0;
+    int ac_plus = 0;
+    int ac_t = 0;
+    int ac_b = 0;
+    
+    for ( ; *nonst; ++nonst )
+      switch ( *nonst )
+        {
+          case '+': ac_plus = 1; break;
+          case 'r': ac_r = 1; break;
+          case 'w': ac_w = 1; break;
+          case 'a': ac_a = 1; break;
+          case 't': ac_t = 1; break;
+          case 'b': ac_b = 1; break;
+          case 'n': ac_w = ac_plus = 1; break;
+        }
+        
+    if ( ac_w ) *ac++ = 'w';
+    else if ( ac_r ) *ac++ = 'r';
+    if ( ac_plus ) *ac++ = '+';
+    if ( ac_t ) *ac++ = 't';
+    else *ac++ = 'b';    
+    *ac = 0;
+  }
+#endif
+  ;
+
+void *Cfile_Open_Raw(char *name, char *access)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    char ac[9];
+    void *f = 0;
+    
+    // always binary mode if 't' not declared manualy
+    Cfile_Remove_Nonstandard_AC(access,ac);
+    
+    #ifdef __windoze
+      if ( 0 != (f = _wfopen(Str_Utf8_To_Unicode(name),Str_Utf8_To_Unicode(ac))) )
+    #else
+      if ( 0 != (f = fopen(name,ac)) )
+    #endif
+        f = Cfile_Object(f,name,0);
+        
+    return f;
+  }
+#endif
+  ;
+
 void *Cfile_Open(char *name, char *access)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -881,13 +948,8 @@ void *Cfile_Open(char *name, char *access)
     __Auto_Ptr(f)
       {
         File_Check_Access_Is_Satisfied(name,File_Access_From_Str(access));
-      #ifdef __windoze
-        if ( 0 != (f = _wfopen(Str_Utf8_To_Unicode(name),Str_Utf8_To_Unicode(access))) )
-      #else
-        if ( 0 != (f = fopen(name,access)) )
-      #endif
-          f = Cfile_Object(f,name,0);
-        else
+        f = Cfile_Open_Raw(name,access);
+        if ( !f )
           File_Check_Error("open file",0,name,1);
       }
     return f;
@@ -897,6 +959,49 @@ void *Cfile_Open(char *name, char *access)
 
 #define Cfile_Acquire(Name,Fd) Cfile_Object(Fd,Name,0)
 #define Cfile_Share(Name,Fd)   Cfile_Object(Fd,Name,1)
+
+
+#define __Pfd_Lock(Pfd) __Interlock_Opt( (void)0, Pfd, __Pfd_Lock_In, __Pfd_Lock_Out, __Pfd_Lock_Out )
+
+#ifdef __windoze
+
+#define   LOCK_SH   1    /* shared lock */
+#define   LOCK_EX   2    /* exclusive lock */
+#define   LOCK_NB   4    /* don't block when locking */
+#define   LOCK_UN   8    /* unlock */
+
+int flock(int fd, int opt)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    return 0;
+  }
+#endif
+  ;
+
+#endif /* __windoze */
+
+void __Pfd_Lock_In(int *pfd) 
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    STRICT_REQUIRE(pfd);
+    
+    if ( flock(*pfd,LOCK_EX) )
+      __Raise(YOYO_ERROR_IO,"failed to lock file");
+  }
+#endif
+  ;
+
+void __Pfd_Lock_Out(int *pfd) 
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    STRICT_REQUIRE(pfd);
+    
+    if ( flock(*pfd,LOCK_UN) )
+      if ( errno != EBADF )
+        __Fatal(YOYO_FATAL_ERROR,"failed to unlock file");
+  }
+#endif
+  ;
 
 #endif /* C_once_E9479D04_5D69_4A1A_944F_0C99A852DC0B */
 
