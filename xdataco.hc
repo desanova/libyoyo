@@ -41,8 +41,8 @@ enum
     YOYO_XDATA_CO_DOC_TEXT   = 'A',
     YOYO_XDATA_CO_DOC_BINARY = 'B',
     YOYO_XDATA_CO_DOC_ZIPPED = 'Z',
-    YOYO_XDATA_CO_MEDIA_FS   = 'FS',
-    YOYO_XDATA_CO_MEDIA_TbDB = 'TbDB',
+    YOYO_XDATA_CO_MEDIA_FS   = 0x4653 /* 'FS' */,
+    YOYO_XDATA_CO_MEDIA_BDB  = 0x424424 /* 'BDB' */,
   };
 
 typedef struct _YOYO_XDATA_CO
@@ -160,9 +160,9 @@ int Xdata_Co_Parse_Media(char *S)
     if ( S )
       {
         if ( !strcmp(S,"fs") ) return YOYO_XDATA_CO_MEDIA_FS;
-        if ( !strcmp(S,"tbdb") ) return YOYO_XDATA_CO_MEDIA_TbDB;
+        if ( !strcmp(S,"bdb") ) return YOYO_XDATA_CO_MEDIA_BDB;
       }
-    __Raise(YOYO_ERROR_ILLFORMED,"invalid media type, should be 'fs' or 'tbdb'");
+    __Raise(YOYO_ERROR_ILLFORMED,"invalid media type, should be 'fs' or 'bdb'");
     return 0; /* fake */
   }
 

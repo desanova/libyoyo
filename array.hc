@@ -269,7 +269,7 @@ void Array_Set(YOYO_ARRAY *a,int pos,void *val)
     if ( pos < 0 || pos >= a->count ) 
       {
         if ( destruct ) destruct(val);
-        Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+        __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
       }
       
     if ( destruct )
@@ -298,7 +298,7 @@ int Array_Sorted_Lower_Boundary(YOYO_ARRAY *a,void *val,int *found,int except)
         return p - a->at;
       }
     else if (except)
-      Yo_Raise(YOYO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+      __Raise(YOYO_ERROR_UNSORTABLE,__yoTa("array is unsortable",0));
     else
       return -1;
       
@@ -325,7 +325,7 @@ void Array_Sorted_Insert(YOYO_ARRAY *a,void *p)
             void (*destructor)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
             if ( destructor )
               destructor(p);
-            Yo_Raise(YOYO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+            __Raise(YOYO_ERROR_UNSORTABLE,__yoTa("array is unsortable",0));
           }
           
         if ( !found )
@@ -381,7 +381,7 @@ void Array_Sort(YOYO_ARRAY *a)
           #endif
           }
         else
-          Yo_Raise(YOYO_ERROR_UNSORTABLE,"array is unsortable",__Yo_FILE__,__LINE__);
+          __Raise(YOYO_ERROR_UNSORTABLE,__yoTa("array is unsortable",0));
       }
   }
 #endif

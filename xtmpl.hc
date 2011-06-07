@@ -160,9 +160,11 @@ char *Xtmpl_Produce_Out(YOYO_BUFFER *bf, YOYO_XDATA *tmpl, YOYO_XDATA *model)
   {
     if ( !bf ) bf = Buffer_Init(0);
     
-    for ( )
+    for (;;)
       {
       }
+      
+    return Buffer_Take_Data(bf);
   }
 
 #endif /* C_once_40BDAC30_45A4_4FC1_810C_05757F2DC413 */

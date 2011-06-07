@@ -74,17 +74,25 @@ char *WinReg_Query_String(YOYO_WINREG *o,char *opt)
         DWORD ltype = REG_SZ;
         long err = 0;
         DWORD L = 0;
-        RegQueryValueExW(o->hkey,name,0,&ltype,0,&L);
-        buf = Yo_Malloc((L+1)*sizeof(wchar_t));
-        buf[L] = 0;
+
+        if ( ERROR_SUCCESS != (err=RegQueryValueExW(o->hkey,name,0,&ltype,0,&L)) )
+          __Raise(YOYO_ERROR_IO,
+            __Format("failed to query value '%s' of '%s': error %08x", (opt?opt:""),o->name,err));
+
+        if ( ltype != REG_SZ )
+          __Raise(YOYO_ERROR_IO,
+            Yo_Format("failed to query value '%s' of '%s': is not string value",(opt?opt:""),o->name));
+
+        //buf = Yo_Malloc((L+1)*sizeof(wchar_t));
+        buf = Yo_Malloc(L+1);
+        buf[L/sizeof(wchar_t)] = 0;
+        
         if ( ERROR_SUCCESS == (err=RegQueryValueExW(o->hkey,name,0,&ltype,(LPBYTE)buf,&L)) )
           ret = Str_Unicode_To_Utf8(buf);
         else
           if ( err != ERROR_FILE_NOT_FOUND )
-            Yo_Raise(YOYO_ERROR_IO,
-              Yo_Format("failed to query value '%s' of '%s': error %08x",
-                        (opt?opt:""),o->name,err),
-              __FILE__,__LINE__);
+          __Raise(YOYO_ERROR_IO,
+            __Format("failed to query value '%s' of '%s': error %08x", (opt?opt:""),o->name,err));
       }
     return ret;
   }
@@ -100,11 +108,9 @@ void WinReg_Set_String(YOYO_WINREG *o,char *opt,char *val)
         wchar_t *str  = val?Str_Utf8_To_Unicode(val):L"";
         DWORD ltype = REG_SZ;
         long err = 0;
-        if ( ERROR_SUCCESS != (err=RegSetValueExW(o->hkey,name,0,ltype,(LPBYTE)str,(Str_Length(val)+1))) )
-          Yo_Raise(YOYO_ERROR_IO,
-            Yo_Format("failed to set value '%s' of '%s': error %08x",
-                      (opt?opt:""),o->name,err),
-            __FILE__,__LINE__);
+        if ( ERROR_SUCCESS != (err=RegSetValueExW(o->hkey,name,0,ltype,(LPBYTE)str,(Str_Length(val)+1)*sizeof(wchar_t))) )
+          __Raise(YOYO_ERROR_IO,
+            __Format("failed to set value '%s' of '%s': error %08x",(opt?opt:""),o->name,err));
       }
   }
 #endif
@@ -125,10 +131,8 @@ ulong_t WinReg_Query_Dword(YOYO_WINREG *o,char *opt)
           ret = buf;
         else
           if ( err != ERROR_FILE_NOT_FOUND )
-            Yo_Raise(YOYO_ERROR_IO,
-              Yo_Format("failed to query value '%s' of '%s': error %08x",
-                        (opt?opt:""),o->name,err),
-              __FILE__,__LINE__);
+            __Raise(YOYO_ERROR_IO,
+              __Format("failed to query value '%s' of '%s': error %08x", (opt?opt:""),o->name,err));
       }
     return ret;
   }
@@ -145,10 +149,8 @@ void WinReg_Set_Dword(YOYO_WINREG *o,char *opt,ulong_t val)
         DWORD buf = val;
         long err = 0;
         if ( ERROR_SUCCESS != (err=RegSetValueExW(o->hkey,name,0,ltype,(LPBYTE)&buf,4)) )
-          Yo_Raise(YOYO_ERROR_IO,
-            Yo_Format("failed to set value '%s' of '%s': error %08x",
-                      (opt?opt:""),o->name,err),
-            __FILE__,__LINE__);
+          __Raise(YOYO_ERROR_IO,
+            __Format("failed to set value '%s' of '%s': error %08x",(opt?opt:""),o->name,err));
       }
   }
 #endif
@@ -171,10 +173,8 @@ void *WinReg_Query_Binary(YOYO_WINREG *o,char *opt)
           ret = bf;
         else
           if ( err != ERROR_FILE_NOT_FOUND )
-            Yo_Raise(YOYO_ERROR_IO,
-              Yo_Format("failed to query value '%s' of '%s': error %08x",
-                        (opt?opt:""),o->name,err),
-              __FILE__,__LINE__);
+            __Raise(YOYO_ERROR_IO,
+              __Format("failed to query value '%s' of '%s': error %08x", (opt?opt:""),o->name,err));
       }
     return ret;
   }
@@ -190,9 +190,8 @@ void WinReg_Set_Binary(YOYO_WINREG *o,char *opt,void *val, int val_len)
         DWORD ltype = REG_BINARY;
         long err = 0;
         if ( ERROR_SUCCESS != (err=RegSetValueExW(o->hkey,name,0,ltype,val,val_len)) )
-          Yo_Raise(YOYO_ERROR_IO,
-            Yo_Format("failed to set value '%s' of '%s': error %08x",(opt?opt:""),o->name,err),
-            __FILE__,__LINE__);
+          __Raise(YOYO_ERROR_IO,
+            __Format("failed to set value '%s' of '%s': error %08x",(opt?opt:""),o->name,err));
       }
   }
 #endif
@@ -206,10 +205,8 @@ void WinReg_Delete_Value(YOYO_WINREG *o,char *opt)
         int err;
         wchar_t *name = opt?Str_Utf8_To_Unicode(opt):L"";
         if ( ERROR_SUCCESS != (err=RegDeleteValueW(o->hkey,name)) )
-          Yo_Raise(YOYO_ERROR_IO,
-            Yo_Format("failed to delete value '%s' of '%s': error %08x",
-                      (opt?opt:""),o->name,err),
-            __FILE__,__LINE__);
+          __Raise(YOYO_ERROR_IO,
+            __Format("failed to delete value '%s' of '%s': error %08x",(opt?opt:""),o->name,err));
       }
   }
 #endif
@@ -229,7 +226,7 @@ void *WinReg_Open_Or_Create_Hkey(HKEY master, char *subkey, int create_if_need, 
             {Oj_Close_OjMID,     WinReg_Close},
             {0}};
         
-        ret = Yo_Object(sizeof(YOYO_WINREG),funcs);
+        ret = __Object(sizeof(YOYO_WINREG),funcs);
         name = Str_Utf8_To_Unicode(subkey);
         if ( parent_name )
           ret->name = Str_Join_Npl_2('\\',parent_name,subkey);
@@ -239,18 +236,14 @@ void *WinReg_Open_Or_Create_Hkey(HKEY master, char *subkey, int create_if_need, 
         if ( create_if_need )
           {
             if ( ERROR_SUCCESS != (err = RegCreateKeyExW(master,name,0,0,0,KEY_ALL_ACCESS,0,&ret->hkey,0)) )
-              Yo_Raise(YOYO_ERROR_IO,
-                    Yo_Format("failed to create winreg key '%s': error %08x",
-                              ret->name,err),
-                    __FILE__,__LINE__);
+              __Raise(YOYO_ERROR_IO,
+                __Format("failed to create winreg key '%s': error %08x",ret->name,err));
           }
         else
           {
             if ( ERROR_SUCCESS != (err = RegOpenKeyExW(master,name,0,KEY_ALL_ACCESS,&ret->hkey)) )
-              Yo_Raise(YOYO_ERROR_IO,
-                    Yo_Format("failed to open winreg key '%s': error %08x",
-                              ret->name,err),
-                    __FILE__,__LINE__);
+              __Raise(YOYO_ERROR_IO,
+                __Format("failed to open winreg key '%s': error %08x",ret->name,err));
           }
       }
     return ret;
@@ -285,10 +278,10 @@ void *WinReg_Open_Or_Create(char *subkey, int create_if_need)
           parent = str_vars[i];
           break;
         }
+
     if ( !master )
-      Yo_Raise(YOYO_ERROR_DOESNT_EXIST,
-              Yo_Format("registry key '%s' doesn't exist",subkey),
-              __FILE__,__LINE__);
+      __Raise(YOYO_ERROR_DOESNT_EXIST,
+        __Format("registry key '%s' doesn't exist",subkey));
     
     return WinReg_Open_Or_Create_Hkey(master,name,create_if_need,parent);
   }

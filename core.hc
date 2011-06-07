@@ -33,6 +33,9 @@ in this Software without prior written authorization of the copyright holder.
 /* markers */
 #define __Acquire /* a function acquire the ownership of argument */
 
+#ifndef __yoTa
+# define __yoTa(Text,NumId) Text
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -140,54 +143,54 @@ _YOYO_CORE_EXTERN char Oj_Del_Lkey_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = ">~L>/@L"
 enum _YOYO_ERRORS
   {
     YOYO_FATAL_ERROR_GROUP          = 0x70000000,
-    YO_USER_ERROR_GROUP           = 0x00010000,
-    YO_IO_ERROR_GROUP             = 0x00020000,
-    YO_TCPIP_ERROR_GROUP          = 0x00040000,
-    YO_RUNTIME_ERROR_GROUP        = 0x00080000,
-    YO_SELFCHECK_ERROR_GROUP      = 0x00100000,
-    YO_ENCODING_ERROR_GROUP       = 0x00200000,
-    YO_ILLFORMED_ERROR_GROUP      = 0x00400000,
-    YO_RANGE_ERROR_GROUP          = 0x00800000,
-    YO_CORRUPTED_ERROR_GROUP      = 0x01000000,
-    YO_STORAGE_ERROR_GROUP        = 0x02000000,
+    YOYO_USER_ERROR_GROUP           = 0x00010000,
+    YOYO_IO_ERROR_GROUP             = 0x00020000,
+    YOYO_TCPIP_ERROR_GROUP          = 0x00040000,
+    YOYO_RUNTIME_ERROR_GROUP        = 0x00080000,
+    YOYO_SELFCHECK_ERROR_GROUP      = 0x00100000,
+    YOYO_ENCODING_ERROR_GROUP       = 0x00200000,
+    YOYO_ILLFORMED_ERROR_GROUP      = 0x00400000,
+    YOYO_RANGE_ERROR_GROUP          = 0x00800000,
+    YOYO_CORRUPTED_ERROR_GROUP      = 0x01000000,
+    YOYO_STORAGE_ERROR_GROUP        = 0x02000000,
     
-    YO_XXXX_ERROR_GROUP       = 0x7fff0000,
-    YO_RERAISE_CURRENT_ERROR  = 0x7fff7fff,
+    YOYO_XXXX_ERROR_GROUP           = 0x7fff0000,
+    YO_RERAISE_CURRENT_ERROR        = 0x7fff7fff,
     
-    YO_TRACED_ERROR_GROUP     = YOYO_FATAL_ERROR_GROUP
-                                |YO_RANGE_ERROR_GROUP
-                                |YO_SELFCHECK_ERROR_GROUP,
+    YOYO_TRACED_ERROR_GROUP     = YOYO_FATAL_ERROR_GROUP
+                                |YOYO_RANGE_ERROR_GROUP
+                                |YOYO_SELFCHECK_ERROR_GROUP,
     
     YOYO_ERROR_BASE             = 0x00008000,
     
     YOYO_ERROR_OUT_OF_MEMORY    = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+1),
     YOYO_FATAL_ERROR            = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+2),
     YOYO_ERROR_DYNCO_CORRUPTED  = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+3),
-    YOYO_ERROR_METHOD_NOT_FOUND = YO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+4),
+    YOYO_ERROR_METHOD_NOT_FOUND = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+4),
     YOYO_ERROR_REQUIRE_FAILED   = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+5),
-    YOYO_ERROR_ILLFORMED        = YO_ILLFORMED_ERROR_GROUP|(YOYO_ERROR_BASE+6),
+    YOYO_ERROR_ILLFORMED        = YOYO_ILLFORMED_ERROR_GROUP|(YOYO_ERROR_BASE+6),
     YOYO_ERROR_OUT_OF_POOL      = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+7),
     YOYO_ERROR_UNEXPECTED       = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+8),
-    YOYO_ERROR_OUT_OF_RANGE     = YO_RANGE_ERROR_GROUP|(YOYO_ERROR_BASE+9),
+    YOYO_ERROR_OUT_OF_RANGE     = YOYO_RANGE_ERROR_GROUP|(YOYO_ERROR_BASE+9),
     YOYO_ERROR_NULL_PTR         = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+10),
-    YOYO_ERROR_CORRUPTED        = YO_CORRUPTED_ERROR_GROUP|(YOYO_ERROR_BASE+11),
-    YOYO_ERROR_IO               = YO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+12),
-    YOYO_ERROR_UNSORTABLE       = YO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+13),
-    YOYO_ERROR_DOESNT_EXIST     = YO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+14),
-    YOYO_ERROR_ACCESS_DENAIED   = YO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+15),
-    YOYO_ERROR_NO_ENOUGH        = YO_ILLFORMED_ERROR_GROUP|(YOYO_ERROR_BASE+16),
-    YOYO_ERROR_UNALIGNED        = YO_ILLFORMED_ERROR_GROUP|(YOYO_ERROR_BASE+17),
-    YOYO_ERROR_COMPRESS_DATA    = YO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+18),
-    YOYO_ERROR_ENCRYPT_DATA     = YO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+19),
-    YOYO_ERROR_DECOMPRESS_DATA  = YO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+20),
-    YOYO_ERROR_DECRYPT_DATA     = YO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+21),
-    YOYO_ERROR_INVALID_PARAM    = YO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+22),
+    YOYO_ERROR_CORRUPTED        = YOYO_CORRUPTED_ERROR_GROUP|(YOYO_ERROR_BASE+11),
+    YOYO_ERROR_IO               = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+12),
+    YOYO_ERROR_UNSORTABLE       = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+13),
+    YOYO_ERROR_DOESNT_EXIST     = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+14),
+    YOYO_ERROR_ACCESS_DENAIED   = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+15),
+    YOYO_ERROR_NO_ENOUGH        = YOYO_ILLFORMED_ERROR_GROUP|(YOYO_ERROR_BASE+16),
+    YOYO_ERROR_UNALIGNED        = YOYO_ILLFORMED_ERROR_GROUP|(YOYO_ERROR_BASE+17),
+    YOYO_ERROR_COMPRESS_DATA    = YOYO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+18),
+    YOYO_ERROR_ENCRYPT_DATA     = YOYO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+19),
+    YOYO_ERROR_DECOMPRESS_DATA  = YOYO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+20),
+    YOYO_ERROR_DECRYPT_DATA     = YOYO_ENCODING_ERROR_GROUP|(YOYO_ERROR_BASE+21),
+    YOYO_ERROR_INVALID_PARAM    = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+22),
     YOYO_ERROR_UNEXPECTED_VALUE = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+23),
-    YOYO_ERROR_ALREADY_EXISTS   = YO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+24),
-    YOYO_ERROR_INCONSISTENT     = YO_STORAGE_ERROR_GROUP|(YOYO_ERROR_BASE+25),
+    YOYO_ERROR_ALREADY_EXISTS   = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+24),
+    YOYO_ERROR_INCONSISTENT     = YOYO_STORAGE_ERROR_GROUP|(YOYO_ERROR_BASE+25),
   };
 
-#define YOYO_ERROR_IS_USER_ERROR(err) !(err&YO_XXXX_ERROR_GROUP)
+#define YOYO_ERROR_IS_USER_ERROR(err) !(err&YOYO_XXXX_ERROR_GROUP)
 
 enum _YOYO_FLAGS
   {
@@ -636,9 +639,7 @@ void *Yo_Unwind_Scope(void *pooled,int min_top)
           }
         nfo->stats.unwinding = 0;
       }
-    #ifdef _TRACE
-      printf("unwind: released %d ptrs, still pooled %d ptrs\n",counter,nfo->auto_top+1);
-    #endif
+    //printf("unwind: released %d ptrs, still pooled %d ptrs\n",counter,nfo->auto_top+1);
     return pooled;
   }
 #endif
@@ -659,6 +660,14 @@ void *Yo_Refresh_Ptr(void *old,void *new,void *cleaner)
     else
       Yo_Pool_Ptr(new,cleaner);
     return new;
+  }
+#endif
+  ;
+
+int Yo_Pool_Purge(int *thold, int cap)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    return 1;
   }
 #endif
   ;
@@ -705,6 +714,17 @@ void *Yo_Resize(void *p,unsigned size,int granularity)
   }
 #endif
   ;
+  
+#ifdef __windoze
+  #ifdef __VSCPRINTF
+int _vscprintf(char *fmt,va_list va)
+  {
+    static char simulate[4096*4] = {0};
+    return vsprintf(simulate,fmt,va);
+  }
+  #endif
+#endif
+  
   
 int Yo_Detect_Required_Buffer_Size(char *fmt,va_list va)
 #ifdef _YOYO_CORE_BUILTIN
@@ -827,7 +847,7 @@ void *Yo_Object_Extend( void *o, char *func_name, void *func )
     YOYO_OBJECT *T = YOYO_BASE(o);
     YOYO_FUNCTABLE *f;
     if ( !T )
-      Yo_Raise(YOYO_ERROR_NULL_PTR,"failed to extend nullptr",__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_NULL_PTR,__yoTa("failed to extend nullptr",0),__Yo_FILE__,__LINE__);
     
     if ( T->dynamic )
       {
@@ -859,7 +879,7 @@ void *Yo_Object_Clone(int size, void *orign)
     YOYO_OBJECT *o;
     YOYO_OBJECT *T = YOYO_BASE(orign);
     if ( !T )
-      Yo_Raise(YOYO_ERROR_NULL_PTR,"failed to clone nullptr",__Yo_FILE__,__LINE__);
+      Yo_Raise(YOYO_ERROR_NULL_PTR,__yoTa("failed to clone nullptr",0),__Yo_FILE__,__LINE__);
     
     o = Yo_Malloc_Npl(sizeof(YOYO_OBJECT)+size);
     o->signature = 'OYOY';
@@ -1124,7 +1144,7 @@ char *Error_File(void)
     YOYO_ERROR_INFO *info = Error_Info();
     if ( info && info->filename )
       return info->filename;
-    return "<file>";
+    return __yoTa("<file>",0);
   }
 #endif
   ;
@@ -1143,7 +1163,7 @@ int Error_Line(void)
 char *Error_Print_N_Exit(char *prefix, int code) 
 #ifdef _YOYO_CORE_BUILTIN  
   {
-    StdErr_Print_Nl(Yo_Format("%s: %s",prefix,Error_Message()));
+    StdErr_Print_Nl(Yo_Format(__yoTa("%s: %s",0),prefix,Error_Message()));
     exit(code);
   }
 #endif
@@ -1194,7 +1214,7 @@ void Yo_JmpBuf_Push_Cs(void *cs,Yo_JMPBUF_Unlock unlock)
                   locks[i].unlock = unlock;
                   return;
                 }
-            Yo_Fatal(YOYO_FATAL_ERROR,"no enough lock space",__FILE__,__LINE__);
+            Yo_Fatal(YOYO_FATAL_ERROR,__yoTa("no enough lock space",0),__FILE__,__LINE__);
           }
       }
   }
@@ -1220,7 +1240,7 @@ void Yo_JmpBuf_Pop_Cs(void *cs)
                   memset(&locks[i],0,sizeof(locks[i]));
                   return;
                 }
-            Yo_Fatal(YOYO_FATAL_ERROR,"trying to pop unexistent lock",__FILE__,__LINE__);
+            Yo_Fatal(YOYO_FATAL_ERROR,__yoTa("trying to pop unexistent lock",0),__FILE__,__LINE__);
           }
       }
   }
@@ -1307,14 +1327,14 @@ char *Yo_Btrace_Format(int frames, void **cbk)
 #ifdef _YOYO_CORE_BUILTIN
   {
   #ifdef __windoze
-    return "--backtrace--";
+    return __yoTa("--backtrace--",0);
   #else
     int  max_bt = 4096;
     char *bt = Yo_Malloc(max_bt);
     char *bt_p = bt;
     int i;
     
-    i = snprintf(bt_p,max_bt,"--backtrace--");
+    i = snprintf(bt_p,max_bt,__yoTa("--backtrace--",0);
     bt_p+=i;
     max_bt-=i;
     memset(bt_p,0,max_bt--);
@@ -1326,7 +1346,7 @@ char *Yo_Btrace_Format(int frames, void **cbk)
           {
             int dif = (char*)cbk[i]-(char*)dlinfo.dli_saddr;
             char c = dif > 0?'+':'-'; 
-            int l = snprintf(bt_p,max_bt,"\n %-2d=> %s %c%x (%p at %s)",
+            int l = snprintf(bt_p,max_bt,__yoTa("\n %-2d=> %s %c%x (%p at %s)",0),
                i,
                dlinfo.dli_sname, 
                c, 
@@ -1352,7 +1372,7 @@ char *Yo_Btrace(void)
 #ifdef _YOYO_CORE_BUILTIN
   {
   #ifdef __windoze
-    return "--backtrace--";
+    return __yoTa("--backtrace--",0);
   #else
     void *cbk[128] = {0};
     int frames = backtrace(cbk,127);
@@ -1362,7 +1382,7 @@ char *Yo_Btrace(void)
 #endif
   ;
 
-char *Error_Format_Btrace(void)
+char *Yo_Error_Format_Btrace(void)
 #ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_ERROR_INFO *info = Error_Info();
@@ -1370,7 +1390,7 @@ char *Error_Format_Btrace(void)
       {
         return Yo_Btrace_Format(info->bt_count,info->bt_cbk);
       }
-    return "--backtrace--\n   unavailable";
+    return __yoTa("--backtrace--\n   unavailable",0);
   }
 #endif
   ;
@@ -1378,10 +1398,10 @@ char *Error_Format_Btrace(void)
 void Yo_Btrace_N_Abort(char *prefix, char *msg, char *filename, int lineno)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    char *at = filename?Yo_Format_Npl(" [%s(%d)]",Yo__basename(filename),lineno):"";
-    char *pfx = prefix?Yo_Format_Npl("%s: ",prefix):"";
+    char *at = filename?Yo_Format_Npl(__yoTa(" [%s(%d)]",0),Yo__basename(filename),lineno):"";
+    char *pfx = prefix?Yo_Format_Npl(__yoTa("%s: ",0),prefix):"";
     StdErr_Print_Nl(Yo_Btrace());
-    Yo_Abort(Yo_Format_Npl("%s%s%s",pfx,msg,at));
+    Yo_Abort(Yo_Format_Npl(__yoTa("%s%s%s",0),pfx,msg,at));
   }
 #endif
   ;
@@ -1392,18 +1412,18 @@ void _Yo_Fatal(int err,void *ctx,char *filename,int lineno)
     switch (err)
       {
         case YOYO_ERROR_OUT_OF_MEMORY:
-          Yo_Abort("out of memory");
+          Yo_Abort(__yoTa("out of memory",0));
         case YOYO_ERROR_REQUIRE_FAILED:
-          Yo_Btrace_N_Abort("require",ctx,filename,lineno);
+          Yo_Btrace_N_Abort(__yoTa("require",0),ctx,filename,lineno);
         case YOYO_FATAL_ERROR:
-          Yo_Btrace_N_Abort("fatal",ctx,filename,lineno);
+          Yo_Btrace_N_Abort(__yoTa("fatal",0),ctx,filename,lineno);
         case YOYO_ERROR_DYNCO_CORRUPTED:
-          Yo_Btrace_N_Abort("fatal",
-            Yo_Format_Npl("corrupted dynco (%p)",ctx),filename,lineno);
+          Yo_Btrace_N_Abort(__yoTa("fatal",0),
+            Yo_Format_Npl(__yoTa("corrupted dynco (%p)",0),ctx),filename,lineno);
         default:
           {
             char err_pfx[60];
-            sprintf(err_pfx,"unexpected(%08x)",err); 
+            sprintf(err_pfx,__yoTa("unexpected(%08x)",0),err); 
             Yo_Btrace_N_Abort(err_pfx,ctx,filename,lineno);
           }
       }
@@ -1415,12 +1435,26 @@ void Error_Abort()
 #ifdef _YOYO_CORE_BUILTIN
   {
     Yo_Btrace_N_Abort(
-      Yo_Format_Npl("\ncaught(0x%08x)",Error_Code()),
+      Yo_Format_Npl(__yoTa("\ncaught(0x%08x)",0),Error_Code()),
       Error_Message(),Error_File(),Error_Line());
   }
 #endif
   ;
 
+char *Yo_Error_Format()
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    int code = Error_Code();
+    char *msg = Error_Message();
+
+    if ( YOYO_ERROR_IS_USER_ERROR(code) )
+      return Yo_Format(__yoTa("\nerror(%d): %s",0),code,msg);
+    else
+      return Yo_Format(__yoTa("\nerror(%08x): %s",0),code,msg);
+  }
+#endif
+  ;
+  
 void Error_Exit(char *pfx)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -1428,14 +1462,14 @@ void Error_Exit(char *pfx)
     char *msg = Error_Message();
     
   #ifndef _BACKTRACE
-    if ( (code & YO_TRACED_ERROR_GROUP) || !Error_Info()->msg )
+    if ( (code & YOYO_TRACED_ERROR_GROUP) || !Error_Info()->msg )
   #endif
-      StdErr_Print_Nl(Error_Format_Btrace());
+      StdErr_Print_Nl(Yo_Error_Format_Btrace());
     
     if ( YOYO_ERROR_IS_USER_ERROR(code) )
-      StdErr_Print_Nl(Yo_Format("\n%s(%d): %s",(pfx?pfx:"error"),code,msg));
+      StdErr_Print_Nl(Yo_Format(__yoTa("\n%s(%d): %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
     else
-      StdErr_Print_Nl(Yo_Format("\n%s(%08x): %s",(pfx?pfx:"error"),code,msg));
+      StdErr_Print_Nl(Yo_Format(__yoTa("\n%s(%08x): %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
     if ( code & YOYO_FATAL_ERROR_GROUP )
       abort();
     Yo_Unwind_Scope(0,-1);
@@ -1444,25 +1478,27 @@ void Error_Exit(char *pfx)
 #endif
   ;
 
-#define __Pool(Ptr)         Yo_Pool_Ptr(Ptr,0)
-#define __Release(Pooled)   Yo_Release(Pooled)
-#define __Retain(Pooled)    Yo_Retain(Pooled)
-#define __Refe(Ptr)         Yo_Refe(Ptr)
-#define __Unrefe(Ptr)       Yo_Unrefe(Ptr)
-#define __Raise(Err,Msg)    Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
-#define __Raise_If_Occured() Yo_Raise_If_Occured()
-#define __Fatal(Err,Ctx)    Yo_Fatal(Err,Ctx,__Yo_FILE__,__LINE__)
-#define __Format            Yo_Format
-#define __Format_Npl        Yo_Format_Npl
+#define __Pool(Ptr)                     Yo_Pool_Ptr(Ptr,0)
+#define __Release(Pooled)               Yo_Release(Pooled)
+#define __Retain(Pooled)                Yo_Retain(Pooled)
+#define __Purge(TholdPtr,Cap)           Yo_Pool_Purge(TholdPtr,Cap)
+#define __Refe(Ptr)                     Yo_Refe(Ptr)
+#define __Unrefe(Ptr)                   Yo_Unrefe(Ptr)
+#define __Raise(Err,Msg)                Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
+#define __Raise_If_Occured()            Yo_Raise_If_Occured()
+#define __Fatal(Err,Ctx)                Yo_Fatal(Err,Ctx,__Yo_FILE__,__LINE__)
+#define __Format                        Yo_Format
+#define __Format_Npl                    Yo_Format_Npl
+#define __Format_Error()                Yo_Error_Format()
 
-#define __Malloc(Size)          Yo_Malloc(Size)
-#define __Malloc_Npl(Size)      Yo_Malloc_Npl(Size)
-#define __Memcopy(Ptr,Size)     Yo_Memcopy(Ptr,Size)
-#define __Memcopy_Npl(Ptr,Size) Yo_Memcopy_Npl(Ptr,Size)
-#define __Realloc(Ptr,Size)     Yo_Realloc(Ptr,Size)
-#define __Realloc_Npl(Ptr,Size) Yo_Realloc_Npl(Ptr,Size)
-#define __Resize(Ptr,Size,Gran) Yo_Resize(Ptr,Size,Gran)
-#define __Resize_Npl(Ptr,Size,Gran) Yo_Resize_Npl(Ptr,Size,Gran)
+#define __Malloc(Size)                  Yo_Malloc(Size)
+#define __Malloc_Npl(Size)              Yo_Malloc_Npl(Size)
+#define __Memcopy(Ptr,Size)             Yo_Memcopy(Ptr,Size)
+#define __Memcopy_Npl(Ptr,Size)         Yo_Memcopy_Npl(Ptr,Size)
+#define __Realloc(Ptr,Size)             Yo_Realloc(Ptr,Size)
+#define __Realloc_Npl(Ptr,Size)         Yo_Realloc_Npl(Ptr,Size)
+#define __Resize(Ptr,Size,Gran)         Yo_Resize(Ptr,Size,Gran)
+#define __Resize_Npl(Ptr,Size,Gran)     Yo_Resize_Npl(Ptr,Size,Gran)
 
 #define __Object(Size,Funcs)            Yo_Object(Size,Funcs)
 #define __Object_Dtor(Size,Dtor)        Yo_Object_Dtor(Size,Dtor)
@@ -1470,9 +1506,12 @@ void Error_Exit(char *pfx)
 #define __Destruct(Ptr)                 Yo_Object_Destruct(Ptr)
 #define __Clone(Size,Ptr)               Yo_Object_Clone(Size,Ptr)
 
+#define __Atomic_Increment(Ptr)         Yo_Atomic_Increment(Ptr)
+#define __Atomic_Decrement(Ptr)         Yo_Atomic_Decrement(Ptr)
+
 #define __Auto_Release \
   switch ( 0 ) \
-    if ( 1 ) \
+    if ( 0 ); else \
       while ( 1 ) \
         if ( 1 ) \
           { \
@@ -1486,7 +1525,7 @@ void Error_Exit(char *pfx)
 
 #define __Auto_Ptr(Ptr) \
   switch ( 0 ) \
-    if ( 1 ) \
+    if ( 0 ); else \
       while ( 1 ) \
         if ( 1 ) \
           { \

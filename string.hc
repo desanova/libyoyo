@@ -267,9 +267,8 @@ void *Str_Xbit_Decode(char *inS, int len, int BC, byte_t *bit_table, void *out)
       {
         byte_t bits = bit_table[*S--];
         if ( bits == 255 )
-          Yo_Raise(YOYO_ERROR_CORRUPTED,
-            Yo_Format("bad symbol '%c' in encoded sequence",S[1])
-            ,__Yo_FILE__,__LINE__);
+          __Raise(YOYO_ERROR_CORRUPTED,
+            __Format(__yoTa("bad symbol '%c' in encoded sequence",0),S[1]));
         Bits_Push(bits,out,&count,BC);
       }
     return out;
@@ -704,10 +703,21 @@ char *Str_Join_(char sep, ...)
 int Str_Starts_With(char *S, char *pat)
 #ifdef _YOYO_STRING_BUILTIN
   {
-    while ( *S )
+    while ( *pat )
       if ( *S++ != *pat++ )
         return 0;
-    return !*pat;
+    return 1;
+  }
+#endif
+  ;
+
+int Str_Unicode_Starts_With(wchar_t *S, wchar_t *pat)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    while ( *pat )
+      if ( *S++ != *pat++ )
+        return 0;
+    return 1;
   }
 #endif
   ;
@@ -763,6 +773,29 @@ int Str_Icmp(char *cs, char *ct, int count)
 
     return 1;
   }    
+#endif
+  ;
+
+
+enum 
+  {
+    YOYO_BOM_DOESNT_PRESENT = 0,
+    YOYO_BOM_UTF16_LE = 1,
+    YOYO_BOM_UTF16_BE = 2,
+    YOYO_BOM_UTF8 = 3,
+  };
+
+int Str_Find_BOM(void *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    if ( *(byte_t*)S == 0x0ff && ((byte_t*)S)[1] == 0x0fe )
+      return YOYO_BOM_UTF16_LE;
+    if ( *(byte_t*)S == 0x0fe && ((byte_t*)S)[1] == 0x0ff )
+      return YOYO_BOM_UTF16_BE;
+    if ( *(byte_t*)S == 0x0ef && ((byte_t*)S)[1] == 0x0bb && ((byte_t*)S)[1] == 0x0bf )
+      return YOYO_BOM_UTF8;
+    return YOYO_BOM_DOESNT_PRESENT;
+  }
 #endif
   ;
 

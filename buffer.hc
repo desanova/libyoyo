@@ -45,7 +45,7 @@ void Buffer_Resize(YOYO_BUFFER *bf,int count)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
     if ( count < 0 )
-      Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+      __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
     
     if ( count < bf->count ) 
       bf->count = count;
