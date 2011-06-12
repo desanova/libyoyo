@@ -647,15 +647,16 @@ YOYO_XNODE *Xnode_Insert(YOYO_XNODE *node, char *tag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     ushort_t idx;
+    YOYO_XNODE *n;
     
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( tag );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
     
-    YOYO_XNODE *n = Xdata_Create_Node(node->xdata,tag,&idx);
+    n = Xdata_Create_Node(node->xdata,tag,&idx);
     n->next = node->down;
     node->down = idx;
-    
+      
     STRICT_REQUIRE( n->next != idx );
     
     return n;

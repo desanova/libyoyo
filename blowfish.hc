@@ -427,21 +427,12 @@ void Blowfish_Destruct(YOYO_BLOWFISH *self)
 #endif
   ;
 
-void *Blowfish_Init(void *key,int key_len) 
+void *Blowfish_Init_Static(YOYO_BLOWFISH *self, void *key, int key_len) 
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
     int i, j, k;
     uint_t data;
     struct { uint_t L; uint_t R; } LR = {0};
-
-    static YOYO_FUNCTABLE funcs[] = 
-      { {0},
-        {Oj_Destruct_OjMID, Blowfish_Destruct},
-        {Oj_Encrypt8_OjMID, Blowfish_Encrypt8},
-        {Oj_Decrypt8_OjMID, Blowfish_Decrypt8},
-        {0}};
-    
-    YOYO_BLOWFISH *self = Yo_Object(sizeof(YOYO_BLOWFISH),funcs);
 
     for ( i = 0; i < 4; ++i ) 
       {
@@ -485,6 +476,23 @@ void *Blowfish_Init(void *key,int key_len)
 #endif
   ;
 
+void *Blowfish_Init(void *key,int key_len) 
+#ifdef _YOYO_BLOWFISH_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID, Blowfish_Destruct},
+        {Oj_Encrypt8_OjMID, Blowfish_Encrypt8},
+        {Oj_Decrypt8_OjMID, Blowfish_Decrypt8},
+        {0}};
+    
+    YOYO_BLOWFISH *self = Yo_Object(sizeof(YOYO_BLOWFISH),funcs);
+
+    return Blowfish_Init_Static(self,key,key_len);
+  }
+#endif
+  ;
+
 void *Blowfish_Object_Init_With_Text_Key(char *Skey)
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
@@ -497,6 +505,36 @@ void *Blowfish_Object_Init_With_Text_Key(char *Skey)
 
 #define Blowfish_Decipher(Skey) Blowfish_Object_Init_With_Text_Key(Skey)
 #define Blowfish_Encipher(Skey) Blowfish_Object_Init_With_Text_Key(Skey)
+
+void Blowfish_Encrypt(char *data, int len, char *passwd)
+#ifdef _YOYO_BLOWFISH_BUILTIN
+  {
+    int i;
+    YOYO_BLOWFISH bfctx = {0};
+    Blowfish_Init_Static(&bfctx,passwd,strlen(passwd));
+    
+    for ( i = 0; i < len && len-i >= 8 ; i += 8 )
+      {
+        Blowfish_Encrypt8(&bfctx,data+i);
+      }
+  }
+#endif
+  ;
+
+void Blowfish_Decrypt(char *data, int len, char *passwd)
+#ifdef _YOYO_BLOWFISH_BUILTIN
+  {
+    int i;
+    YOYO_BLOWFISH bfctx = {0};
+    Blowfish_Init_Static(&bfctx,passwd,strlen(passwd));
+    
+    for ( i = 0; i < len && len-i >= 8 ; i += 8 )
+      {
+        Blowfish_Decrypt8(&bfctx,data+i);
+      }
+  }
+#endif
+  ;
 
 #endif /* C_once_A87E119A_8C55_442C_94CE_F1B2DF0121AD */
 

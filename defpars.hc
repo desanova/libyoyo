@@ -54,35 +54,6 @@ void Def_Parse_Skip_Spaces(YOYO_DEFPARSE_STATE *st)
 #endif
   ;
 
-void Yo_Vector_Append(void *mem_, int *count, int *capacity, void *S, int L)
-  {
-    void **mem = mem_;
-    
-    if ( !*mem )
-      {
-        *count = 0;
-        *mem = __Malloc(*capacity+1);
-      }
-    
-    if ( L < 0 ) /* appending C string */
-      L = strlen(S);
-    
-    if ( L && S )
-      {
-        if ( *count+L > *capacity )
-          {
-            *capacity = Min_Pow2(*count+L+1)-1;
-            *mem = __Realloc(*mem,*capacity+1);
-          }
-    
-        memcpy((char*)*mem + *count, S, L);
-        *count += L;
-        ((char*)*mem)[*count] = 0;
-      }
-  }
-
-#define __Vector_Append(Mem,Count,Capacity,S,L) Yo_Vector_Append(Mem,Count,Capacity,S,L)
-
 char *Def_Parse_Get_Literal(YOYO_DEFPARSE_STATE *st)
 #ifdef _YOYO_DEFPARS_BUILTIN
   {

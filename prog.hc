@@ -156,7 +156,7 @@ void Prog_Parse_Command_Line(int argc, char **argv, char *patt, unsigned flags)
                     if ( argc > i+1 )
                       {
                       #ifdef __windoze
-                        Array_Push(L,Str_Locale_To_Utf8_Npl(argv[i+1],-1)); 
+                        Array_Push(L,Str_Locale_To_Utf8_Npl(argv[i+1])); 
                       #else
                         Array_Push(L,Str_Copy_Npl(argv[i+1],-1)); 
                       #endif

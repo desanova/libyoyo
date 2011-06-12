@@ -47,10 +47,18 @@ in this Software without prior written authorization of the copyright holder.
 # define _YOYO_FILE_EXTERN extern
 #endif
 
-char *Path_Basename(char *path, char *sfx)
+char *Path_Basename(char *path)
 #ifdef _YOYO_FILE_BUILTIN
   {
-    return 0;
+    char *ret = 0;
+    char *p = strrchr(path,'/');
+  #ifdef __windoze
+    char *p2 = strrchr(path,'\\');
+    if ( !p || p < p2 ) p = p2;
+  #endif
+    if ( p )
+      ret = Str_Copy(p+1,-1);
+    return ret;
   }
 #endif
   ;
@@ -65,32 +73,17 @@ char *Path_Dirname(char *path)
     if ( !p || p < p2 ) p = p2;
   #endif
     if ( p )
-      ret = Str_Copy(path,p-path);
+      {
+        if ( p-path > 0 )
+          ret = Str_Copy(path,p-path);
+        else
+        #ifdef __windoze
+          ret = Str_Copy("\\",1);
+        #else
+          ret = Str_Copy("/",1);
+        #endif
+      }
     return ret;
-  }
-#endif
-  ;
-
-char *Path_Absname(char *path)
-#ifdef _YOYO_FILE_BUILTIN
-  {
-    return 0;
-  }
-#endif
-  ;
-
-char *Path_Join(char *dir, char *name)
-#ifdef _YOYO_FILE_BUILTIN
-  {
-    return 0;
-  }
-#endif
-  ;
-
-char *Path_Suffix(char *path)
-#ifdef _YOYO_FILE_BUILTIN
-  {
-    return 0;
   }
 #endif
   ;
@@ -98,7 +91,96 @@ char *Path_Suffix(char *path)
 char *Current_Directory()
 #ifdef _YOYO_FILE_BUILTIN
   {
-    return 0;
+    enum { tmp_len = 512 };
+    char *ptr = 0;
+    __Auto_Ptr(ptr)
+      {
+      #ifdef __windoze
+        wchar_t *tmp = __Malloc((tmp_len+1)*sizeof(wchar_t));
+        ptr = Str_Unicode_To_Utf8(_wgetcwd(tmp,tmp_len));
+      #else
+        char *tmp = __Malloc(tmp_len+1);
+        ptr = Str_Copy(getcwd(tmp,tmp_len),-1);
+      #endif
+      }
+    return ptr;
+  }
+#endif
+  ;
+
+char *Path_Fullname(char *path)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+  #ifdef __windoze
+    if ( path )
+      {
+        wchar_t *foo;
+        char *ret;
+        __Auto_Ptr(ret)
+          {
+            wchar_t *tmp = __Malloc((MAX_PATH+1)*sizeof(wchar_t));
+            *tmp = 0;
+            GetFullPathNameW(Str_Utf8_To_Unicode(path),MAX_PATH,tmp,&foo);
+            ret = Str_Unicode_To_Utf8(tmp);
+          }
+        return ret;
+      }
+  #else
+    if ( path && *path != '/' )
+      {
+        char ret = 0;
+        __Auto_Ptr(ret) ret = Path_Join(Current_Directory(),path);
+        return ret;
+      }
+  #endif
+    return Str_Copy(path,-1);
+  }
+#endif
+  ;
+
+char *Path_Join(char *dir, char *name)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+  #ifdef __windoze
+    enum { DELIMITER = '\\' };
+  #else
+    enum { DELIMITER = '/' };
+  #endif
+    if ( dir && *dir )
+      {
+        int L = strlen(dir);
+        while ( *name == DELIMITER ) ++name;
+        if ( dir[L-1] == DELIMITER )
+          return Str_Concat(dir,name);
+        else
+          return Str_Join_2(DELIMITER,dir,name);
+      }
+    else
+      return Str_Copy(name,-1);
+  }
+#endif
+  ;
+
+char *Path_Suffix(char *path)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    char *ret = 0;
+    char *p = strrchr(path,'.');
+    if ( p )
+      {
+        char *p1 = strrchr(path,'/');
+        if ( p1 && p1 > p ) p = p1;
+      #ifdef __windoze
+        __Gogo 
+          {
+            char *p2 = strrchr(path,'\\');
+            if ( p2 && p2 > p ) p = p2;
+          }
+      #endif
+      }
+    if ( p && *p == '.' )
+      ret = Str_Copy(p,-1);
+    return ret;
   }
 #endif
   ;

@@ -157,6 +157,7 @@ YOYO_XDATA *Xtmpl_Load_Template(char *tmpl_home, char *tmpl_name)
   ;
 
 char *Xtmpl_Produce_Out(YOYO_BUFFER *bf, YOYO_XDATA *tmpl, YOYO_XDATA *model)
+#ifdef _YOYO_XTMPL_BUILTIN 
   {
     if ( !bf ) bf = Buffer_Init(0);
     
@@ -166,6 +167,8 @@ char *Xtmpl_Produce_Out(YOYO_BUFFER *bf, YOYO_XDATA *tmpl, YOYO_XDATA *model)
       
     return Buffer_Take_Data(bf);
   }
-
+#endif
+  ;
+  
 #endif /* C_once_40BDAC30_45A4_4FC1_810C_05757F2DC413 */
 

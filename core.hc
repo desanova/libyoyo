@@ -585,7 +585,7 @@ void *Yo_Unpool(void *pooled,int do_cleanup)
                 if ( nfo->jb_top < 0 || nfo->jb[nfo->jb_top].auto_top < n )
                   {
                     if ( nfo->auto_top != n )
-                        memcpy(nfo->auto_pool+n,nfo->auto_pool+1,nfo->auto_top-n);
+                        memmove(nfo->auto_pool+n,nfo->auto_pool+n+1,(nfo->auto_top-n)*sizeof(*q));
                     --nfo->auto_top;
                   }
                 else
@@ -796,7 +796,7 @@ typedef struct _YOYO_CORE_DYNAMIC
 typedef struct _YOYO_CORE_OBJECT
   {
     YOYO_DYNAMIC *dynamic;
-    uint_t signature; /* 'OYOY' */
+    uint_t signature; /* YOYO_OBJECT_SIGNATURE */
     uint_t rc;
   }
   YOYO_OBJECT;
@@ -804,7 +804,7 @@ typedef struct _YOYO_CORE_OBJECT
 #define YOYO_BASE(Ptr)          ((YOYO_OBJECT*)(Ptr) - 1)
 #define YOYO_RC(Ptr)            (YOYO_BASE(Ptr)->rc)
 #define YOYO_SIGNAT(Ptr)        (YOYO_BASE(Ptr)->signature)
-#define YOYO_SIGNAT_IS_OK(Ptr)  ((YOYO_BASE(Ptr)->signature)=='OYOY')
+#define YOYO_SIGNAT_IS_OK(Ptr)  ((YOYO_BASE(Ptr)->signature)==YOYO_OBJECT_SIGNATURE)
 
 void *Yo_Unrefe(void *p);
 
@@ -873,6 +873,8 @@ void *Yo_Object_Extend( void *o, char *func_name, void *func )
 #endif
   ;
 
+enum { YOYO_OBJECT_SIGNATURE =  0x4f594f59 /*'YOYO'*/  }; 
+
 void *Yo_Object_Clone(int size, void *orign)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -882,7 +884,7 @@ void *Yo_Object_Clone(int size, void *orign)
       Yo_Raise(YOYO_ERROR_NULL_PTR,__yoTa("failed to clone nullptr",0),__Yo_FILE__,__LINE__);
     
     o = Yo_Malloc_Npl(sizeof(YOYO_OBJECT)+size);
-    o->signature = 'OYOY';
+    o->signature = YOYO_OBJECT_SIGNATURE;
     o->rc = 1;
     memcpy(o+1,orign,size);
     
@@ -909,7 +911,7 @@ void *Yo_Object(int size,YOYO_FUNCTABLE *tbl)
   {
     YOYO_OBJECT *o = Yo_Malloc_Npl(sizeof(YOYO_OBJECT)+size);
     memset(o,0,sizeof(YOYO_OBJECT)+size);
-    o->signature = 'OYOY';
+    o->signature = YOYO_OBJECT_SIGNATURE;
     o->rc = 1;
     o->dynamic = (YOYO_DYNAMIC*)tbl;
     
@@ -945,7 +947,7 @@ void *Yo_Object_Dtor(int size,void *dtor)
     int Sz = Yo_Align(sizeof(YOYO_OBJECT)+size);
     YOYO_OBJECT *o = Yo_Malloc_Npl(Sz+sizeof(YOYO_DYNAMIC));
     memset(o,0,Sz+sizeof(YOYO_DYNAMIC));
-    o->signature = 'OYOY';
+    o->signature = YOYO_OBJECT_SIGNATURE;
     o->rc = 1;
     o->dynamic = (YOYO_DYNAMIC*)((char*)o + Sz);
     o->dynamic->contsig = (YOYO_DYNCO_ATS<<8)|1;
@@ -1053,7 +1055,16 @@ void *Oj_Clone(void *p)
   }
 #endif
   ;
-  
+
+int Oj_Count(void *self)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    int (*count)(void *) = Yo_Find_Method_Of(&self,Oj_Count_OjMID,YO_RAISE_ERROR);
+    return count(self);
+  }
+#endif
+  ;
+
 #define __Try  \
   switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
     if ( 1 ) \
@@ -1560,6 +1571,74 @@ void Error_Exit(char *pfx)
 #define __Gogo \
   if ( 1 ) goto YOYO_LOCAL_ID(__gogo); \
   else YOYO_LOCAL_ID(__gogo):
+
+#define __Vector_Append(Mem,Count,Capacity,S,L) Yo_Vector_Append(Mem,Count,Capacity,S,L)
+void Yo_Vector_Append(void *mem_, int *count, int *capacity, void *S, int L)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    void **mem = mem_;
+    
+    if ( !*mem )
+      {
+        *count = 0;
+        *mem = __Malloc(*capacity+1);
+      }
+    
+    if ( L < 0 ) /* appending C string */
+      L = strlen(S);
+    
+    if ( L && S )
+      {
+        if ( *count+L > *capacity )
+          {
+            *capacity = Min_Pow2(*count+L+1)-1;
+            *mem = __Realloc(*mem,*capacity+1);
+          }
+    
+        memcpy((char*)*mem + *count, S, L);
+        *count += L;
+        ((char*)*mem)[*count] = 0;
+      }
+  }
+#endif
+  ;
+
+#define __Elm_Append(Mem,Count,S,L,Width) Yo_Elm_Append(Mem,Count,S,L,Width)
+int Yo_Elm_Append(void **inout, int count, void *S, int L, int type_width)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    int capacity = 0;
+    int requires = 0;
+    
+    if ( L )
+      {
+        requires = (count+L+1)*type_width;
+        
+        if ( *inout ) 
+          capacity = malloc_size(*inout);
+        else
+          {
+            STRICT_REQUIRE(!count);
+            capacity = Min_Pow2(requires);
+            *inout = __Malloc(capacity);
+          }
+        
+        if ( requires > capacity )
+          {
+            capacity = Min_Pow2(requires);
+            *inout = __Realloc(*inout,requires);
+          }
+    
+        memcpy((byte_t*)*inout+count*type_width, S, L*type_width);
+        count += L;
+        memset((byte_t*)*inout+count*type_width, 0, type_width);
+      }
+
+    return count;
+  }
+#endif
+  ;
+
 
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
 

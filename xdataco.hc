@@ -56,12 +56,15 @@ typedef struct _YOYO_XDATA_CO
   } YOYO_XDATA_CO;
   
 void YOYO_XDATA_CO_Destruct(YOYO_XDATA_CO *co)
+#ifdef _YOYO_XDATACO_BUILTIN 
   {
     free(co->basepath);
     if (co->jur_fd >= 0) close(co->jur_fd);
     __Unrefe(co->cf);
     __Destruct(co);
   }
+#endif
+  ;
   
 char *Xdata_Get_Key(YOYO_XDATA *doc)
 #ifdef _YOYO_XDATACO_BUILTIN 
@@ -74,12 +77,12 @@ char *Xdata_Get_Key(YOYO_XDATA *doc)
 int Xdata_Get_Revision(YOYO_XDATA *doc)
 #ifdef _YOYO_XDATACO_BUILTIN 
   {
-    Xnode_Value_Get_Int((YOYO_XNODE*)doc,"$rev$",0);
+    return Xnode_Value_Get_Int((YOYO_XNODE*)doc,"$rev$",0);
   }
 #endif
   ;
   
-int Xdata_Set_Revision(YOYO_XDATA *doc, int rev)
+void Xdata_Set_Revision(YOYO_XDATA *doc, int rev)
 #ifdef _YOYO_XDATACO_BUILTIN 
   {
     Xnode_Value_Set_Int((YOYO_XNODE*)doc,"$rev$",rev);
@@ -156,6 +159,7 @@ YOYO_XDATA *Xdata_Co_Decode(YOYO_XDATA_CO *co, byte_t *at,int count)
   ;
 
 int Xdata_Co_Parse_Media(char *S)
+#ifdef _YOYO_XDATACO_BUILTIN 
   {
     if ( S )
       {
@@ -165,8 +169,11 @@ int Xdata_Co_Parse_Media(char *S)
     __Raise(YOYO_ERROR_ILLFORMED,"invalid media type, should be 'fs' or 'bdb'");
     return 0; /* fake */
   }
-
+#endif 
+  ;
+  
 int Xdata_Co_Parse_Format(char *S)
+#ifdef _YOYO_XDATACO_BUILTIN 
   {
     if ( S )
       {
@@ -177,7 +184,9 @@ int Xdata_Co_Parse_Format(char *S)
     __Raise(YOYO_ERROR_ILLFORMED,"invalid document format, should be 'text', 'binary' or 'zipped'");
     return 0; /* fake */
   }
-
+#endif
+  ;
+  
 char YOYO_XDATA_CO_DEFAULT_CF[] 
 #ifdef _YOYO_XDATACO_BUILTIN 
 = "depth = 2\n"
@@ -479,6 +488,7 @@ enum
   };
 
 char *Xdata_Co_Build_Unique_Key_Npl()
+#ifdef _YOYO_XDATACO_BUILTIN 
   {
     int pid = getpid();
     uint_t tmx = (uint_t)time(0);
@@ -495,6 +505,8 @@ char *Xdata_Co_Build_Unique_Key_Npl()
     
     return __Memcopy_Npl(out,sizeof(out));
   }
+#endif
+  ;
 
 int Xdata_Co_Override(YOYO_XDATA_CO *co, YOYO_XDATA *doc, char *key)
 #ifdef _YOYO_XDATACO_BUILTIN 

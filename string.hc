@@ -609,6 +609,41 @@ char *Str_Unicode_To_Utf8_Npl(wchar_t *S)
 #endif
   ;
 
+/** specially for windoze **/
+#define Str_Locale_To_Unicode(S) Yo_Pool(Str_Locale_To_Unicode_Npl(S));
+wchar_t *Str_Locale_To_Unicode_Npl(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+  #ifdef __windoze
+    int L = strlen(S);
+    wchar_t *ret = Yo_Malloc_Npl((L+1)*sizeof(wchar_t));
+    MultiByteToWideChar(CP_ACP,0,S,-1,ret,L);
+    ret[L] = 0;
+    return ret;
+  #else
+    return Str_Utf8_to_Unicode_Npl(S);
+  #endif
+  }
+#endif
+  ;
+
+/** specially for windoze **/
+#define Str_Locale_To_Utf8(S) Yo_Pool(Str_Locale_To_Utf8_Npl(S));
+char *Str_Locale_To_Utf8_Npl(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+  #ifdef __windoze
+    wchar_t *tmp = Str_Locale_To_Unicode_Npl(S);
+    char *ret = Str_Unicode_To_Utf8_Npl(tmp);
+    free(tmp);
+    return ret;
+  #else
+    return Str_Copy_Npl(S,-1);
+  #endif
+  }
+#endif
+  ;
+
 #define Str_Concat(A,B) Yo_Pool(Str_Concat_Npl(A,B))
 char *Str_Concat_Npl(char *a, char *b)
 #ifdef _YOYO_STRING_BUILTIN
@@ -644,11 +679,11 @@ char *Str_Join_Va_Npl(char sep, va_list va)
         char *Q = out = Yo_Malloc_Npl(len+(sep?0:1));
         while ( !!(q = va_arg(va,char *)) )
           {
-            int len = strlen(q);
+            int l = strlen(q);
             if ( sep && Q != out )
               *Q++ = sep;
-            memcpy(Q,q,len);
-            Q += len;
+            memcpy(Q,q,l);
+            Q += l;
           }
         *Q = 0;
       }
@@ -700,27 +735,79 @@ char *Str_Join_(char sep, ...)
 #define Str_Join_5(Sep,S1,S2,S3,S4,S5) Str_Join_(Sep,S1,S2,S3,S4,S5,0)
 #define Str_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_(Sep,S1,S2,S3,S4,S5,S6,0)
 
-int Str_Starts_With(char *S, char *pat)
+wchar_t *Str_Unicode_Join_Va_Npl(int sep, va_list va)
 #ifdef _YOYO_STRING_BUILTIN
   {
-    while ( *pat )
-      if ( *S++ != *pat++ )
-        return 0;
-    return 1;
+    int len = 0;
+    wchar_t *q, *out = 0;
+    va_list va2;
+#ifdef __GNUC__
+    va_copy(va2,va);
+#else
+    va2 = va;
+#endif
+    while ( !!(q = va_arg(va2,wchar_t *)) )
+      len += (wcslen(q)+(sep?1:0))*sizeof(wchar_t);
+    if ( len )
+      {
+        wchar_t *Q = out = Yo_Malloc_Npl( (len+(sep?0:1))*sizeof(wchar_t) );
+        while ( !!(q = va_arg(va,wchar_t *)) )
+          {
+            int l = wcslen(q);
+            if ( sep && Q != out )
+              *Q++ = sep;
+            memcpy(Q,q,l*sizeof(wchar_t));
+            Q += l;
+          }
+        *Q = 0;
+      }
+    else
+      {
+        out = Yo_Malloc_Npl(1*sizeof(wchar_t));
+        *out = 0;
+      }
+    return out;
   }
 #endif
   ;
 
-int Str_Unicode_Starts_With(wchar_t *S, wchar_t *pat)
+wchar_t *Str_Unicode_Join_Npl_(int sep, ...)
 #ifdef _YOYO_STRING_BUILTIN
   {
-    while ( *pat )
-      if ( *S++ != *pat++ )
-        return 0;
-    return 1;
+    wchar_t *out;
+    va_list va;
+    va_start(va,sep);
+    out = Str_Unicode_Join_Va_Npl(sep,va);
+    va_end(va);
+    return out;
   }
 #endif
   ;
+  
+#define Str_Unicode_Join_Npl_2(Sep,S1,S2) Str_Unicode_Join_Npl_(Sep,S1,S2,0)
+#define Str_Unicode_Join_Npl_3(Sep,S1,S2,S3) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,0)
+#define Str_Unicode_Join_Npl_4(Sep,S1,S2,S3,S4) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,0)
+#define Str_Unicode_Join_Npl_5(Sep,S1,S2,S3,S4,S5) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,S5,0)
+#define Str_Unicode_Join_Npl_6(Sep,S1,S2,S3,S4,S5,S6) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,S5,S6,0)
+
+wchar_t *Str_Unicode_Join_(int sep, ...)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    wchar_t *out;
+    va_list va;
+    va_start(va,sep);
+    out = Yo_Pool(Str_Unicode_Join_Va_Npl(sep,va));
+    va_end(va);
+    return out;
+  }
+#endif
+  ;
+
+#define Str_Unicode_Join_2(Sep,S1,S2) Str_Unicode_Join_(Sep,S1,S2,0)
+#define Str_Unicode_Join_3(Sep,S1,S2,S3) Str_Unicode_Join_(Sep,S1,S2,S3,0)
+#define Str_Unicode_Join_4(Sep,S1,S2,S3,S4) Str_Unicode_Join_(Sep,S1,S2,S3,S4,0)
+#define Str_Unicode_Join_5(Sep,S1,S2,S3,S4,S5) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,0)
+#define Str_Unicode_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,S6,0)
 
 char *Str_From_Int(int value, int base)
 #ifdef _YOYO_STRING_BUILTIN
@@ -769,7 +856,8 @@ int Str_Icmp(char *cs, char *ct, int count)
           return 0;
         if (*cs++ == 0)
           break;
-      } while (--count != 0);
+      } 
+    while (--count != 0);
 
     return 1;
   }    
@@ -798,6 +886,71 @@ int Str_Find_BOM(void *S)
   }
 #endif
   ;
+
+int Str_Starts_With(char *S, char *patt)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    if ( !patt || !S ) return 0;
+
+    while ( *patt )
+      if ( *S++ != *patt++ )
+        return 0;
+    return 1;
+  }
+#endif
+  ;
+
+int Str_Unicode_Starts_With(wchar_t *S, wchar_t *patt)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    if ( !patt || !S ) return 0;
+
+    while ( *patt )
+      if ( *S++ != *patt++ )
+        return 0;
+    return 1;
+  }
+#endif
+  ;
+
+int Str_Unicode_Starts_With_Nocase(wchar_t *S, wchar_t *patt)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    if ( !patt || !S ) return 0;
+    
+    while ( *patt )
+      if ( !*S || towupper(*S++) != towupper(*patt++) )
+        return 0;
+
+    return 1;
+  }
+#endif
+  ;
+
+void Str_Cat(char **inout, char *S, int L)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+
+    int count = *inout?strlen(*inout):0;
+    if ( L < 0 ) L = S?strlen(S):0;
+    
+    __Elm_Append((void*)inout,count,S,L,1);
+  }
+#endif
+  ;
+
+void Str_Unicode_Cat(wchar_t **inout, wchar_t *S, int L)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+
+    int count = *inout?wcslen(*inout):0;
+    if ( L < 0 ) L = S?wcslen(S):0;
+    
+    __Elm_Append((void*)inout,count,S,L,sizeof(wchar_t));
+  }
+#endif
+  ;
+
 
 #endif /* C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48 */
 
