@@ -368,11 +368,11 @@ void Array_Sort(YOYO_ARRAY *a)
       {
         if ( 0 != (compare = Yo_Find_Method_Of(&self,Oj_Compare_Elements_OjMID,0)) )
           {
-          #ifndef __windoze  
+          #if !defined __windoze && !defined __NetBSD__ && !defined __linux__
             qsort_r(a->at,a->count,sizeof(void*),compare,(void*)Array_Sort_Qsort_Compare);
-          #elif _MSC_VER > 1400 
+          #elif defined __windoze && _MSC_VER > 1400 
             qsort_s(a->at,a->count,sizeof(void*),compare,(void*)Array_Sort_Qsort_Compare);
-          #else
+          #else /* use global variable */
             __Xchg_Interlock
               {
                 Array_Sort_Qsort_Compare_Static_Compare = compare;

@@ -108,36 +108,6 @@ char *Current_Directory()
 #endif
   ;
 
-char *Path_Fullname(char *path)
-#ifdef _YOYO_FILE_BUILTIN
-  {
-  #ifdef __windoze
-    if ( path )
-      {
-        wchar_t *foo;
-        char *ret;
-        __Auto_Ptr(ret)
-          {
-            wchar_t *tmp = __Malloc((MAX_PATH+1)*sizeof(wchar_t));
-            *tmp = 0;
-            GetFullPathNameW(Str_Utf8_To_Unicode(path),MAX_PATH,tmp,&foo);
-            ret = Str_Unicode_To_Utf8(tmp);
-          }
-        return ret;
-      }
-  #else
-    if ( path && *path != '/' )
-      {
-        char ret = 0;
-        __Auto_Ptr(ret) ret = Path_Join(Current_Directory(),path);
-        return ret;
-      }
-  #endif
-    return Str_Copy(path,-1);
-  }
-#endif
-  ;
-
 char *Path_Join(char *dir, char *name)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -181,6 +151,36 @@ char *Path_Suffix(char *path)
     if ( p && *p == '.' )
       ret = Str_Copy(p,-1);
     return ret;
+  }
+#endif
+  ;
+
+char *Path_Fullname(char *path)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+  #ifdef __windoze
+    if ( path )
+      {
+        wchar_t *foo;
+        char *ret;
+        __Auto_Ptr(ret)
+          {
+            wchar_t *tmp = __Malloc((MAX_PATH+1)*sizeof(wchar_t));
+            *tmp = 0;
+            GetFullPathNameW(Str_Utf8_To_Unicode(path),MAX_PATH,tmp,&foo);
+            ret = Str_Unicode_To_Utf8(tmp);
+          }
+        return ret;
+      }
+  #else
+    if ( path && *path != '/' )
+      {
+        char *ret = 0;
+        __Auto_Ptr(ret) ret = Path_Join(Current_Directory(),path);
+        return ret;
+      }
+  #endif
+    return Str_Copy(path,-1);
   }
 #endif
   ;
@@ -1042,6 +1042,27 @@ void *Cfile_Open(char *name, char *access)
 #define Cfile_Acquire(Name,Fd) Cfile_Object(Fd,Name,0)
 #define Cfile_Share(Name,Fd)   Cfile_Object(Fd,Name,1)
 
+int Oj_Write_BOM(void *f,int bom)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    switch( bom )
+      {
+        case YOYO_BOM_DOESNT_PRESENT:
+          return 0; // none
+        case YOYO_BOM_UTF16_LE:
+          return Oj_Write(f,"\xff\xfe",2,2);
+        case YOYO_BOM_UTF16_BE:
+          return Oj_Write(f,"\xfe\xff",2,2);
+        case YOYO_BOM_UTF8:
+          return Oj_Write(f,"\xef\xbb\xbf",3,3);
+        default:
+          __Raise(YOYO_ERROR_INVALID_PARAM,__yoTa("bad BOM identifier",0));
+      }
+      
+    return 0; /*fake*/
+  }
+#endif
+  ;
 
 #define __Pfd_Lock(Pfd) __Interlock_Opt( (void)0, Pfd, __Pfd_Lock_In, __Pfd_Lock_Out, __Pfd_Lock_Out )
 

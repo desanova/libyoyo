@@ -37,6 +37,8 @@ in this Software without prior written authorization of the copyright holder.
 # define __yoTa(Text,NumId) Text
 #endif
 
+#define __USE_GNU
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <setjmp.h>
@@ -45,6 +47,7 @@ in this Software without prior written authorization of the copyright holder.
 #include <stdarg.h>
 #include <ctype.h>
 #include <limits.h>
+#include <wctype.h>
 #include <wchar.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -70,10 +73,29 @@ in this Software without prior written authorization of the copyright holder.
 # include <objbase.h>
 # include <io.h>
 # include <malloc.h> /* alloca */
+# define backtrace(Ptrs,Lim) (0)
 #else
-# include <dlfcn.h>
 # include <unistd.h>
-# include <malloc/malloc.h> /* malloc_size */
+# include <dlfcn.h>
+# if defined __APPLE__
+#   include <execinfo.h> /* backtrace */
+# else
+#   define backtrace(Ptrs,Lim) (0)
+# endif
+# if defined __APPLE__
+#   include <malloc/malloc.h> /* malloc_size */
+# elif defined __NetBSD__ && !defined _NBSDHACK
+/*
+  NetBSD has malloc_usable_size commented
+  you need to manually modify & rebuild libc
+*/
+#   ifndef _NBSDMUTE
+#     warning {! NetBSD has malloc_usable_size commented !}
+#   endif
+#   define malloc_size(Ptr) (0)
+# else 
+#   define malloc_size(Ptr) malloc_usable_size(Ptr)
+# endif
 #endif
 
 typedef unsigned char  byte_t;
@@ -81,20 +103,22 @@ typedef unsigned short ushort_t;
 typedef unsigned int   uint_t;
 typedef unsigned long  ulong_t;
 
-#ifndef _MSC_VER
-typedef unsigned long long  uquad_t;
-typedef long long  quad_t;
+#ifndef __windoze
+  typedef unsigned long long  uquad_t;
+# if defined __APPLE__
+    typedef long long  quad_t;
+# endif
 #else
-typedef unsigned __int64  uquad_t;
-typedef __int64  quad_t;
+  typedef unsigned __int64  uquad_t;
+  typedef __int64  quad_t;
 #endif
 
 #ifdef __x86_64
-typedef uint_t   halflong_t;
-typedef ulong_t  longptr_t;
+  typedef uint_t   halflong_t;
+  typedef ulong_t  longptr_t;
 #else
-typedef ushort_t halflong_t;
-typedef ulong_t  longptr_t;
+  typedef ushort_t halflong_t;
+  typedef ulong_t  longptr_t;
 #endif
 
 #ifndef _NO__FILE__
@@ -1279,11 +1303,7 @@ void _Yo_Raise(int err,char *msg,char *filename,int lineno)
             nfo->err.code = err?err:-1;
             nfo->err.filename = filename;
             nfo->err.lineno = lineno;
-          #ifndef __windoze
             nfo->err.bt_count = backtrace(nfo->err.bt_cbk,YOYO_MAX_ERROR_BTRACE);
-          #else
-            nfo->err.bt_count = 0;
-          #endif
             free( old_msg );
           }
           
@@ -1339,13 +1359,13 @@ char *Yo_Btrace_Format(int frames, void **cbk)
   {
   #ifdef __windoze
     return __yoTa("--backtrace--",0);
-  #else
+  #elif !defined __linux__
     int  max_bt = 4096;
     char *bt = Yo_Malloc(max_bt);
     char *bt_p = bt;
     int i;
     
-    i = snprintf(bt_p,max_bt,__yoTa("--backtrace--",0);
+    i = snprintf(bt_p,max_bt,__yoTa("--backtrace--",0));
     bt_p+=i;
     max_bt-=i;
     memset(bt_p,0,max_bt--);
@@ -1373,7 +1393,8 @@ char *Yo_Btrace_Format(int frames, void **cbk)
       }
     
     return bt;
-    
+  #else
+    return __yoTa("--backtrace--",0);
   #endif
   }
 #endif
@@ -1519,6 +1540,10 @@ void Error_Exit(char *pfx)
 
 #define __Atomic_Increment(Ptr)         Yo_Atomic_Increment(Ptr)
 #define __Atomic_Decrement(Ptr)         Yo_Atomic_Decrement(Ptr)
+#define __Tls_Define(Name)              YO_TLS_DEDINE(Name)
+#define __Tls_Declare(Name)             YO_TLS_DECLARE(Name)
+#define __Tls_Set(Name,Val)             Yo_Tls_Set(Name,Val)
+#define __Tls_Get(Name)                 Yo_Tls_Get(Name)
 
 #define __Auto_Release \
   switch ( 0 ) \
@@ -1639,6 +1664,45 @@ int Yo_Elm_Append(void **inout, int count, void *S, int L, int type_width)
 #endif
   ;
 
+#define __Elm_Insert(MemPptr,Pos,CountPtr,S,L,Width) Yo_Elm_Insert(MemPptr,Pos,CountPtr,S,L,Width)
+int Yo_Elm_Insert(void **inout, int pos, int *count, void *S, int L, int type_width)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    int capacity = 0;
+    int requires = 0;
+    
+    STRICT_REQUIRE(pos <= *count);
+    
+    if ( L )
+      {
+        requires = (*count+L+1)*type_width;
+        
+        if ( *inout ) 
+          capacity = malloc_size(*inout);
+        else
+          {
+            STRICT_REQUIRE(!*count);
+            capacity = Min_Pow2(requires);
+            *inout = __Malloc(capacity);
+          }
+        
+        if ( requires > capacity )
+          {
+            capacity = Min_Pow2(requires);
+            *inout = __Realloc(*inout,requires);
+          }
+    
+        if ( pos < *count ) 
+          memmove((byte_t*)*inout+(pos+L)*type_width,(byte_t*)*inout+pos*type_width,(*count-pos)*type_width);
+        memcpy((byte_t*)*inout+pos*type_width, S, L*type_width);
+        *count += L;
+        memset((byte_t*)*inout+*count*type_width, 0, type_width);
+      }
+
+    return *count;
+  }
+#endif
+  ;
 
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
 
