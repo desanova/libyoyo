@@ -951,7 +951,7 @@ void Str_Cat(char **inout, char *S, int L)
     int count = *inout?strlen(*inout):0;
     if ( L < 0 ) L = S?strlen(S):0;
     
-    __Elm_Append((void*)inout,count,S,L,1);
+    __Elm_Append(inout,count,S,L,1,0);
   }
 #endif
   ;
@@ -959,29 +959,89 @@ void Str_Cat(char **inout, char *S, int L)
 void Str_Unicode_Cat(wchar_t **inout, wchar_t *S, int L)
 #ifdef _YOYO_STRING_BUILTIN
   {
-
     int count = *inout?wcslen(*inout):0;
     if ( L < 0 ) L = S?wcslen(S):0;
     
-    __Elm_Append((void*)inout,count,S,L,sizeof(wchar_t));
+    __Elm_Append(inout,count,S,L,sizeof(wchar_t),0);
   }
 #endif
   ;
 
-Str_Unicode_Cr_To_CfLr_Inplace(wchar_t **S_ptr)
+wchar_t *Str_Unicode_Cr_To_CfLr_Inplace(wchar_t **S_ptr)
 #ifdef _YOYO_STRING_BUILTIN
   {
+    int capacity = 0;
     wchar_t *S = *S_ptr;
     int i, L = wcslen(S);
     for ( i = 0; i < L; ++i )
       {
-        if ( S[i] == '\n' && ( !i || S[i] != '\r' ) )
+        if ( S[i] == '\n' && ( !i || S[i-1] != '\r' ) )
           {
-            __Elm_Insert((void*)&S,i,&L,L"\r",1,sizeof(wchar_t));
+            L += __Elm_Insert(&S,i,L,L"\r",1,sizeof(wchar_t),&capacity);
             ++i;
           }
       }
     *S_ptr = S;
+    return S;
+  }
+#endif
+  ;
+
+#define Str_Unicode_Search(S,Patt) Str_Unicode_Search_(S,-1,Patt,-1,0)
+#define Str_Unicode_Search_Nocase(S,Patt) Str_Unicode_Search_(S,-1,Patt,-1,1)
+int Str_Unicode_Search_( wchar_t *S, int L, wchar_t *patt, int pattL, int nocase )
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    wchar_t *p, *pE;
+    
+    if ( L < 0 ) L = S?wcslen(S):0;
+    if ( pattL < 0 ) pattL = patt?wcslen(patt):0;
+
+    if ( L < pattL ) return -1;
+    
+    for ( p = S, pE = S+L-pattL+1; p < pE; ++p )
+      if ( *p == *patt )
+        {
+          int i = 0;
+          for ( ; i < pattL; ++i )
+            if ( !nocase )
+              { if ( patt[i] != p[i] ) break; }
+            else
+              { if ( towupper(patt[i]) != towupper(p[i]) ) break; }
+          if (i == pattL) 
+            return p-S;
+        }
+        
+    return -1;
+  }
+#endif
+  ;
+  
+#define Str_Unicode_Replace_Npl(S,Patt,Val) Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,0)
+#define Str_Unicode_Replace_Nocase_Npl(S,Patt,Val) __Pool(Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,1))
+#define Str_Unicode_Replace(S,Patt,Val) Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,0)
+#define Str_Unicode_Replace_Nocase(S,Patt,Val) __Pool(Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,1))
+wchar_t *Str_Unicode_Replace_Npl_(wchar_t *S, int L, wchar_t *patt, int pattL, wchar_t *val, int valL, int nocase)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i;
+    wchar_t *R = 0;
+    int R_count = 0;
+    int R_capacity = 0;
+    
+    while ( 0 <= (i = Str_Unicode_Search_(S,L,patt,pattL,nocase)) )
+      {
+        if ( i )
+          R_count += __Elm_Append_Npl(&R,R_count,S,i,sizeof(wchar_t),&R_capacity);
+        if ( valL )
+          R_count += __Elm_Append_Npl(&R,R_count,val,valL,sizeof(wchar_t),&R_capacity);
+        S += i+pattL; L -= i+pattL;
+      }
+    
+    if ( L )
+      __Elm_Append_Npl(&R,R_count,S,L,sizeof(wchar_t),&R_capacity);
+    
+    return R;
   }
 #endif
   ;

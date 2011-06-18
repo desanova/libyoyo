@@ -263,6 +263,7 @@ void Yo_Xchg_Unlock_Proc(int volatile *p) _YOYO_CORE_BUILTIN_CODE({Yo_Atomic_Cmp
 
 #define REQUIRE(Expr) \
   if (Expr); else Yo_Fatal(YOYO_ERROR_REQUIRE_FAILED,__Yo_Expr__(Expr),__Yo_FILE__,__LINE__)
+#define PANICA(msg) Yo_Fatal(YOYO_FATAL_ERROR,msg,__Yo_FILE__,__LINE__)
 
 #ifdef _STRICT
 # define STRICT_REQUIRE(Expr) REQUIRE(Expr)
@@ -1597,112 +1598,93 @@ void Error_Exit(char *pfx)
   if ( 1 ) goto YOYO_LOCAL_ID(__gogo); \
   else YOYO_LOCAL_ID(__gogo):
 
-#define __Vector_Append(Mem,Count,Capacity,S,L) Yo_Vector_Append(Mem,Count,Capacity,S,L)
-void Yo_Vector_Append(void *mem_, int *count, int *capacity, void *S, int L)
+void Yo_Elm_Resize_Npl(void **inout, int L, int type_width, int *capacity_ptr)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    void **mem = mem_;
-    
-    if ( !*mem )
-      {
-        *count = 0;
-        *mem = __Malloc(*capacity+1);
-      }
-    
-    if ( L < 0 ) /* appending C string */
-      L = strlen(S);
-    
-    if ( L && S )
-      {
-        if ( *count+L > *capacity )
-          {
-            *capacity = Min_Pow2(*count+L+1)-1;
-            *mem = __Realloc(*mem,*capacity+1);
-          }
-    
-        memcpy((char*)*mem + *count, S, L);
-        *count += L;
-        ((char*)*mem)[*count] = 0;
-      }
-  }
-#endif
-  ;
-
-#define __Elm_Append(Mem,Count,S,L,Width) Yo_Elm_Append(Mem,Count,S,L,Width)
-int Yo_Elm_Append(void **inout, int count, void *S, int L, int type_width)
-#ifdef _YOYO_CORE_BUILTIN
-  {
-    int capacity = 0;
     int requires = 0;
+    int capacity = capacity_ptr?*capacity_ptr:0;
     
     if ( L )
       {
-        requires = (count+L+1)*type_width;
+        requires = (L+1)*type_width;
         
-        if ( *inout ) 
-          capacity = malloc_size(*inout);
+        if ( *inout )
+          {
+            if ( !capacity )
+              capacity = malloc_size(*inout);
+            if ( capacity < requires )
+              {
+                capacity = Min_Pow2(requires);
+                *inout = Yo_Realloc_Npl(*inout,capacity);
+              }
+          }
         else
           {
             STRICT_REQUIRE(!count);
-            capacity = Min_Pow2(requires);
-            *inout = __Malloc(capacity);
+            
+            if ( capacity < requires )
+              capacity = Min_Pow2(requires);
+              
+            *inout = Yo_Malloc_Npl(capacity);
           }
-        
-        if ( requires > capacity )
-          {
-            capacity = Min_Pow2(requires);
-            *inout = __Realloc(*inout,requires);
-          }
+      }
+
+    if ( capacity_ptr ) *capacity_ptr = capacity;
+  }
+#endif
+  ;
+  
+#define __Elm_Insert_Npl(MemPptr,Pos,Count,S,L,Width,CpsPtr) Yo_Elm_Insert_Npl((void**)MemPptr,Pos,Count,S,L,Width,CpsPtr)
+int Yo_Elm_Insert_Npl(void **inout, int pos, int count, void *S, int L, int type_width, int *capacity_ptr)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    STRICT_REQUIRE(pos <= count);
     
-        memcpy((byte_t*)*inout+count*type_width, S, L*type_width);
+    if ( L < 0 ) /* inserting Z-string */
+      switch ( type_width )
+        {
+          case sizeof(wchar_t): L = wcslen(S); break;
+          case 1: L = strlen(S); break;
+          default: PANICA(__yoTa("invalid size of string element",0));
+        }
+
+    if ( L )
+      {
+        Yo_Elm_Resize_Npl(inout,count+L,type_width,capacity_ptr);
+        
+        if ( pos < count ) 
+          memmove((byte_t*)*inout+(pos+L)*type_width,(byte_t*)*inout+pos*type_width,(count-pos)*type_width);
+        memcpy((byte_t*)*inout+pos*type_width, S, L*type_width);
         count += L;
         memset((byte_t*)*inout+count*type_width, 0, type_width);
       }
 
-    return count;
+    return L;
   }
 #endif
   ;
 
-#define __Elm_Insert(MemPptr,Pos,CountPtr,S,L,Width) Yo_Elm_Insert(MemPptr,Pos,CountPtr,S,L,Width)
-int Yo_Elm_Insert(void **inout, int pos, int *count, void *S, int L, int type_width)
+#define __Elm_Insert(MemPptr,Pos,Count,S,L,Width,CpsPtr) Yo_Elm_Insert((void**)MemPptr,Pos,Count,S,L,Width,CpsPtr)
+int Yo_Elm_Insert(void **inout, int pos, int count, void *S, int L, int type_width, int *capacity_ptr)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    int capacity = 0;
-    int requires = 0;
-    
-    STRICT_REQUIRE(pos <= *count);
-    
-    if ( L )
-      {
-        requires = (*count+L+1)*type_width;
-        
-        if ( *inout ) 
-          capacity = malloc_size(*inout);
-        else
-          {
-            STRICT_REQUIRE(!*count);
-            capacity = Min_Pow2(requires);
-            *inout = __Malloc(capacity);
-          }
-        
-        if ( requires > capacity )
-          {
-            capacity = Min_Pow2(requires);
-            *inout = __Realloc(*inout,requires);
-          }
-    
-        if ( pos < *count ) 
-          memmove((byte_t*)*inout+(pos+L)*type_width,(byte_t*)*inout+pos*type_width,(*count-pos)*type_width);
-        memcpy((byte_t*)*inout+pos*type_width, S, L*type_width);
-        *count += L;
-        memset((byte_t*)*inout+*count*type_width, 0, type_width);
-      }
-
-    return *count;
+    void *old = *inout;
+    int r = Yo_Elm_Insert_Npl(inout,pos,count,S,L,type_width,capacity_ptr);
+    if ( *inout != old )
+      if ( old ) 
+        Yo_Refresh_Ptr(old,*inout,0);
+      else
+        Yo_Pool_Ptr(*inout,0);
+    return r;
   }
 #endif
   ;
+
+#define Yo_Elm_Append(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Insert(Mem,Count,Count,S,L,Width,CpsPtr)
+#define Yo_Elm_Append_Npl(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Insert_Npl(Mem,Count,Count,S,L,Width,CpsPtr)
+#define __Vector_Append(Mem,Count,Capacity,S,L) (void)(*Count += Yo_Elm_Append((void**)Mem,*Count,S,L,1,Capacity))
+#define __Elm_Append(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append((void**)Mem,Count,S,L,Width,CpsPtr)
+#define __Elm_Append_Npl(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append_Npl((void**)Mem,Count,S,L,Width,CpsPtr)
 
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
 

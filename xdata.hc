@@ -352,7 +352,7 @@ void Xvalue_Set_Int(YOYO_XVALUE *val, int i)
   }
 #endif
   ;
-  
+
 void Xvalue_Set_Flt(YOYO_XVALUE *val, double d)
 #ifdef _YOYO_XDATA_BUILTIN
   {
@@ -363,7 +363,7 @@ void Xvalue_Set_Flt(YOYO_XVALUE *val, double d)
   }
 #endif
   ;
-  
+
 void Xvalue_Set_Bool(YOYO_XVALUE *val, int b)
 #ifdef _YOYO_XDATA_BUILTIN
   {
