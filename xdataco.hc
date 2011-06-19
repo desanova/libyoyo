@@ -187,6 +187,9 @@ int Xdata_Co_Parse_Format(char *S)
 #endif
   ;
   
+#ifndef _YOYO_XDATACO_BUILTIN 
+extern
+#endif
 char YOYO_XDATA_CO_DEFAULT_CF[] 
 #ifdef _YOYO_XDATACO_BUILTIN 
 = "depth = 2\n"
@@ -195,6 +198,9 @@ char YOYO_XDATA_CO_DEFAULT_CF[]
 #endif
   ;
 
+#ifndef _YOYO_XDATACO_BUILTIN 
+extern
+#endif
 char YOYO_XDATA_CO_DEVELOPER_CF[]
 #ifdef _YOYO_XDATACO_BUILTIN 
 = "depth = 0\n"

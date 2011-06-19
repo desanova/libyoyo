@@ -454,7 +454,7 @@ int Xdata_Idxref_No(YOYO_XDATA *doc, ushort_t idx, int *no)
     
     if ( idx >= 32 )
       {
-        int ref = Min_Pow2(idx);
+        int ref = Bitcount_Of(idx);
         *no  = idx - ((1<<ref)-32);
         STRICT_REQUIRE(ref >= 5);
         STRICT_REQUIRE(ref < XNODE_NUMBER_OF_NODE_LISTS+5);
@@ -480,6 +480,47 @@ void *Xdata_Idxref(YOYO_XDATA *doc, ushort_t idx)
         int ref = Xdata_Idxref_No(doc,idx,&no);
         return doc->nodes[ref]+no;
       }
+  }
+#endif
+  ;
+
+char *Xnode_Get_Tag(YOYO_XNODE *node)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XDATA *doc;
+     
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+    STRICT_REQUIRE( node->tag > 0 && node->tag <= node->xdata->last_tag );
+
+    return node->xdata->tags[node->tag-1];
+  }
+#endif
+  ;
+  
+int Xnode_Tag_Is(YOYO_XNODE *node, char *tag_name)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+    STRICT_REQUIRE( node->tag > 0 && node->tag <= node->xdata->last_tag );
+     
+    ushort_t tag = (ushort_t)(longptr_t)Xdata_Resolve_Name(node->xdata,tag_name,0);
+    return node->tag == tag;
+  }
+#endif
+  ;
+
+char *Xnode_Value_Get_Tag(YOYO_XNODE *node,YOYO_XVALUE *value)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( value );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+    STRICT_REQUIRE( (value->opt&XVALUE_OPT_IS_VALUE) != 0 );
+    STRICT_REQUIRE( value->tag > 0 && value->tag <= node->xdata->last_tag );
+    
+    return node->xdata->tags[value->tag-1];
   }
 #endif
   ;
@@ -664,9 +705,50 @@ YOYO_XNODE *Xnode_Insert(YOYO_XNODE *node, char *tag)
 #endif
   ;
 
-YOYO_XNODE *Xnode_Down_If(YOYO_XNODE *node, char *tag)
+YOYO_XNODE *Xnode_Down_If(YOYO_XNODE *node, char *tag_name)
 #ifdef _YOYO_XDATA_BUILTIN
   {
+    ushort_t tag;
+    YOYO_XNODE *n;
+      
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( tag );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+
+    tag = (ushort_t)(longptr_t)Xdata_Resolve_Name(node->xdata,tag_name,0);
+    
+    if ( tag )
+      {
+        n = Xnode_Down(node);
+        while ( n && n->tag != tag )
+          n = Xnode_Next(n);
+      
+        if ( n && n->tag == tag )
+          return n;
+      }
+      
+    return 0;
+  }
+#endif
+  ;
+
+YOYO_XNODE *Xnode_Down_Match(YOYO_XNODE *node, char *patt)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XNODE *n;
+      
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( patt );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+
+    n = Xnode_Down(node);
+    while ( n )
+      {
+        if ( Str_Match(Xnode_Get_Tag(node),patt) )
+          return n;
+        n = Xnode_Next(n);
+      }
+      
     return 0;
   }
 #endif
@@ -676,34 +758,6 @@ YOYO_XNODE *Xnode_Next_If(YOYO_XNODE *node, char *tag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     return 0;
-  }
-#endif
-  ;
-
-char *Xnode_Get_Tag(YOYO_XNODE *node)
-#ifdef _YOYO_XDATA_BUILTIN
-  {
-    YOYO_XDATA *doc;
-     
-    STRICT_REQUIRE( node );
-    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
-    STRICT_REQUIRE( node->tag > 0 && node->tag <= node->xdata->last_tag );
-
-    return node->xdata->tags[node->tag-1];
-  }
-#endif
-  ;
-  
-char *Xnode_Value_Get_Tag(YOYO_XNODE *node,YOYO_XVALUE *value)
-#ifdef _YOYO_XDATA_BUILTIN
-  {
-    STRICT_REQUIRE( node );
-    STRICT_REQUIRE( value );
-    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
-    STRICT_REQUIRE( (value->opt&XVALUE_OPT_IS_VALUE) != 0 );
-    STRICT_REQUIRE( value->tag > 0 && value->tag <= node->xdata->last_tag );
-    
-    return node->xdata->tags[value->tag-1];
   }
 #endif
   ;
@@ -724,38 +778,44 @@ char *Xnode_Value_Get_Tag(YOYO_XNODE *node,YOYO_XVALUE *value)
   ((Xnode_Opt_Of_Value(Node,Valtag)&XVALUE_OPT_VALTYPE_MASK) \
     == XVALUE_OPT_VALTYPE_NONE)
 
-YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag, int create_if_not_exist)
+YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_not_exist)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *value = 0;
     YOYO_XDATA  *doc;
     ushort_t *next;
+    ushort_t valtag;
     
     STRICT_REQUIRE( node );
-    STRICT_REQUIRE( valtag );
+    STRICT_REQUIRE( valtag_S );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
     
     doc = node->xdata;
 
-    if ( valtag > XNODE_MAX_NAME_INDEX_PTR )
-      valtag = Xdata_Resolve_Name(doc,valtag,create_if_not_exist);
-    
+    if ( valtag_S > XNODE_MAX_NAME_INDEX_PTR )
+      valtag = (ushort_t)(longptr_t)Xdata_Resolve_Name(doc,valtag_S,create_if_not_exist);
+    else
+      valtag = (ushort_t)(longptr_t)valtag_S;
+      
     next = &node->opt;
-    if ( valtag ) while ( *next )
-      {
-        value = (YOYO_XVALUE *)Xdata_Idxref(doc,*next);
-        STRICT_REQUIRE( value != 0 );
-        if ( value->tag == (ushort_t)(longptr_t)valtag )
-          goto found;
-        next = &value->next;
-      }
+    if ( valtag ) 
+      while ( *next )
+        {
+          value = (YOYO_XVALUE *)Xdata_Idxref(doc,*next);
+          STRICT_REQUIRE( value != 0 );
+          if ( value->tag == valtag )
+            goto found;
+          next = &value->next;
+        }
     
     STRICT_REQUIRE( !*next );
     if ( create_if_not_exist )
       {
         STRICT_REQUIRE( valtag );
-        value = Xdata_Create_Value(doc,valtag,next);
+        value = Xdata_Create_Value(doc,valtag_S,next);
       }
+    else
+      return 0;
       
   found:
     return value;
@@ -763,6 +823,32 @@ YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag, int create_if_not_exist
 #endif
   ;
   
+YOYO_XVALUE *Xnode_Match_Value(YOYO_XNODE *node, char *patt)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XDATA  *doc;
+    ushort_t *next;
+    
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( patt );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+    
+    doc = node->xdata;
+    next = &node->opt;
+
+    while ( *next )
+      {
+        YOYO_XVALUE *value = (YOYO_XVALUE *)Xdata_Idxref(doc,*next);
+        STRICT_REQUIRE( value != 0 );
+        if ( Str_Match( Xnode_Value_Get_Tag(node,value), patt ) )
+          return value;
+      }
+
+    return 0;
+  }
+#endif
+  ;
+
 int Xnode_Opt_Of_Value(void *node, char *valtag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
@@ -890,5 +976,149 @@ YOYO_BUFFER *Xnode_Value_Copy_Binary(void *node,char *valtag)
 #endif
   ;
 
-#endif /*C_once_E46D6A8A_889E_4AE9_9F89_5B0AB5263C95*/
+enum
+  {
+    YOYO_XNODE_QUERY_EQUAL = 1,
+    YOYO_XNODE_QUERY_MATCH = 2,
+  };
+
+int Xnode_Query_Chop_Op(char **query, char *elm, int elm_size)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    int patt = 0;
+    int i = 0;
+    
+    if ( !**query )
+      return 0;
+      
+    while ( **query )
+      {
+        if ( i >= elm_size - 1 ) __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
+        if ( **query != '.' )
+          {
+            char c = *(*query)++;
+            if ( !patt && ( c == '*' || c == '[' || c == ']' || c == '?' ) )
+              patt = 1;
+            elm[i++] = c;
+          }
+        else
+          {
+            ++*query;
+            break;
+          }
+      }
+      
+    elm[i] = 0;
+    if (!**query) *query = 0;
+    return patt?YOYO_XNODE_QUERY_MATCH:YOYO_XNODE_QUERY_EQUAL;
+  }
+#endif
+  ;
+
+YOYO_XVALUE *Xnode_Query_Value(YOYO_XNODE *n, char *query)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    int qtype;
+    char elm[80];
+    while( n && (qtype=Xnode_Query_Chop_Op(&query,elm,sizeof(elm))) )
+      {
+        if ( elm[0] == '@' )
+          {
+            YOYO_XVALUE *value;
+            n = Xnode_Down(n);
+            while ( n )
+              {
+                value = Xnode_Value(n,"@",0);
+                if ( value )
+                  {
+                    if ( qtype == YOYO_XNODE_QUERY_EQUAL )
+                      {
+                        if ( Str_Iequal(Xvalue_Get_Str(value,0),elm+1) )
+                          goto lb_repeat;
+                      }
+                    else /* qtype == YOYO_XNODE_QUERY_MATCH */
+                      {
+                        if ( Str_Imatch(Xvalue_Get_Str(value,0),elm+1) )
+                          goto lb_repeat;
+                      }
+                  }
+                n = Xnode_Next(n);
+              }
+          }
+        else
+          {
+            if ( !query ) /* looking for value? */
+              {
+                YOYO_XVALUE *value;
+                if ( qtype == YOYO_XNODE_QUERY_EQUAL )
+                  value = Xnode_Value(n,elm,0);
+                else /* qtype == YOYO_XNODE_QUERY_MATCH */
+                  value = Xnode_Match_Value(n,elm);
+                if ( value )
+                  return value;
+              }
+              
+            if ( qtype == YOYO_XNODE_QUERY_EQUAL )
+              n = Xnode_Down_If(n,elm);
+            else /* qtype == YOYO_XNODE_QUERY_MATCH */
+              n = Xnode_Down_Match(n,elm);
+          }
+        lb_repeat:;
+      }
+    
+    if ( n )
+    lb_default_value:
+      return Xnode_Value(n,"$",0);
+    
+    return 0;
+  }
+#endif
+  ;
   
+/*
+  be carrefull when assume non-null result as succeeded
+  if empty buffer adding empty string retvalue will be 0
+*/
+char *Xnode_Query_Str_Bf(YOYO_BUFFER *bf, YOYO_XNODE *n, char *query)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XVALUE *value;
+    
+    int start = bf->count;
+    value = Xnode_Query_Value(n,query);
+    
+    if ( value )
+      {
+        char *S = Xvalue_Get_Str(value,0);
+        if ( S )
+          Buffer_Append(bf,S,-1);
+        else
+          {
+            S = Xvalue_Copy_Str(value,"");
+            Buffer_Append(bf,S,-1);
+            __Release(S);
+          }
+        return bf->at+start;
+      }
+      
+    return 0;
+  }
+#endif
+  ;
+
+char *Xnode_Query_Str_Copy(YOYO_XNODE *n, char *query)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XVALUE *value;
+    
+    value = Xnode_Query_Value(n,query);
+    if ( value )
+      return Xvalue_Copy_Str(value,"");
+      
+    return 0;
+  }
+#endif
+  ;
+
+#endif /*C_once_E46D6A8A_889E_4AE9_9F89_5B0AB5263C95*/
+

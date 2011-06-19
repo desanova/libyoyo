@@ -45,14 +45,18 @@ int main(int argc, char **argv)
     __Gogo
       {
         YOYO_XDATA *tmpl = Xtmpl_Load_Template(".","test.tmpl");
-        puts(Def_Format_Into(0,&tmpl->root,0));
-        __GoGo
+        //puts(Def_Format_Into(0,&tmpl->root,0));
+        __Gogo
           {
             char *html;
             YOYO_XDATA *model = Xdata_Init();
-            YOYO_XNODE *n = Xnode_Insert(model,"USER");
-            Xnode_Value_Set_Str(n,"name","Vasya");
+            YOYO_XNODE *n = Xnode_Insert(&model->root,"USER");
+            Xnode_Value_Set_Str(n,"name","Вася");
+            n = Xnode_Append(&model->root,"USER");
+            Xnode_Value_Set_Str(n,"@","Goblin");
+            Xnode_Value_Set_Str(n,"name","Петя");
             html = Xtmpl_Produce_Out(0,tmpl,model);
+            puts(html);
           }
       }
 

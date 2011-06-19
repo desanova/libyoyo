@@ -195,6 +195,45 @@ void Buffer_Quote_Append(YOYO_BUFFER *bf, void *S, int len, int brk)
 #endif
   ;
 
+void Buffer_Html_Quote_Append(YOYO_BUFFER *bf, void *S, int len)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    byte_t *q = S;
+    byte_t *p = q;
+    byte_t *E;
+    
+    if ( len < 0 ) 
+      len = S?strlen(S):0;
+    
+    E = p + len;
+    
+    while ( p != E )
+      {
+        do 
+          { 
+            if ( *p == '<' || *p == '>'  || *p == '&') 
+              break; 
+            ++p; 
+          } 
+        while ( p != E );
+        
+        if ( q != p )
+          Buffer_Append(bf,q,p-q);
+        
+        if ( p != E )
+          {
+            if ( *p == '<' ) Buffer_Append(bf,"&lt;",4);
+            else if ( *p == '>' ) Buffer_Append(bf,"&gt;",4);
+            else if ( *p == '&' ) Buffer_Append(bf,"&amp;",5);
+            ++p;
+          }
+          
+        q = p;
+      }
+  }
+#endif
+  ;
+
 void Buffer_Insert(YOYO_BUFFER *bf,int pos,void *S,int len)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
@@ -219,7 +258,8 @@ void Buffer_Insert(YOYO_BUFFER *bf,int pos,void *S,int len)
 #endif
   ;
 
-void *Buffer_Take_Data(YOYO_BUFFER *bf)
+#define Buffer_Take_Data(Bf) __Pool(Buffer_Take_Data_Npl(Bf))
+void *Buffer_Take_Data_Npl(YOYO_BUFFER *bf)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
     void *R = bf->at;

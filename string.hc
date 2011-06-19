@@ -854,33 +854,36 @@ int Str_To_Int(char *S)
 #endif
   ;
 
-int Str_To_Flt(char *S)
+double Str_To_Flt(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
   }
 #endif
   ;
 
+#define Str_Iequal(Cs,Ct) (!Str_Icmp(Cs,Ct,INT_MAX))
 int Str_Icmp(char *cs, char *ct, int count)
 #ifdef _YOYO_STRING_BUILTIN
   {
+    char *S = cs;
+    char *T = ct;
+    
     if (count <= 0)
       return 0;
-      
+    
     do 
       {
-        if (tolower(*cs) != tolower(*ct++))
+        if (Utf8_Get_Wide(&S) != Utf8_Get_Wide(&T))
           return 0;
-        if (*cs++ == 0)
+        if ( !*S && *T == *S )
           break;
       } 
-    while (--count != 0);
+    while ( S-cs < count && T-ct < count );
 
     return 1;
   }    
 #endif
   ;
-
 
 enum 
   {
@@ -1045,6 +1048,76 @@ wchar_t *Str_Unicode_Replace_Npl_(wchar_t *S, int L, wchar_t *patt, int pattL, w
   }
 #endif
   ;
+
+#define Str_Match(S,Patt) Str_Submatch(S,Patt,0)
+#define Str_Imatch(S,Patt) Str_Submatch(S,Patt,1)
+int Str_Submatch(char *S, char *patt, int nocase);
+
+int Str_Submatch_Nocase_(char *S, char *patt)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    char *SS = S;
+    
+    if ( *S )
+      {
+        do
+          {
+            int l = Utf8_Char_Length[*S];
+            if ( l == 1 )
+              ++S;
+            else
+              {
+                if ( *(S+l) ) 
+                  if ( Str_Submatch_Nocase_(S+l,patt) )
+                    return 1;
+                break;
+              }
+          }
+        while ( *S );
+
+        for ( ; S != SS; --S )
+          if ( Str_Submatch(S,patt,1) )
+            return 1;
+      }
+      
+    return 0;
+  }
+#endif
+  ;
+
+#ifdef _YOYO_STRING_BUILTIN  
+int Str_Submatch(char *S, char *patt, int nocase)
+  {
+    if ( S && patt )
+      while ( *S && *patt )
+        {
+          char *SS = S;
+          int c = nocase ? Utf8_Get_Wide(&SS) : *SS++;
+          int pc = nocase ? Utf8_Get_Wide(&patt) : *patt++;
+        
+          switch ( pc )
+            {
+              case '?': S = SS; break;
+              case '*':
+                if ( nocase )
+                  return Str_Submatch_Nocase_(SS,patt);
+                else
+                  {
+                    while (*SS) ++SS;
+                    for (; S != SS; --S )
+                      if ( Str_Submatch(S,patt,0) )
+                        return 1;
+                  }
+                return 0;
+              //case '[':
+              default:
+                if ( c != pc ) return 0;
+                S = SS;
+            }
+        }
+    return 0;
+  }
+#endif
 
 #endif /* C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48 */
 
