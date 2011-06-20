@@ -510,7 +510,7 @@ void Blowfish_Encrypt(char *data, int len, char *passwd)
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
     int i;
-    YOYO_BLOWFISH bfctx = {0};
+    YOYO_BLOWFISH bfctx = {{0},{{0},{0}}};
     Blowfish_Init_Static(&bfctx,passwd,strlen(passwd));
     
     for ( i = 0; i < len && len-i >= 8 ; i += 8 )
@@ -525,7 +525,7 @@ void Blowfish_Decrypt(char *data, int len, char *passwd)
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
     int i;
-    YOYO_BLOWFISH bfctx = {0};
+    YOYO_BLOWFISH bfctx = {{0},{{0},{0}}};
     Blowfish_Init_Static(&bfctx,passwd,strlen(passwd));
     
     for ( i = 0; i < len && len-i >= 8 ; i += 8 )

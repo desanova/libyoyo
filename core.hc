@@ -54,6 +54,7 @@ in this Software without prior written authorization of the copyright holder.
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <locale.h>
 
 #if defined __WIN32 || defined _MSC_VER || defined __MINGW32_VERSION
 # define __windoze
@@ -1671,10 +1672,12 @@ int Yo_Elm_Insert(void **inout, int pos, int count, void *S, int L, int type_wid
     void *old = *inout;
     int r = Yo_Elm_Insert_Npl(inout,pos,count,S,L,type_width,capacity_ptr);
     if ( *inout != old )
-      if ( old ) 
-        Yo_Refresh_Ptr(old,*inout,0);
-      else
-        Yo_Pool_Ptr(*inout,0);
+      {
+        if ( old ) 
+          Yo_Refresh_Ptr(old,*inout,0);
+        else
+          Yo_Pool_Ptr(*inout,0);
+      }
     return r;
   }
 #endif

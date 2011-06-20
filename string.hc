@@ -39,6 +39,37 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_STRING_EXTERN extern
 #endif
 
+/* caseinsensitive strcmp, returns 0 if equal */
+int strcmp_I(char *cs, char *ct)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int q = 0;
+    do 
+      {
+        q = toupper(*cs) - toupper(*ct++);
+      }
+    while ( *cs++ && !q );
+    return q;
+  }    
+#endif
+  ;
+
+/* caseinsensitive strncmp, returns 0 if equal */
+int strncmp_I(char *cs, char *ct, int l)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int q = 0;
+    if ( l ) do 
+      {
+        q = toupper(*cs) - toupper(*ct++);
+      }
+    while ( *cs++ && !q && --l );
+    return q;
+  }    
+#endif
+  ;
+
+
 int Str_Length(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -358,13 +389,13 @@ char *Str_Hex_Encode(void *data, int len)
 #endif
   ;
 
-#define Str_Unhex_Half_Octet(c,r,i) \
-          if ( *c >= '0' && *c <= '9' ) \
-            r |= (*c-'0') << i; \
-          else if ( *c >= 'a' && *c <= 'f' ) \
-            r |= (*c-'a'+10) << i; \
-          else if ( *c >= 'A' && *c <= 'F' ) \
-            r |= (*c-'A'+10) << i; \
+#define STR_UNHEX_HALF_OCTET(c,r,i) \
+          if ( *(c) >= '0' && *(c) <= '9' ) \
+            r |= (*(c)-'0') << (i); \
+          else if ( *(c) >= 'a' && *(c) <= 'f' ) \
+            r |= (*(c)-'a'+10) << (i); \
+          else if ( *(c) >= 'A' && *(c) <= 'F' ) \
+            r |= (*(c)-'A'+10) << (i); \
 
 byte_t Str_Unhex_Byte(char *S,int pfx,int *cnt)
 #ifdef _YOYO_STRING_BUILTIN
@@ -380,7 +411,7 @@ byte_t Str_Unhex_Byte(char *S,int pfx,int *cnt)
       }
     for ( i=4; i >= 0; i-=4, ++c )
       {
-        Str_Unhex_Half_Octet(c,r,i);
+        STR_UNHEX_HALF_OCTET(c,r,i);
       }
     if ( cnt ) *cnt = c-(byte_t*)S;
     return r;
@@ -405,6 +436,31 @@ void *Str_Hex_Decode(char *S,int *len)
       }
     
     return 0;
+  }
+#endif
+  ;
+
+int Str_Urldecode_Char(char **S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int r = 0;
+    if ( *S ) 
+      {
+        if ( **S == '+' ) 
+          {
+            r = ' ';
+            ++*S;
+          }
+        else if ( **S == '%' && isxdigit((*S)[1]) && isxdigit((*S)[2]) )
+          {
+            STR_UNHEX_HALF_OCTET((*S)+1,r,4);
+            STR_UNHEX_HALF_OCTET((*S)+2,r,0);
+            *S += 3;
+          }
+        else 
+          r = *(*S)++;
+      }
+    return r;
   }
 #endif
   ;
@@ -826,16 +882,59 @@ wchar_t *Str_Unicode_Join_(int sep, ...)
 #define Str_Unicode_Join_5(Sep,S1,S2,S3,S4,S5) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,0)
 #define Str_Unicode_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,S6,0)
 
-char *Str_From_Int(int value, int base)
+#define Str_From_Int(Value) Str_From_Int_Base(Value,10)
+char *Str_From_Int_Base(long value, int base)
 #ifdef _YOYO_STRING_BUILTIN
   {
+    char syms[70] = {0};
+    int l = 0;
+    switch ( base )
+      {
+        case 16: 
+          l = sprintf(syms,"0x%lx",value); break;
+        case 8:  
+          l = sprintf(syms,"%0lo",value); break;
+        case 10: 
+        default:
+          l = sprintf(syms,"%ld",value); break;      
+      }
+    return Str_Copy(syms,l);
   }
 #endif
   ;
 
-char *Str_From_Flt(double value, int perc)
+#define Str_From_Flt(Value) Str_From_Flt_Perc(Value,3);
+char *Str_From_Flt_Perc(double value, int perc)
 #ifdef _YOYO_STRING_BUILTIN
   {
+    int l;
+    char syms[70] = {0};
+    char fmt[] = "%._f";
+    if ( perc )
+      fmt[2] = (perc%9)+'0';
+    l = sprintf(syms,fmt,value);
+    return Str_Copy(syms,l);
+  }
+#endif
+  ;
+
+char *Str_From_Bool(int b)
+  {
+    if ( b )
+      return Str_Copy("#true",5);
+    else
+      return Str_Copy("#false",6);
+  }
+
+int Str_To_Bool_Dflt(char *S,int dflt)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    if ( S && *S == '#' ) ++S;
+    if ( !S || !*S || !strcmp_I(S,"no") || !strcmp_I(S,"off") || !strcmp_I(S,"false") || !strcmp_I(S,"1") )
+      return 0;
+    if ( !strcmp_I(S,"yes") || !strcmp_I(S,"on") || !strcmp_I(S,"true") || !strcmp_I(S,"0") )
+      return 1;
+    return dflt;
   }
 #endif
   ;
@@ -843,13 +942,47 @@ char *Str_From_Flt(double value, int perc)
 int Str_To_Bool(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
+    int q = Str_To_Bool_Dflt(S,3);
+    if ( q == 3 )
+      __Raise(YOYO_ERROR_ILLFORMED,__Format("invalid logical value '%s'",S));
+    return q;
   }
 #endif
   ;
 
-int Str_To_Int(char *S)
+long Str_To_Int(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
+    long l;
+    
+    if (!S) 
+      __Raise(YOYO_ERROR_NULL_PTR,0);
+    else
+      {
+        char *ep = 0;
+        l = strtol(S,&ep,0);
+        if ( !*S || *ep )
+          __Raise(YOYO_ERROR_ILLFORMED,__Format("invalid integer value '%s'",S));
+      }
+    return l;
+  }
+#endif
+  ;
+
+long Str_To_Int_Dflt(char *S, long dflt)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    long l;
+    if (!S) 
+      l = dflt;
+    else
+      {
+        char *ep = 0;
+        l = strtol(S,&ep,0);
+        if ( !*S || *ep )
+          l = dflt;
+      }
+    return l;
   }
 #endif
   ;
@@ -857,29 +990,56 @@ int Str_To_Int(char *S)
 double Str_To_Flt(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
+    double l;
+    
+    if (!S) 
+      __Raise(YOYO_ERROR_NULL_PTR,0);
+    else
+      {
+        char *ep = 0;
+        l = strtod(S,&ep);
+        if ( !*S || *ep )
+          __Raise(YOYO_ERROR_ILLFORMED,__Format("invalid float value '%s'",S));
+      }
+    return l;
   }
 #endif
   ;
 
-#define Str_Iequal(Cs,Ct) (!Str_Icmp(Cs,Ct,INT_MAX))
-int Str_Icmp(char *cs, char *ct, int count)
+double Str_To_Flt_Dflt(char *S, double dflt)
 #ifdef _YOYO_STRING_BUILTIN
   {
-    char *S = cs;
-    char *T = ct;
+    double l;
+    if (!S) 
+      l = dflt;
+    else
+      {
+        char *ep = 0;
+        l = strtod(S,&ep);
+        if ( !*S || *ep )
+          l = dflt;
+      }
+    return l;
+  }
+#endif
+  ;
+
+#define Str_Equal_Nocase(Cs,Ct) Str_Equal_Nocase_Len(Cs,Ct,INT_MAX)
+int Str_Equal_Nocase_Len(char *S, char *T, int L)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    wchar_t c;
+    char *Se = S+L;
+    char *Te = T+L;
     
-    if (count <= 0)
-      return 0;
+    if (L <= 0) return 0;
     
     do 
       {
-        if (Utf8_Get_Wide(&S) != Utf8_Get_Wide(&T))
+        if ( (c = Utf8_Get_Wide(&S)) != Utf8_Get_Wide(&T) )
           return 0;
-        if ( !*S && *T == *S )
-          break;
       } 
-    while ( S-cs < count && T-ct < count );
-
+    while ( c && S < Se && T < Te );
     return 1;
   }    
 #endif
@@ -1020,6 +1180,34 @@ int Str_Unicode_Search_( wchar_t *S, int L, wchar_t *patt, int pattL, int nocase
 #endif
   ;
   
+#define Str_Search(S,Patt) Str_Search_(S,-1,Patt,-1)
+int Str_Search_( char *S, int L, char *patt, int pattL )
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    char *p, *pE;
+    
+    if ( L < 0 ) L = S?strlen(S):0;
+    if ( pattL < 0 ) pattL = patt?strlen(patt):0;
+
+    if ( L < pattL ) return -1;
+    
+    for ( p = S, pE = S+L-pattL+1; p < pE; ++p )
+      if ( *p == *patt )
+        {
+          int i = 0;
+          for ( ; i < pattL; ++i )
+            { if ( patt[i] != p[i] ) break; }
+          if (i == pattL) 
+            return p-S;
+        }
+        
+    return -1;
+  }
+#endif
+  ;
+
+#define Str_Search_Nocase(S,Patt) Str_Search_Nocase_(S,-1,Patt,-1,1)
+
 #define Str_Unicode_Replace_Npl(S,Patt,Val) Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,0)
 #define Str_Unicode_Replace_Nocase_Npl(S,Patt,Val) __Pool(Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,1))
 #define Str_Unicode_Replace(S,Patt,Val) Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,0)
@@ -1050,7 +1238,7 @@ wchar_t *Str_Unicode_Replace_Npl_(wchar_t *S, int L, wchar_t *patt, int pattL, w
   ;
 
 #define Str_Match(S,Patt) Str_Submatch(S,Patt,0)
-#define Str_Imatch(S,Patt) Str_Submatch(S,Patt,1)
+#define Str_Match_Nocase(S,Patt) Str_Submatch(S,Patt,1)
 int Str_Submatch(char *S, char *patt, int nocase);
 
 int Str_Submatch_Nocase_(char *S, char *patt)
@@ -1062,7 +1250,7 @@ int Str_Submatch_Nocase_(char *S, char *patt)
       {
         do
           {
-            int l = Utf8_Char_Length[*S];
+            int l = Utf8_Char_Length[(byte_t)*S];
             if ( l == 1 )
               ++S;
             else

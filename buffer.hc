@@ -105,7 +105,7 @@ void Buffer_Printf(YOYO_BUFFER *bf, char *fmt, ...)
     rq_len = Yo_Detect_Required_Buffer_Size(fmt,va)+1;
     capacity = Min_Pow2(bf->count+rq_len+1);
     bf->at = Yo_Resize_Npl(bf->at,capacity,1);
-  
+    
   #ifdef __windoze
     q = vsprintf(bf->at+bf->count,fmt,va);
   #else

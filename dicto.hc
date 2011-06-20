@@ -196,7 +196,8 @@ void Dicto_Del(YOYO_DICTO *o, char *key)
 #endif
   ;
 
-void *Dicto_Take(YOYO_DICTO *o, char *key, void *dflt)
+/* returns unmanaged value */
+void *Dicto_Take_Npl(YOYO_DICTO *o, char *key)
 #ifdef _YOYO_DICTO_BUILTIN  
   {
     if ( key )
@@ -214,7 +215,22 @@ void *Dicto_Take(YOYO_DICTO *o, char *key, void *dflt)
             return ret;
           }
       }
-    return dflt;
+    return 0;
+  }
+#endif
+  ;
+
+void *Dicto_Take(YOYO_DICTO *o, char *key)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *self = o;
+    void (*destruct)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,YO_RAISE_ERROR);
+    void *Q = Dicto_Take_Npl(o,key);
+    
+    if ( Q )
+      Yo_Pool_Ptr(Q,destruct);
+      
+    return Q;
   }
 #endif
   ;

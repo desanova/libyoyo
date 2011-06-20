@@ -41,6 +41,8 @@ typedef struct _YOYO_XTMPL_UP
     struct _YOYO_XTMPL_UP *up;
   } YOYO_XTMPL_UP;
 
+int Xtmpl_Macro_Template(YOYO_XNODE *n, char *source);
+
 int Xtmpl_Extends_Template(YOYO_XNODE *n, char *source)
 #ifdef _YOYO_XTMPL_BUILTIN 
   {
@@ -128,8 +130,8 @@ int Xtmpl_Gadget_Template(YOYO_XNODE *n, char *source)
 #endif
   ;
 
-int Xtmpl_Macro_Template(YOYO_XNODE *n, char *source)
 #ifdef _YOYO_XTMPL_BUILTIN 
+int Xtmpl_Macro_Template(YOYO_XNODE *n, char *source)
   {
     static char t_extends[] = "extends{";
     static char t_liftup[]  = "liftup{";
@@ -149,25 +151,25 @@ int Xtmpl_Macro_Template(YOYO_XNODE *n, char *source)
                 Xvalue_Set_Str(val,Q,source-Q);
               }
               
-            if ( Str_Icmp(source+1,t_extends,sizeof(t_extends)-1) )
+            if ( Str_Equal_Nocase_Len(source+1,t_extends,sizeof(t_extends)-1) )
               {
                 source += sizeof(t_extends); /* +1 ($) -1 (\0) */
                 source += Xtmpl_Extends_Template(n,source);
                 Q = source;
               }
-            else if ( Str_Icmp(source+1,t_expand,sizeof(t_expand)-1) )
+            else if ( Str_Equal_Nocase_Len(source+1,t_expand,sizeof(t_expand)-1) )
               {
                 source += sizeof(t_expand);
                 source += Xtmpl_Expand_Template(n,source);
                 Q = source;
               }
-            else if ( Str_Icmp(source+1,t_liftup,sizeof(t_liftup)-1) )
+            else if ( Str_Equal_Nocase_Len(source+1,t_liftup,sizeof(t_liftup)-1) )
               {
                 source += sizeof(t_liftup);
                 source += Xtmpl_Liftup_Template(n,source);
                 Q = source;
               }
-            else if ( Str_Icmp(source+1,t_gadget,sizeof(t_gadget)-1) )
+            else if ( Str_Equal_Nocase_Len(source+1,t_gadget,sizeof(t_gadget)-1) )
               {
                 source += sizeof(t_gadget);
                 source += Xtmpl_Gadget_Template(n,source);
@@ -193,7 +195,6 @@ int Xtmpl_Macro_Template(YOYO_XNODE *n, char *source)
     return source-S_source;
   }
 #endif
-  ;
 
 YOYO_XDATA *Xtmpl_Load_Template(char *tmpl_home, char *tmpl_name)
 #ifdef _YOYO_XTMPL_BUILTIN 

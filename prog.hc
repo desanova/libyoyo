@@ -211,6 +211,8 @@ int Prog_Init(int argc, char **argv, char *patt, unsigned flags)
     int rt = 0;
     __Auto_Release __Try_Except
       {
+        setlocale(LC_NUMERIC,"C");
+        setlocale(LC_TIME,"C");
         Prog_Parse_Command_Line(argc,argv,patt,flags);
         rt = 1;
         atexit(Prog_Clear_At_Exit);

@@ -131,9 +131,9 @@ char *Xvalue_Copy_Str(YOYO_XVALUE *val, char *dfltval)
       switch (val->opt&XVALUE_OPT_VALTYPE_MASK) 
         {
           case XVALUE_OPT_VALTYPE_INT:
-            return Str_From_Int(val->dec,10);
+            return Str_From_Int(val->dec);
           case XVALUE_OPT_VALTYPE_FLT:          
-            return Str_From_Flt(val->flt,0);
+            return Str_From_Flt(val->flt);
           case XVALUE_OPT_VALTYPE_STR:
             return Str_Copy(val->txt,-1);
           case XVALUE_OPT_VALTYPE_LIT:
@@ -141,10 +141,7 @@ char *Xvalue_Copy_Str(YOYO_XVALUE *val, char *dfltval)
           case XVALUE_OPT_VALTYPE_NONE:
             return Str_Copy("",-1);
           case XVALUE_OPT_VALTYPE_BOOL:
-            if ( val->bval )
-              return Str_Copy("yes",3);
-            else
-              return Str_Copy("no",2);
+            return Str_From_Bool(val->bval);
           default:
             __Raise(YOYO_ERROR_UNEXPECTED_VALUE,0);
         }
@@ -487,8 +484,6 @@ void *Xdata_Idxref(YOYO_XDATA *doc, ushort_t idx)
 char *Xnode_Get_Tag(YOYO_XNODE *node)
 #ifdef _YOYO_XDATA_BUILTIN
   {
-    YOYO_XDATA *doc;
-     
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
     STRICT_REQUIRE( node->tag > 0 && node->tag <= node->xdata->last_tag );
@@ -732,28 +727,6 @@ YOYO_XNODE *Xnode_Down_If(YOYO_XNODE *node, char *tag_name)
 #endif
   ;
 
-YOYO_XNODE *Xnode_Down_Match(YOYO_XNODE *node, char *patt)
-#ifdef _YOYO_XDATA_BUILTIN
-  {
-    YOYO_XNODE *n;
-      
-    STRICT_REQUIRE( node );
-    STRICT_REQUIRE( patt );
-    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
-
-    n = Xnode_Down(node);
-    while ( n )
-      {
-        if ( Str_Match(Xnode_Get_Tag(node),patt) )
-          return n;
-        n = Xnode_Next(n);
-      }
-      
-    return 0;
-  }
-#endif
-  ;
-
 YOYO_XNODE *Xnode_Next_If(YOYO_XNODE *node, char *tag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
@@ -778,7 +751,7 @@ YOYO_XNODE *Xnode_Next_If(YOYO_XNODE *node, char *tag)
   ((Xnode_Opt_Of_Value(Node,Valtag)&XVALUE_OPT_VALTYPE_MASK) \
     == XVALUE_OPT_VALTYPE_NONE)
 
-YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_not_exist)
+YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_dnt_exist)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *value = 0;
@@ -793,7 +766,7 @@ YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_not_exi
     doc = node->xdata;
 
     if ( valtag_S > XNODE_MAX_NAME_INDEX_PTR )
-      valtag = (ushort_t)(longptr_t)Xdata_Resolve_Name(doc,valtag_S,create_if_not_exist);
+      valtag = (ushort_t)(longptr_t)Xdata_Resolve_Name(doc,valtag_S,create_if_dnt_exist);
     else
       valtag = (ushort_t)(longptr_t)valtag_S;
       
@@ -809,7 +782,7 @@ YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_not_exi
         }
     
     STRICT_REQUIRE( !*next );
-    if ( create_if_not_exist )
+    if ( create_if_dnt_exist )
       {
         STRICT_REQUIRE( valtag );
         value = Xdata_Create_Value(doc,valtag_S,next);
@@ -966,7 +939,6 @@ YOYO_BUFFER *Xnode_Value_Get_Binary(void *node,char *valtag)
 YOYO_BUFFER *Xnode_Value_Copy_Binary(void *node,char *valtag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
-    int lenout = 0;
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
     YOYO_BUFFER *bf = Xvalue_Get_Binary(val);
     if ( bf )
@@ -979,13 +951,14 @@ YOYO_BUFFER *Xnode_Value_Copy_Binary(void *node,char *valtag)
 enum
   {
     YOYO_XNODE_QUERY_EQUAL = 1,
-    YOYO_XNODE_QUERY_MATCH = 2,
+    YOYO_XNODE_QUERY_NAMED = 2,
+    YOYO_XNODE_QUERY_MATCH = 3,
   };
 
 int Xnode_Query_Chop_Op(char **query, char *elm, int elm_size)
 #ifdef _YOYO_XDATA_BUILTIN
   {
-    int patt = 0;
+    int patt = YOYO_XNODE_QUERY_EQUAL;
     int i = 0;
     
     if ( !**query )
@@ -997,8 +970,10 @@ int Xnode_Query_Chop_Op(char **query, char *elm, int elm_size)
         if ( **query != '.' )
           {
             char c = *(*query)++;
-            if ( !patt && ( c == '*' || c == '[' || c == ']' || c == '?' ) )
-              patt = 1;
+            if ( c == '*' || c == '[' || c == '?' )
+              patt = YOYO_XNODE_QUERY_MATCH;
+            else if ( c == '@' && patt < YOYO_XNODE_QUERY_MATCH )
+              patt = YOYO_XNODE_QUERY_NAMED;
             elm[i++] = c;
           }
         else
@@ -1010,64 +985,164 @@ int Xnode_Query_Chop_Op(char **query, char *elm, int elm_size)
       
     elm[i] = 0;
     if (!**query) *query = 0;
-    return patt?YOYO_XNODE_QUERY_MATCH:YOYO_XNODE_QUERY_EQUAL;
+    return patt;
   }
 #endif
   ;
 
+YOYO_XNODE *Xnode_Down_If_Named(YOYO_XNODE *node, char *named_tag)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XNODE *n;
+    int tag_len = 0;
+    char *name;
+    char *tag;
+      
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( named_tag );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+
+    tag = named_tag;
+    for (; *named_tag && *named_tag != '@'; ++named_tag )
+      ++tag_len;
+    name = tag+tag_len;
+    if ( name[0] == '@' ) ++name;
+    
+    n = Xnode_Down(node);
+    while ( n )
+      {
+        if ( !tag_len || !strncmp(Xnode_Get_Tag(n),tag,tag_len) )
+          if ( !*name || Str_Equal_Nocase(Xnode_Value_Get_Str(n,"@",""),name) )
+            break;
+        n = Xnode_Next(n);
+      }
+      
+    return n;
+  }
+#endif
+  ;
+
+YOYO_XNODE *Xnode_Down_Match(YOYO_XNODE *node, char *patt)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XNODE *n;
+    char tag_patt[128];
+    char name_patt[128];
+      
+    STRICT_REQUIRE( node );
+    STRICT_REQUIRE( patt );
+    STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
+
+    n = Xnode_Down(node);
+    
+    __Gogo
+      {
+        int i;
+        char *p = patt;
+        for ( ; *p; ++p )
+          if ( *p  == '@' )
+            {
+              i = p-patt;
+              if ( i > sizeof(tag_patt)-1 )
+                __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
+              memcpy(tag_patt,patt,i); tag_patt[i] = 0;
+              i = 0;
+              ++p;
+              for ( ; *p && i < sizeof(name_patt)-1; ++i )
+                name_patt[i] = p[i];
+              if ( *p )
+                __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
+              name_patt[i] = 0;
+              break;
+            }
+      }
+
+    while ( n )
+      {
+        if ( !tag_patt[0] || Str_Match(Xnode_Get_Tag(node),tag_patt) )
+          if ( !name_patt[0] || Str_Match_Nocase(Xnode_Value_Get_Str(node,"@",0),tag_patt) )
+            break;
+        n = Xnode_Next(n);
+      }
+      
+    return n;
+  }
+#endif
+  ;
+
+YOYO_XVALUE *Xnode_Deep_Value(YOYO_XNODE *n, char *query)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XNODE *nn;
+    int qtype;
+    char elm[128];
+    
+    while( 0 != (qtype=Xnode_Query_Chop_Op(&query,elm,sizeof(elm))) )
+      {
+        if ( qtype == YOYO_XNODE_QUERY_MATCH )
+          __Raise(YOYO_ERROR_ILLFORMED,
+            __yoTa("Xnode_Deep_Value not supports matching requests",0));
+          
+        if ( !query && qtype != YOYO_XNODE_QUERY_NAMED ) /* looking for value? */
+          {
+            STRICT_REQUIRE( qtype == YOYO_XNODE_QUERY_EQUAL );
+            return Xnode_Value(n,elm,1);
+          }
+          
+        if ( qtype == YOYO_XNODE_QUERY_NAMED )
+          nn = Xnode_Down_If_Named(n,elm);
+        else /* qtype == YOYO_XNODE_QUERY_EQUAL */
+          nn = Xnode_Down_If(n,elm);
+      
+        if ( !nn )
+          {
+            if ( qtype == YOYO_XNODE_QUERY_EQUAL ) lb_trivial_append:
+              nn = Xnode_Append(n,elm);
+            else /* qtype == YOYO_XNODE_QUERY_NAMED */
+              {
+                char *c = strchr(elm,'@');
+                if ( !c ) goto lb_trivial_append;
+                *c = 0; ++c;
+                nn = Xnode_Append(n,(!elm[0]?"node":elm));
+                Xnode_Value_Set_Str(nn,"@",c);
+              }
+          }
+          
+        n = nn;
+      }
+    
+    return Xnode_Value(n,"$",1);
+  }
+#endif
+  ;
+  
 YOYO_XVALUE *Xnode_Query_Value(YOYO_XNODE *n, char *query)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     int qtype;
-    char elm[80];
+    char elm[128];
     while( n && (qtype=Xnode_Query_Chop_Op(&query,elm,sizeof(elm))) )
       {
-        if ( elm[0] == '@' )
+        if ( !query && qtype != YOYO_XNODE_QUERY_NAMED ) /* looking for value? */
           {
             YOYO_XVALUE *value;
-            n = Xnode_Down(n);
-            while ( n )
-              {
-                value = Xnode_Value(n,"@",0);
-                if ( value )
-                  {
-                    if ( qtype == YOYO_XNODE_QUERY_EQUAL )
-                      {
-                        if ( Str_Iequal(Xvalue_Get_Str(value,0),elm+1) )
-                          goto lb_repeat;
-                      }
-                    else /* qtype == YOYO_XNODE_QUERY_MATCH */
-                      {
-                        if ( Str_Imatch(Xvalue_Get_Str(value,0),elm+1) )
-                          goto lb_repeat;
-                      }
-                  }
-                n = Xnode_Next(n);
-              }
-          }
-        else
-          {
-            if ( !query ) /* looking for value? */
-              {
-                YOYO_XVALUE *value;
-                if ( qtype == YOYO_XNODE_QUERY_EQUAL )
-                  value = Xnode_Value(n,elm,0);
-                else /* qtype == YOYO_XNODE_QUERY_MATCH */
-                  value = Xnode_Match_Value(n,elm);
-                if ( value )
-                  return value;
-              }
-              
             if ( qtype == YOYO_XNODE_QUERY_EQUAL )
-              n = Xnode_Down_If(n,elm);
+              value = Xnode_Value(n,elm,0);
             else /* qtype == YOYO_XNODE_QUERY_MATCH */
-              n = Xnode_Down_Match(n,elm);
+              value = Xnode_Match_Value(n,elm);
+            if ( value )
+              return value;
           }
-        lb_repeat:;
+          
+        if ( qtype == YOYO_XNODE_QUERY_MATCH )
+          n = Xnode_Down_Match(n,elm);
+        else if ( qtype == YOYO_XNODE_QUERY_NAMED )
+          n = Xnode_Down_If_Named(n,elm);
+        else /* qtype == YOYO_XNODE_QUERY_EQUAL */
+          n = Xnode_Down_If(n,elm);
       }
     
     if ( n )
-    lb_default_value:
       return Xnode_Value(n,"$",0);
     
     return 0;

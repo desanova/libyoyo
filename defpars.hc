@@ -36,6 +36,11 @@ in this Software without prior written authorization of the copyright holder.
 #include "xdata.hc"
 #include "file.hc"
 
+enum
+  {
+    YOYO_DEFPARS_INDENT_WIDTH = 2,
+  };
+
 typedef struct _YOYO_DEFPARSE_STATE
   {
     char *text;
@@ -64,7 +69,7 @@ char *Def_Parse_Get_Literal(YOYO_DEFPARSE_STATE *st)
     if ( *st->text == '"' || *st->text == '\'')
       {
         char brk = *st->text;
-        char *S = ++st->text;
+        ++st->text;
         for ( ; *st->text && *st->text != brk; ++st->text )
           {
             if ( *st->text == '\\' )
@@ -152,7 +157,6 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
         else /* array */
           { 
             YOYO_DEFPARS_VALUE lval;
-            int tp;
             Def_Parse_Skip_Spaces(st);
             Def_Parse_Get_Value(st,&lval);
             if ( lval.type == XVALUE_OPT_VALTYPE_STR )
@@ -209,6 +213,31 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
             ++st->text;
           }
       }
+    else if ( *st->text == '#' )
+      {
+        int l = 0;
+        if ( (Str_Starts_With(st->text+1,"yes") && (l = 4))
+          || (Str_Starts_With(st->text+1,"true") && (l = 5))
+          || (Str_Starts_With(st->text+1,"on") && (l = 3))
+          || (Str_Starts_With(st->text+1,"1") && (l = 2)) )
+          {
+            val->dec = 1;
+            val->type = XVALUE_OPT_VALTYPE_BOOL;
+            st->text += l;
+          }
+        else if ( (Str_Starts_With(st->text+1,"no") && (l = 3))
+          || (Str_Starts_With(st->text+1,"false") && (l = 6))
+          || (Str_Starts_With(st->text+1,"off") && (l = 4))
+          || (Str_Starts_With(st->text+1,"0") && (l = 2)) )
+          {
+            val->dec = 0;
+            val->type = XVALUE_OPT_VALTYPE_BOOL;
+            st->text += l;
+          }
+        else
+          __Raise(YOYO_ERROR_ILLFORMED,
+              __Format("expected boolean value at line %d",st->lineno));
+      }
     else if ( !isdigit(*st->text) 
             && ( (*st->text != '.' && *st->text != '-') || !isdigit(st->text[1]) ) )
       {
@@ -228,7 +257,7 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
                 do
                   {
                     val->dec = val->dec << 4;
-                    Str_Unhex_Half_Octet(st->text,val->dec,0);
+                    STR_UNHEX_HALF_OCTET(st->text,val->dec,0);
                     ++st->text;
                   }
                 while ( isxdigit(*st->text) );
@@ -302,6 +331,9 @@ void Def_Parse_In_Node_Set_Value(YOYO_XNODE *n, char *name, YOYO_DEFPARS_VALUE *
     switch ( val->type )
       {
         case XVALUE_OPT_VALTYPE_INT:
+          Xvalue_Set_Int(xv,val->dec);
+          break;
+        case XVALUE_OPT_VALTYPE_BOOL:
           Xvalue_Set_Int(xv,val->dec);
           break;
         case XVALUE_OPT_VALTYPE_FLT:
@@ -448,7 +480,7 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
           {
             char *tag = Xnode_Value_Get_Tag(r,val);
             
-            Buffer_Fill_Append(bf,'\t',indent);
+            Buffer_Fill_Append(bf,' ',indent*YOYO_DEFPARS_INDENT_WIDTH);
             Buffer_Append(bf,tag,-1);
             Buffer_Append(bf," = ",-1);
             
@@ -460,9 +492,9 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                   
                 case XVALUE_OPT_VALTYPE_BOOL:
                   if ( val->bval )
-                    Buffer_Append(bf,"#yes",-1);
+                    Buffer_Append(bf,"#true",-1);
                   else
-                    Buffer_Append(bf,"#no",-1);
+                    Buffer_Append(bf,"#false",-1);
                   break;
                   
                 case XVALUE_OPT_VALTYPE_INT:
@@ -470,7 +502,10 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                   break;
                   
                 case XVALUE_OPT_VALTYPE_FLT:
-                  Buffer_Printf(bf,"%.3f",val->flt);
+                  if ( val->flt - (double)((long)val->flt) > 0.0009999999 )
+                    Buffer_Printf(bf,"%.3f",val->flt);
+                  else
+                    Buffer_Printf(bf,"%.f",val->flt);
                   break;
                   
                 case XVALUE_OPT_VALTYPE_STR:
@@ -495,7 +530,7 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                     if ( val->binary->count > bytes_per_line )
                       {  
                         Buffer_Append(bf,"\n",1);
-                        Buffer_Fill_Append(bf,'\t',indent+1);
+                        Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);
                       }
                       
                     while ( q < val->binary->count )
@@ -507,7 +542,7 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                         if ( q < val->binary->count )
                           {
                             Buffer_Append(bf,"\n",1);
-                            Buffer_Fill_Append(bf,'\t',indent+1);
+                            Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);
                           }
                       }
                       
@@ -522,14 +557,14 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                     
                     Buffer_Append(bf,"[",2);
                     Buffer_Append(bf,"\n",1);
-                    Buffer_Fill_Append(bf,'\t',indent+1);
+                    Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);
                       
                     for ( ; q < count; ++q )
                       {
                         Buffer_Append(bf,"\"",1);
                         Buffer_Quote_Append(bf,val->strarr->at[q],-1,'"');
                         Buffer_Append(bf,"\"\n",2);
-                        Buffer_Fill_Append(bf,'\t',indent+1);
+                        Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);
                       }
                       
                     Buffer_Append(bf,"]",2);
@@ -545,7 +580,7 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                     if ( val->binary->count > nums_per_line*sizeof(double) )
                       {  
                         Buffer_Append(bf,"\n",1);
-                        Buffer_Fill_Append(bf,'\t',indent+1);
+                        Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);
                       }
                       
                     while ( q+sizeof(double) <= val->binary->count )
@@ -556,7 +591,7 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                           {
                             double d = *(double*)(val->binary->at+q*sizeof(double));
                             
-                            if ( (d - floor(d)) > 0.000999999 )
+                            if ( (d - (double)((long)d)) > 0.000999999 )
                               Buffer_Printf(bf,"%.3f",d);
                             else
                               Buffer_Printf(bf,"%.f",d);
@@ -568,7 +603,7 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                         if ( q+sizeof(double) <= val->binary->count )
                           {
                             Buffer_Append(bf,"\n",1);
-                            Buffer_Fill_Append(bf,'\t',indent+1);
+                            Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);
                           }
                       }
                       
@@ -586,11 +621,11 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
         YOYO_XNODE *n = Xnode_Down(r);
         for ( ; n; n = Xnode_Next(n) )
           {
-            Buffer_Fill_Append(bf,'\t',indent);
+            Buffer_Fill_Append(bf,' ',indent*YOYO_DEFPARS_INDENT_WIDTH);
             Buffer_Append(bf,Xnode_Get_Tag(n),-1);
             Buffer_Append(bf," {\n",3);
             Def_Format_Node_In_Depth(bf,n,flags,indent+1);
-            Buffer_Fill_Append(bf,'\t',indent);
+            Buffer_Fill_Append(bf,' ',indent*YOYO_DEFPARS_INDENT_WIDTH);
             Buffer_Append(bf,"}\n",2);
           }
       }
@@ -601,13 +636,29 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
 char *Def_Format_Into(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags)
 #ifdef _YOYO_DEFPARS_BUILTIN
   {
+    int indent = (flags&0xff);
     if ( !bf ) bf = Buffer_Init(0);
-    Def_Format_Node_In_Depth(bf,r,flags,0);
+    Def_Format_Node_In_Depth(bf,r,flags,indent);
     return bf->at;
   }
 #endif
   ;
   
+char *Def_Format(YOYO_XNODE *r, int flags)
+#ifdef _YOYO_DEFPARS_BUILTIN
+  {
+    char *ret = 0;
+    __Auto_Ptr(ret)
+      {
+        YOYO_BUFFER *bf = Buffer_Init(0);
+        Def_Format_Into(bf,r,flags);
+        ret = Buffer_Take_Data(bf);
+      }
+    return ret;
+  }
+#endif
+  ;
+
 void Def_Format_File(char *fname, YOYO_XNODE *r, int flags)
 #ifdef _YOYO_DEFPARS_BUILTIN
   {

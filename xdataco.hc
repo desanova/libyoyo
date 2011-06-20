@@ -455,11 +455,13 @@ YOYO_XDATA *Xdata_Co_Get(YOYO_XDATA_CO *co, char *key, YOYO_XDATA *dflt)
       __Raise(YOYO_ERROR_INCONSISTENT,"unsupported media type");
   
     if ( !doc )
-      if (dflt == YOYO_XDATA_RAISE_DOESNT_EXIST )
-        __Raise(YOYO_ERROR_DOESNT_EXIST,"document '%s' doesn't exist");
-      else
-        doc = dflt;
-    
+      {
+        if (dflt == YOYO_XDATA_RAISE_DOESNT_EXIST )
+          __Raise(YOYO_ERROR_DOESNT_EXIST,"document '%s' doesn't exist");
+        else
+          doc = dflt;
+      }
+      
     return dflt;
   }
 #endif
