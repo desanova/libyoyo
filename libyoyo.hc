@@ -54,9 +54,12 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_XDATACO_BUILTIN
 #define _YOYO_DEFPARS_BUILTIN
 #define _YOYO_XTMPL_BUILTIN
+#define _YOYO_CGIR_BUILTIN
+#define _YOYO_LOGOUT_BUILTIN
 #endif
 
 #include "core.hc"
+#include "logout.hc"
 #include "crc.hc"
 #include "md5.hc"
 #include "dicto.hc"
@@ -76,6 +79,7 @@ in this Software without prior written authorization of the copyright holder.
 #include "defpars.hc"
 #include "xdataco.hc"
 #include "xtmpl.hc"
+#include "cgirqst.hc"
 
 /*
 #include "tcpip.hc"

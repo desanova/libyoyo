@@ -36,6 +36,14 @@ in this Software without prior written authorization of the copyright holder.
 #include "file.hc"
 #include "defpars.hc"
 
+#ifdef _YOYO_XDATACO_BUILTIN
+# define _YOYO_XDATACO_BUILTIN_CODE(Code) Code
+# define _YOYO_XDATACO_EXTERN 
+#else
+# define _YOYO_XDATACO_BUILTIN_CODE(Code)
+# define _YOYO_XDATACO_EXTERN extern 
+#endif
+
 enum
   {
     YOYO_XDATA_CO_DOC_TEXT   = 'A',
@@ -527,6 +535,214 @@ int Xdata_Co_Override(YOYO_XDATA_CO *co, YOYO_XDATA *doc, char *key)
         Xnode_Value_Put_Str(&doc->root,"$key$",k);
       }
     return Xdata_Co_Store(co, doc, 0);
+  }
+#endif
+  ;
+
+typedef struct _YOYO_XDATA_STREAM
+  {
+    YOYO_XDATA_CO *co;
+    char *key;
+    char *mimetype;
+    int  length;
+    int  finished;
+    void (*Close)();
+    void (*Commit)();
+    int  (*Read)();
+    int  (*Write)();
+    int  (*Rewind)();
+    int  (*Skip)();
+  } YOYO_XDATA_STREAM;
+  
+void YOYO_XDATA_STREAM_Destruct(YOYO_XDATA_STREAM *strm)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    free(strm->key);
+    free(strm->mimetype);
+    __Unrefe(strm->co);
+  }
+#endif
+  ;
+typedef struct _YOYO_XDATA_FS_STREAM
+  {
+    YOYO_XDATA_STREAM strm;
+    char *path;
+    int fd;
+  } YOYO_XDATA_FS_STREAM;
+
+void YOYO_XDATA_FS_STREAM_Destruct(YOYO_XDATA_FS_STREAM *strm)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    YOYO_XDATA_STREAM_Destruct(&strm->strm);
+    free(strm->path);
+    if ( strm->fd >= 0 ) close(strm->fd);
+    __Destruct(strm);
+  }
+#endif
+  ;
+  
+void Xdata_Co_Strm_Close(YOYO_XDATA_STREAM *strm) _YOYO_XDATACO_BUILTIN_CODE( 
+  { strm->Close(strm); });
+void Xdata_Co_Strm_Cancel(YOYO_XDATA_STREAM *strm) _YOYO_XDATACO_BUILTIN_CODE( 
+  { strm->Close(strm); });
+void Xdata_Co_Strm_Commit(YOYO_XDATA_STREAM *strm,char *key) _YOYO_XDATACO_BUILTIN_CODE( 
+  { strm->Commit(strm,key); });
+int Xdata_Co_Strm_Read(YOYO_XDATA_STREAM *strm,void *data, int count,int mincount) _YOYO_XDATACO_BUILTIN_CODE(
+  { return strm->Read(strm,data,count,mincount); });
+int Xdata_Co_Strm_Write(YOYO_XDATA_STREAM *strm,void *data, int count,int mincount) _YOYO_XDATACO_BUILTIN_CODE(
+  { return strm->Write(strm,data,count,mincount); });
+int Xdata_Co_Strm_Rewind(YOYO_XDATA_STREAM *strm) _YOYO_XDATACO_BUILTIN_CODE(
+  { return strm->Rewind(strm); });
+int Xdata_Co_Strm_Skip(YOYO_XDATA_STREAM *strm, int count) _YOYO_XDATACO_BUILTIN_CODE(
+  { return strm->Rewind(strm,count); });
+
+void Xdata_Co_Strm_Fs_Close(YOYO_XDATA_FS_STREAM *strm)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+  }
+#endif
+  ;
+
+void Xdata_Co_Strm_Fs_Commit(YOYO_XDATA_FS_STREAM *strm,char *key)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+  }
+#endif
+  ;
+
+int Xdata_Co_Strm_Fs_Read(YOYO_XDATA_FS_STREAM *strm,void *data, int count,int mincount)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    int i;
+    
+    if ( !strm->strm.finished )
+      __Raise(YOYO_ERROR_ACCESS_DENAIED,"writeonly stream!");
+    if ( strm->fd < 0 )
+      __Raise(YOYO_ERROR_IO,"stream alrady closed");
+    
+    for ( i=0; i<count; )
+      {
+        int j = read(strm->fd,(char*)data+i,count);
+        if ( j < 0 )
+          {
+            int err = errno;
+            __Raise(YOYO_ERROR_IO,__Format("failed to read stream: %s",strerror(err)));
+          }
+        else
+          i+=j;
+      }
+      
+    return i;
+  }
+#endif
+  ;
+
+int Xdata_Co_Strm_Fs_Write(YOYO_XDATA_FS_STREAM *strm,void *data, int count,int mincount)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    int i;
+    
+    if ( strm->strm.finished )
+      __Raise(YOYO_ERROR_ACCESS_DENAIED,"readonly stream!");
+    if ( strm->fd < 0 )
+      __Raise(YOYO_ERROR_IO,"stream alrady closed");
+    
+    for ( i=0; i<count; )
+      {
+        int j = write(strm->fd,(char*)data+i,count);
+        if ( j < 0 )
+          {
+            int err = errno;
+            __Raise(YOYO_ERROR_IO,__Format("failed to write stream: %s",strerror(err)));
+          }
+        else
+          i+=j;
+      }
+      
+    return i;
+  }
+#endif
+  ;
+
+void Xdata_Co_Strm_Fs_Rewind(YOYO_XDATA_FS_STREAM *strm)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+  }
+#endif
+  ;
+
+void Xdata_Co_Strm_Fs_Skip(YOYO_XDATA_FS_STREAM *strm, int count)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+  }
+#endif
+  ;
+
+char *Xdata_Co_Strm_Mimetype(YOYO_XDATA_STREAM *strm)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    return strm->mimetype;
+  }
+#endif
+  ;
+
+int Xdata_Co_Strm_Length(YOYO_XDATA_STREAM *strm)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    return strm->length;
+  }
+#endif
+  ;
+
+YOYO_XDATA_FS_STREAM *YOYO_XDATA_FS_STREAM_Init(YOYO_XDATA_CO *co, char *key, char *mimetype, int mknew)
+  {
+    YOYO_XDATA_FS_STREAM *self = __Object_Dtor(sizeof(YOYO_XDATA_FS_STREAM),YOYO_XDATA_FS_STREAM_Destruct);
+    self->strm.Close = (void*)Xdata_Co_Strm_Fs_Close;
+    self->strm.Commit = (void*)Xdata_Co_Strm_Fs_Commit;
+    self->strm.Read = (void*)Xdata_Co_Strm_Fs_Read;
+    self->strm.Write = (void*)Xdata_Co_Strm_Fs_Write;
+    self->strm.Rewind = (void*)Xdata_Co_Strm_Fs_Rewind;
+    self->strm.Skip = (void*)Xdata_Co_Strm_Fs_Skip;
+    self->strm.co = __Refe(co);
+
+    if ( mknew )
+      {
+        self->strm.mimetype = Str_Copy(mimetype,-1);
+      }
+    else
+      {
+        self->strm.key = Str_Copy(key,-1);
+        self->strm.finished = 1;
+      }
+    return self;
+  }
+
+YOYO_XDATA_STREAM *Xdata_Co_Stream_Open(YOYO_XDATA_CO *co, char *key)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    YOYO_XDATA_STREAM *strm;
+    
+    if ( co->media_type == YOYO_XDATA_CO_MEDIA_FS )
+      strm = &YOYO_XDATA_FS_STREAM_Init(co,key,0,0)->strm;
+    else
+      __Raise(YOYO_ERROR_INCONSISTENT,"unsupported media type");
+  
+    return strm;
+  }
+#endif
+  ;
+
+YOYO_XDATA_STREAM *Xdata_Co_Stream_Create(YOYO_XDATA_CO *co, char *mimetype)
+#ifdef _YOYO_XDATACO_BUILTIN 
+  {
+    YOYO_XDATA_STREAM *strm;
+    
+    if ( co->media_type == YOYO_XDATA_CO_MEDIA_FS )
+      strm = &YOYO_XDATA_FS_STREAM_Init(co,0,mimetype,1)->strm;
+    else
+      __Raise(YOYO_ERROR_INCONSISTENT,"unsupported media type");
+  
+    return strm;
   }
 #endif
   ;

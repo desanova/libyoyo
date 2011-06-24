@@ -95,12 +95,19 @@ void Buffer_Fill_Append(YOYO_BUFFER *bf,int c,int count)
 #endif
   ;
 
-void Buffer_Printf(YOYO_BUFFER *bf, char *fmt, ...)
+void Buffer_Puts(YOYO_BUFFER *bf, char *S)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    Buffer_Append(bf,S,-1);
+    Buffer_Fill_Append(bf,'\n',1);
+  }
+#endif
+  ;
+  
+void Buffer_Printf_Va(YOYO_BUFFER *bf, char *fmt, va_list va)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
     int q, rq_len, capacity;
-    va_list va;
-    va_start(va,fmt);
     
     rq_len = Yo_Detect_Required_Buffer_Size(fmt,va)+1;
     capacity = Min_Pow2(bf->count+rq_len+1);
@@ -117,6 +124,17 @@ void Buffer_Printf(YOYO_BUFFER *bf, char *fmt, ...)
     STRICT_REQUIRE(bf->count >= 0 && bf->count <= capacity);
   
     bf->at[bf->count] = 0;
+  }
+#endif
+  ;
+
+void Buffer_Printf(YOYO_BUFFER *bf, char *fmt, ...)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    va_list va;
+    va_start(va,fmt);
+    Buffer_Printf_Va(bf,fmt,va);
+    va_end(va);
   }
 #endif
   ;

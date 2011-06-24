@@ -165,6 +165,13 @@ _YOYO_CORE_EXTERN char Oj_Find_Lkey_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = ">?L>/@L
 _YOYO_CORE_EXTERN char Oj_Take_Lkey_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = ">-L>/@L" );
 _YOYO_CORE_EXTERN char Oj_Del_Lkey_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = ">~L>/@L" );
 
+enum
+  {
+    KILOBYTE = 1024,
+    MEGABYTE = 1024*KILOBYTE,
+    GIGABYTE = 1024*MEGABYTE,
+  };
+
 enum _YOYO_ERRORS
   {
     YOYO_FATAL_ERROR_GROUP          = 0x70000000,
@@ -1688,6 +1695,27 @@ int Yo_Elm_Insert(void **inout, int pos, int count, void *S, int L, int type_wid
 #define __Vector_Append(Mem,Count,Capacity,S,L) (void)(*Count += Yo_Elm_Append((void**)Mem,*Count,S,L,1,Capacity))
 #define __Elm_Append(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append((void**)Mem,Count,S,L,Width,CpsPtr)
 #define __Elm_Append_Npl(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append_Npl((void**)Mem,Count,S,L,Width,CpsPtr)
+
+#define __Write_Out(Fd,Data,Count) Yo_Write_Out(Fd,Data,Count)
+int Yo_Write_Out(int fd, void *data, int count) 
+#ifdef _YOYO_CORE_BUILTIN  
+  {
+    int i;
+    
+    for ( i = 0; i < count;  )
+      {
+        int r = write(fd,(char*)data+i,count-i);
+        if ( r >= 0 )
+          i += r;
+        else 
+          if ( errno != EAGAIN )
+            return errno;
+      }
+      
+    return 0;
+  }
+#endif
+  ;
 
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
 
