@@ -50,7 +50,7 @@ typedef struct _YOYO_DEFPARSE_STATE
 void Def_Parse_Skip_Spaces(YOYO_DEFPARSE_STATE *st)
 #ifdef _YOYO_DEFPARS_BUILTIN
   {
-    while ( *st->text && isspace(*st->text) )
+    while ( *st->text && Chr_Isspace(*st->text) )
       {
         if ( *st->text == '\n' ) ++st->lineno;
         ++st->text;
@@ -99,7 +99,7 @@ char *Def_Parse_Get_Literal(YOYO_DEFPARSE_STATE *st)
     else
       {
         char *q = st->text;
-        while ( *st->text && !isspace(*st->text) && *st->text != ')' 
+        while ( *st->text && !Chr_Isspace(*st->text) && *st->text != ')' 
               && *st->text != '}' && *st->text != ',' && *st->text != ']' )
           ++st->text;
         __Vector_Append(&out,&len,&capacity,q,st->text-q);
@@ -135,9 +135,9 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
             val->dat = Buffer_Init(0);
             Def_Parse_Skip_Spaces(st);
             
-            while ( isxdigit(*st->text) )
+            while ( Chr_Isxdigit(*st->text) )
               {
-                if ( !isxdigit(st->text[1]) )
+                if ( !Chr_Isxdigit(st->text[1]) )
                   __Raise(YOYO_ERROR_ILLFORMED,
                       __Format("expected hex byte value at line %d",st->lineno));
                 
@@ -238,8 +238,8 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
           __Raise(YOYO_ERROR_ILLFORMED,
               __Format("expected boolean value at line %d",st->lineno));
       }
-    else if ( !isdigit(*st->text) 
-            && ( (*st->text != '.' && *st->text != '-') || !isdigit(st->text[1]) ) )
+    else if ( !Chr_Isdigit(*st->text) 
+            && ( (*st->text != '.' && *st->text != '-') || !Chr_Isdigit(st->text[1]) ) )
       {
         val->txt = Def_Parse_Get_Literal(st);
         val->type = XVALUE_OPT_VALTYPE_STR;
@@ -251,7 +251,7 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
             ++st->text;
             val->dec = 0;
             
-            if ( *st->text == 'x' && isxdigit(st->text[1]) ) /* hex value */
+            if ( *st->text == 'x' && Chr_Isxdigit(st->text[1]) ) /* hex value */
               {
                 ++st->text;
                 do
@@ -260,7 +260,7 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
                     STR_UNHEX_HALF_OCTET(st->text,val->dec,0);
                     ++st->text;
                   }
-                while ( isxdigit(*st->text) );
+                while ( Chr_Isxdigit(*st->text) );
               }
             else if ( *st->text >= '0' && *st->text <= '7' )
               {
@@ -272,7 +272,7 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
                   }
                 while ( *st->text >= '0' && *st->text <= '7' );
               }
-            else if ( isspace(*st->text) )
+            else if ( Chr_Isspace(*st->text) )
               {
                 ; /* nothing, it's zero value */
               }
@@ -282,14 +282,14 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
             val->type = XVALUE_OPT_VALTYPE_INT;
             
           }
-        else if ( isdigit(*st->text) || *st->text == '.' || *st->text == '-' ) /* decimal or float value */
+        else if ( Chr_Isdigit(*st->text) || *st->text == '.' || *st->text == '-' ) /* decimal or float value */
           {
             int neg = 1;
             int value = 0;
             
             if ( *st->text ) { neg = -1; ++st->text; }
             
-            for ( ; isdigit(*st->text); ++st->text )
+            for ( ; Chr_Isdigit(*st->text); ++st->text )
               value = value * 10 + ( *st->text - '0' );
             
             if ( *st->text == '.' )
@@ -297,7 +297,7 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
                 double exp = 1;
                 double d = value*neg;
                 ++st->text;
-                for ( ; isdigit(*st->text); ++st->text )
+                for ( ; Chr_Isdigit(*st->text); ++st->text )
                   {
                     d = d * 10 + ( *st->text - '0' );
                     exp *= 10;
@@ -313,7 +313,7 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
           }
 
         if ( *st->text 
-          && !isspace(*st->text) && *st->text != ')' 
+          && !Chr_Isspace(*st->text) && *st->text != ')' 
           && *st->text != '}' && *st->text != ',' && *st->text != ']' )
       invalid_numeric:
           __Raise(YOYO_ERROR_ILLFORMED,

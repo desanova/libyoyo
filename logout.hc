@@ -62,7 +62,7 @@ void Logout(int level, char *text)
               sprintf(mark, "%%clocks%% %.3f\n",(double)YOYO_Log_Clock/CLOCKS_PER_SEC);
               __Write_Out(YOYO_Log_Fd,mark,strlen(mark));
             }
-          if (0) __Gogo
+          if (0) //__Gogo
             {
               sprintf(mark,"[%4d] ",YOYO_Log_Line_No++);
               __Write_Out(YOYO_Log_Fd,mark,strlen(mark));

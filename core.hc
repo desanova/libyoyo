@@ -1526,6 +1526,7 @@ void Error_Exit(char *pfx)
 #define __Refe(Ptr)                     Yo_Refe(Ptr)
 #define __Unrefe(Ptr)                   Yo_Unrefe(Ptr)
 #define __Raise(Err,Msg)                Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
+#define __Raise_Format(Err,Fmt)         Yo_Raise(Err,(Yo_Format Fmt),__Yo_FILE__,__LINE__)
 #define __Raise_If_Occured()            Yo_Raise_If_Occured()
 #define __Fatal(Err,Ctx)                Yo_Fatal(Err,Ctx,__Yo_FILE__,__LINE__)
 #define __Format                        Yo_Format

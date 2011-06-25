@@ -34,6 +34,7 @@ in this Software without prior written authorization of the copyright holder.
 #include "buffer.hc"
 #include "string.hc"
 #include "logout.hc"
+#include "stdf.hc"
 
 extern char **environ;
 
@@ -71,6 +72,11 @@ enum
     YOYO_CGIR_MULTIPART   = 3,
   };
 
+enum 
+  {
+    CGIR_POST_MAX_PAYLOAD = 64*KILOBYTE,
+  };
+
 typedef struct _YOYO_CGIR_COOKIE
   {
     struct _YOYO_CGIR_COOKIE *next;
@@ -87,6 +93,7 @@ typedef struct _YOYO_CGIR_UPLOAD
     struct _YOYO_CGIR_UPLOAD *next;
     char *path;
     char *mimetype;
+    char *original;
     int length;
     int status;
     char name[1];
@@ -222,21 +229,23 @@ char *Cgir_Get_Cookie(YOYO_CGIR *cgir,char *name)
 #endif
   ;
 
-YOYO_CGIR_UPLOAD *Cgir_Attach_Upload(YOYO_CGIR_UPLOAD **upload, char *path, char *mimetype, char *name, int len)
+YOYO_CGIR_UPLOAD *Cgir_Attach_Upload(YOYO_CGIR_UPLOAD **upload, char *path, char *mimetype, char *name, char *original, int len)
 #ifdef _YOYO_CGIR_BUILTIN
   {
     int path_len = path?strlen(path):0;
     int mime_len = mimetype?strlen(mimetype):0;
     int name_len = name?strlen(name):0;
-    int mem_len = path_len+1+mime_len+1+name_len+sizeof(YOYO_CGIR_UPLOAD);
+    int orig_len = original?strlen(original):0;
+    int mem_len = path_len+1+mime_len+1+orig_len+1+name_len+sizeof(YOYO_CGIR_UPLOAD);
     YOYO_CGIR_UPLOAD *u = __Malloc_Npl(mem_len);
     memset(u,0,mem_len);
     u->path = u->name+name_len+1;
     u->mimetype = u->path+path_len+1;
-    
+    u->original = u->mimetype+mime_len+1;
     if ( name_len ) memcpy(u->name,name,name_len);
     if ( path_len ) memcpy(u->path,path,path_len);
     if ( mime_len ) memcpy(u->mimetype,mimetype,mime_len);
+    if ( orig_len ) memcpy(u->original,original,orig_len);
     u->length = len;
     
     while ( *upload ) upload = &(*upload)->next;
@@ -266,7 +275,7 @@ int Cgir_Recognize_Content_Type(char *cont_type)
   {
     if ( cont_type )
       {
-        while ( isspace(*cont_type) ) ++cont_type;
+        while ( Chr_Isspace(*cont_type) ) ++cont_type;
         if ( !strncmp_I(cont_type,"multipart/form-data;",20) )
           return YOYO_CGIR_MULTIPART;
         if ( !strcmp_I(cont_type,"application/x-www-form-urlencoded") )
@@ -284,7 +293,7 @@ int Cgir_Recognize_Gateway_Ifs(char *gwifs)
   {
     if ( gwifs )
       {
-        while ( isspace(*gwifs) ) ++gwifs;
+        while ( Chr_Isspace(*gwifs) ) ++gwifs;
         if ( !strncmp_I(gwifs,"cgi/1.1",9) )
           return YOYO_CGIR_CGI_1_1;
         if ( !strncmp_I(gwifs,"cgi/1.0",9) )
@@ -300,7 +309,7 @@ int Cgir_Recognize_Protocol(char *proto)
   {
     if ( proto )
       {
-        while ( isspace(*proto) ) ++proto;
+        while ( Chr_Isspace(*proto) ) ++proto;
         if ( !strncmp_I(proto,"http/1.1",10) )
           return YOYO_CGIR_HTTP_1_1;
         if ( !strncmp_I(proto,"http/1.0",10) )
@@ -341,12 +350,13 @@ YOYO_CGIR *Cgir_Init()
         self->content_type = Cgir_Recognize_Content_Type(S);
         if ( self->content_type == YOYO_CGIR_MULTIPART )
           {
-            char *bndr = strrchr(S,';');
+            char *bndr = strchr(S,';');
             if ( bndr )
               {
-                while ( isspace(*bndr) ) ++bndr;
-                if ( strcmp_I(bndr,"boundary=") == 0 )
-                  self->content_boundary = Str_Copy_Npl(bndr+9,-1);
+                ++bndr;
+                while ( Chr_Isspace(*bndr) ) ++bndr;
+                if ( Str_Starts_With(bndr,"boundary=") )
+                  self->content_boundary = Str_Concat_Npl("--",bndr+9);
               }
           }
       }
@@ -359,7 +369,7 @@ YOYO_CGIR *Cgir_Init()
             int nam_len,val_len;
             char *nam;
             char *val;
-            while ( isspace(*S) ) ++S;
+            while ( Chr_Isspace(*S) ) ++S;
             nam = S;
             while ( *S && *S != '=' && *S != ';' ) ++S;
             if ( *S == '=' )
@@ -390,6 +400,7 @@ void Cgir_Format_Bf(YOYO_CGIR *self, YOYO_BUFFER *bf)
 #ifdef _YOYO_CGIR_BUILTIN
   {
     YOYO_CGIR_COOKIE *q;
+    YOYO_CGIR_UPLOAD *u;
     
     Buffer_Printf(bf,"YOYO_CGIR(%08x){\n",self);
     Buffer_Printf(bf,"  server_software = '%s'\n",self->server_software);
@@ -414,6 +425,9 @@ void Cgir_Format_Bf(YOYO_CGIR *self, YOYO_BUFFER *bf)
     Buffer_Append(bf,"  cookie-out:\n",-1);
     for ( q = self->cookie_out; q; q = q->next ) 
       Buffer_Printf(bf,"    %s => %s  ((%sexpire:%ld))\n",q->name,q->value,q->secure?"SECURED ":"",q->expire);
+    Buffer_Append(bf,"  upload:\n",-1);
+    for ( u = self->upload; u; u = u->next )
+      Buffer_Printf(bf,"    %s => %s (%d bytes) %s `%s`\n",u->name,u->path,u->length,u->mimetype,u->original);
     Buffer_Printf(bf,"}\n");
   }
 #endif
@@ -432,7 +446,7 @@ char *Cgir_Format_Cookies_Out(YOYO_CGIR *self)
         Buffer_Append(&bf,q->value,-1);
         if ( q->expire )
           {
-            time_t gmt_time;
+            //time_t gmt_time;
             static char *wday [] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
             static char *mon  [] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -455,8 +469,151 @@ char *Cgir_Format_Cookies_Out(YOYO_CGIR *self)
   }
 #endif
   ;
+
+char *Cgir_Upload_Part(
+  YOYO_CGIR *cgir, longptr_t out, Unknown_Write_Proc xwrite, 
+  char *S, char *bf, int *L, int maxlen)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    int count = 0;
+    int cb_l = strlen(cgir->content_boundary);
+    
+    while (S && *L)
+      {
+        int j = 0, k = 0;
+        if ( strncmp(S,cgir->content_boundary,cb_l) == 0 )
+          break;
+        
+        ++j;
+        
+        while ( *L-j >= cb_l+2 )
+          {
+            k = 0;
+            if ( S[j] == '\r' ) ++k;
+            if ( S[j+k] == '\n' ) ++k;
+            if ( 0 == strncmp(S+j+k,cgir->content_boundary,cb_l) )
+              break;
+            ++j;
+          }
+        
+        if ( count + j > maxlen )
+          __Raise(YOYO_ERROR_OUT_OF_RANGE,__yoTa("payload size out of limit",0));
+        Unknown_Write(out,S,j,xwrite);
+        S = Stdin_Pump_Part(bf,S+j+k,L);
+        if ( *L < cb_l ) 
+          __Raise(YOYO_ERROR_IO,__yoTa("uncomplete request",0));
+      }
+
+    return S;
+  }
+#endif
+  ;
   
-YOYO_XDATA *Cgir_Query_Params(YOYO_CGIR *cgir, char *upload_dir, int uload_maxsize)
+char *Str_Fetch_Substr(char *S, char *prefx, char *skip, char *stopat)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    int j = 0;
+    char *qoo;
+    char *Q = strstr(S,prefx);
+    if ( Q )
+      {
+        Q += strlen(prefx);
+        if ( skip )
+          l: for ( qoo = skip; *Q && *qoo; ++qoo ) if ( *qoo == *Q ) { ++Q; goto l; } 
+        for ( ; Q[j]; ++j )
+          if ( stopat )
+            for ( qoo = stopat; *qoo; ++qoo )
+              if ( *qoo == Q[j] )
+                goto ret;
+      }
+  ret:
+    if ( Q && j ) return Str_Copy(Q,j);
+    return 0;
+  }
+#endif
+  ;
+  
+char *Cgir_Strip(char *S)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    if ( S && *S == '"' )
+      {
+        int L = strlen(S);
+        if ( S[L-1] == '"' ) S[L-1] = 0;
+        return S+1;
+      }
+    return S;
+  }
+#endif
+  ;
+  
+char *Cgir_Multipart_Next(
+  YOYO_CGIR *cgir, char *upload_dir, int upload_maxsize, char *bf,char *S, int *L)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    char *SE;
+    char *name, *filename, *ctype;
+    int cb_l = strlen(cgir->content_boundary);
+     
+    while ( *S && Chr_Isspace(*S) ) ++S;
+    
+    if ( 0 == strncmp(S,cgir->content_boundary,cb_l) )
+      {
+        S = Stdin_Pump_Part(bf,S,L);
+        SE = S+1;
+        while ( *SE )
+          {
+            if ( *SE == '\n' && SE[1] == '\n' ) 
+              { SE += 2; break; }
+            if ( *SE == '\n' && SE[1] == '\r' && SE[2] == '\n') 
+              { SE += 3; break; }
+            ++SE;
+          }
+        if ( *SE )
+          {
+            SE[-1] = 0;
+            name = Cgir_Strip(Str_Fetch_Substr(S,"name=",0,";\n\r"));
+            filename = Cgir_Strip(Str_Fetch_Substr(S,"filename=",0,";\n\r"));
+            ctype = Cgir_Strip(Str_Fetch_Substr(S,"Content-Type:"," ",";\n\r"));
+            S = Stdin_Pump_Part(bf,SE,L);
+            if ( ctype || filename )
+              {
+                char *tmpfname = Path_Unique_Name(upload_dir,"cgi-",".upl");
+                YOYO_CFILE *f = Cfile_Open(tmpfname,"w+P");
+                YOYO_CGIR_UPLOAD *u = Cgir_Attach_Upload(&cgir->upload,tmpfname,ctype,name,filename,0);
+                S = Cgir_Upload_Part(cgir,(longptr_t)f,&Cf_Write,S,bf,L,upload_maxsize);
+                Cfile_Flush(f);
+                u->length = Cfile_Length(f);
+                Cfile_Close(f);
+              }
+            else
+              {
+                YOYO_BUFFER *val = Buffer_Init(0);
+                S = Cgir_Upload_Part(cgir,(longptr_t)val,&Bf_Write,S,bf,L,CGIR_POST_MAX_PAYLOAD);
+                Xvalue_Set_Str(Xnode_Deep_Value(&cgir->params->root,name),val->at,val->count);
+              }
+            return S;
+          }
+      }
+    return 0;
+  }
+#endif
+  ;
+  
+void Cgir_Process_Multipart_Content(YOYO_CGIR *cgir, char *upload_dir, int upload_maxsize)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    char bf[YOYO_STDF_PUMP_BUFFER];
+    int L = Stdin_Pump(bf);
+    char *S = bf;
+    while ( S && L )
+      __Auto_Release
+        S = Cgir_Multipart_Next(cgir,upload_dir,upload_maxsize,bf,S,&L);
+  }
+#endif
+  ;
+  
+YOYO_XDATA *Cgir_Query_Params(YOYO_CGIR *cgir, char *upload_dir, int upload_maxsize)
 #ifdef _YOYO_CGIR_BUILTIN
   {
     if ( !cgir->params ) __Auto_Release
@@ -471,17 +628,27 @@ YOYO_XDATA *Cgir_Query_Params(YOYO_CGIR *cgir, char *upload_dir, int uload_maxsi
           }
         else if ( cgir->request_method == YOYO_CGIR_POST )
           {
-            int count = cgir->content_length;
-            int l = 0;
-            S = __Malloc(count);
-            while ( l < count )
+            if ( cgir->content_type == YOYO_CGIR_MULTIPART )
               {
-                int q = fread(S+l,1,count-l,stdin);
-                if ( q < 0 )
-                  __Raise(YOYO_ERROR_IO,
-                    __Format("failed to read request content: %s",strerror(ferror(stdin))));
-                l += q;
+                if ( cgir->content_boundary )
+                  Cgir_Process_Multipart_Content(cgir,upload_dir,upload_maxsize);
               }
+            else if ( cgir->content_length < CGIR_POST_MAX_PAYLOAD )
+              {
+                int count = cgir->content_length;
+                int l = 0;
+                S = __Malloc(count);
+                while ( l < count )
+                  {
+                    int q = fread(S+l,1,count-l,stdin);
+                    if ( q < 0 )
+                      __Raise(YOYO_ERROR_IO,
+                        __Format("failed to read request content: %s",strerror(ferror(stdin))));
+                    l += q;
+                  }
+              }
+            else
+              __Raise(YOYO_ERROR_OUT_OF_RANGE,__yoTa("payload size out of limit",0));
           }
         if ( S && (cgir->request_method == YOYO_CGIR_GET || cgir->content_type == YOYO_CGIR_URLENCODED) )
           {
@@ -532,5 +699,5 @@ void Cgir_Printf(YOYO_CGIR *cgir, char *fmt, ...)
   }
 #endif
   ;
-  
+
 #endif /* C_once_F176ECB4_D4AF_42B5_B69F_E9A97AB9469A */

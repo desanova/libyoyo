@@ -496,11 +496,13 @@ char *Xnode_Get_Tag(YOYO_XNODE *node)
 int Xnode_Tag_Is(YOYO_XNODE *node, char *tag_name)
 #ifdef _YOYO_XDATA_BUILTIN
   {
+    ushort_t tag;
+    
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
     STRICT_REQUIRE( node->tag > 0 && node->tag <= node->xdata->last_tag );
      
-    ushort_t tag = (ushort_t)(longptr_t)Xdata_Resolve_Name(node->xdata,tag_name,0);
+    tag = (ushort_t)(longptr_t)Xdata_Resolve_Name(node->xdata,tag_name,0);
     return node->tag == tag;
   }
 #endif

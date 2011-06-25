@@ -720,7 +720,7 @@ YOYO_XDATA_FS_STREAM *YOYO_XDATA_FS_STREAM_Init(YOYO_XDATA_CO *co, char *key, ch
 YOYO_XDATA_STREAM *Xdata_Co_Stream_Open(YOYO_XDATA_CO *co, char *key)
 #ifdef _YOYO_XDATACO_BUILTIN 
   {
-    YOYO_XDATA_STREAM *strm;
+    YOYO_XDATA_STREAM *strm = 0;
     
     if ( co->media_type == YOYO_XDATA_CO_MEDIA_FS )
       strm = &YOYO_XDATA_FS_STREAM_Init(co,key,0,0)->strm;
@@ -735,7 +735,7 @@ YOYO_XDATA_STREAM *Xdata_Co_Stream_Open(YOYO_XDATA_CO *co, char *key)
 YOYO_XDATA_STREAM *Xdata_Co_Stream_Create(YOYO_XDATA_CO *co, char *mimetype)
 #ifdef _YOYO_XDATACO_BUILTIN 
   {
-    YOYO_XDATA_STREAM *strm;
+    YOYO_XDATA_STREAM *strm = 0;
     
     if ( co->media_type == YOYO_XDATA_CO_MEDIA_FS )
       strm = &YOYO_XDATA_FS_STREAM_Init(co,0,mimetype,1)->strm;

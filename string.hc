@@ -46,11 +46,11 @@ int strcmp_I(char *cs, char *ct)
     int q = 0;
     do 
       {
-        q = toupper(*cs) - toupper(*ct++);
+        q = toupper((byte_t)*cs) - toupper((byte_t)*ct++);
       }
     while ( *cs++ && !q );
     return q;
-  }    
+  }
 #endif
   ;
 
@@ -61,7 +61,7 @@ int strncmp_I(char *cs, char *ct, int l)
     int q = 0;
     if ( l ) do 
       {
-        q = toupper(*cs) - toupper(*ct++);
+        q = toupper((byte_t)*cs) - toupper((byte_t)*ct++);
       }
     while ( *cs++ && !q && --l );
     return q;
@@ -117,6 +117,8 @@ wchar_t *Str_Unicode_Copy_Npl(wchar_t *S,int L)
 #endif
   ;
 
+#define Chr_Isspace(C) isspace((byte_t)(C))
+
 char *Str_Split_Once_Into(char *S,char *delims,void *arr)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -135,11 +137,11 @@ char *Str_Split_Once_Into(char *S,char *delims,void *arr)
     else // split by spaces
       {
         char *p = S, *q;
-        while ( *p && isspace(*p) ) ++p;
+        while ( *p && Chr_Isspace(*p) ) ++p;
         q = p;
-        while ( *q && !isspace(*q) ) ++q;
+        while ( *q && !Chr_Isspace(*q) ) ++q;
         Array_Push(arr,Str_Copy_Npl(p,q-p));
-        while ( *q && isspace(*q) ) ++q;
+        while ( *q && Chr_Isspace(*q) ) ++q;
         return *q ? q : 0;
       }
   }
@@ -440,6 +442,9 @@ void *Str_Hex_Decode(char *S,int *len)
 #endif
   ;
 
+#define Chr_Isxdigit(C) isxdigit((byte_t)(C))
+#define Chr_Isdigit(C)  isdigit((byte_t)(C))
+
 int Str_Urldecode_Char(char **S)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -451,7 +456,7 @@ int Str_Urldecode_Char(char **S)
             r = ' ';
             ++*S;
           }
-        else if ( **S == '%' && isxdigit((*S)[1]) && isxdigit((*S)[2]) )
+        else if ( **S == '%' && Chr_Isxdigit((*S)[1]) && Chr_Isxdigit((*S)[2]) )
           {
             STR_UNHEX_HALF_OCTET((*S)+1,r,4);
             STR_UNHEX_HALF_OCTET((*S)+2,r,0);
@@ -721,7 +726,7 @@ char *Str_Join_Va_Npl(char sep, va_list va)
 #ifdef _YOYO_STRING_BUILTIN
   {
     int len = 0;
-    char *q, *out = 0;
+    char *q = 0, *out = 0;
     va_list va2;
 #ifdef __GNUC__
     va_copy(va2,va);
@@ -766,11 +771,11 @@ char *Str_Join_Npl_(char sep, ...)
 #endif
   ;
   
-#define Str_Join_Npl_2(Sep,S1,S2) Str_Join_Npl_(Sep,S1,S2,0)
-#define Str_Join_Npl_3(Sep,S1,S2,S3) Str_Join_Npl_(Sep,S1,S2,S3,0)
-#define Str_Join_Npl_4(Sep,S1,S2,S3,S4) Str_Join_Npl_(Sep,S1,S2,S3,S4,0)
-#define Str_Join_Npl_5(Sep,S1,S2,S3,S4,S5) Str_Join_Npl_(Sep,S1,S2,S3,S4,S5,0)
-#define Str_Join_Npl_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_Npl_(Sep,S1,S2,S3,S4,S5,S6,0)
+#define Str_Join_Npl_2(Sep,S1,S2) Str_Join_Npl_(Sep,S1,S2,(char*)0)
+#define Str_Join_Npl_3(Sep,S1,S2,S3) Str_Join_Npl_(Sep,S1,S2,S3,(char*)0)
+#define Str_Join_Npl_4(Sep,S1,S2,S3,S4) Str_Join_Npl_(Sep,S1,S2,S3,S4,(char*)0)
+#define Str_Join_Npl_5(Sep,S1,S2,S3,S4,S5) Str_Join_Npl_(Sep,S1,S2,S3,S4,S5,(char*)0)
+#define Str_Join_Npl_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_Npl_(Sep,S1,S2,S3,S4,S5,S6,(char*)0)
 
 char *Str_Join_(char sep, ...)
 #ifdef _YOYO_STRING_BUILTIN
@@ -785,11 +790,11 @@ char *Str_Join_(char sep, ...)
 #endif
   ;
 
-#define Str_Join_2(Sep,S1,S2) Str_Join_(Sep,S1,S2,0)
-#define Str_Join_3(Sep,S1,S2,S3) Str_Join_(Sep,S1,S2,S3,0)
-#define Str_Join_4(Sep,S1,S2,S3,S4) Str_Join_(Sep,S1,S2,S3,S4,0)
-#define Str_Join_5(Sep,S1,S2,S3,S4,S5) Str_Join_(Sep,S1,S2,S3,S4,S5,0)
-#define Str_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_(Sep,S1,S2,S3,S4,S5,S6,0)
+#define Str_Join_2(Sep,S1,S2) Str_Join_(Sep,S1,S2,(char*)0)
+#define Str_Join_3(Sep,S1,S2,S3) Str_Join_(Sep,S1,S2,S3,(char*)0)
+#define Str_Join_4(Sep,S1,S2,S3,S4) Str_Join_(Sep,S1,S2,S3,S4,(char*)0)
+#define Str_Join_5(Sep,S1,S2,S3,S4,S5) Str_Join_(Sep,S1,S2,S3,S4,S5,(char*)0)
+#define Str_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_(Sep,S1,S2,S3,S4,S5,S6,(char*)0)
 
 #define Str_Unicode_Concat(A,B) Yo_Pool(Str_Unicode_Concat_Npl(A,B))
 wchar_t *Str_Unicode_Concat_Npl(wchar_t *a, wchar_t *b)
@@ -857,11 +862,11 @@ wchar_t *Str_Unicode_Join_Npl_(int sep, ...)
 #endif
   ;
   
-#define Str_Unicode_Join_Npl_2(Sep,S1,S2) Str_Unicode_Join_Npl_(Sep,S1,S2,0)
-#define Str_Unicode_Join_Npl_3(Sep,S1,S2,S3) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,0)
-#define Str_Unicode_Join_Npl_4(Sep,S1,S2,S3,S4) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,0)
-#define Str_Unicode_Join_Npl_5(Sep,S1,S2,S3,S4,S5) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,S5,0)
-#define Str_Unicode_Join_Npl_6(Sep,S1,S2,S3,S4,S5,S6) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,S5,S6,0)
+#define Str_Unicode_Join_Npl_2(Sep,S1,S2) Str_Unicode_Join_Npl_(Sep,S1,S2,(char*)0)
+#define Str_Unicode_Join_Npl_3(Sep,S1,S2,S3) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,(char*)0)
+#define Str_Unicode_Join_Npl_4(Sep,S1,S2,S3,S4) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,(char*)0)
+#define Str_Unicode_Join_Npl_5(Sep,S1,S2,S3,S4,S5) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,S5,(char*)0)
+#define Str_Unicode_Join_Npl_6(Sep,S1,S2,S3,S4,S5,S6) Str_Unicode_Join_Npl_(Sep,S1,S2,S3,S4,S5,S6,(char*)0)
 
 wchar_t *Str_Unicode_Join_(int sep, ...)
 #ifdef _YOYO_STRING_BUILTIN
@@ -876,11 +881,11 @@ wchar_t *Str_Unicode_Join_(int sep, ...)
 #endif
   ;
 
-#define Str_Unicode_Join_2(Sep,S1,S2) Str_Unicode_Join_(Sep,S1,S2,0)
-#define Str_Unicode_Join_3(Sep,S1,S2,S3) Str_Unicode_Join_(Sep,S1,S2,S3,0)
-#define Str_Unicode_Join_4(Sep,S1,S2,S3,S4) Str_Unicode_Join_(Sep,S1,S2,S3,S4,0)
-#define Str_Unicode_Join_5(Sep,S1,S2,S3,S4,S5) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,0)
-#define Str_Unicode_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,S6,0)
+#define Str_Unicode_Join_2(Sep,S1,S2) Str_Unicode_Join_(Sep,S1,S2,(char*)0)
+#define Str_Unicode_Join_3(Sep,S1,S2,S3) Str_Unicode_Join_(Sep,S1,S2,S3,(char*)0)
+#define Str_Unicode_Join_4(Sep,S1,S2,S3,S4) Str_Unicode_Join_(Sep,S1,S2,S3,S4,(char*)0)
+#define Str_Unicode_Join_5(Sep,S1,S2,S3,S4,S5) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,(char*)0)
+#define Str_Unicode_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Unicode_Join_(Sep,S1,S2,S3,S4,S5,S6,(char*)0)
 
 #define Str_From_Int(Value) Str_From_Int_Base(Value,10)
 char *Str_From_Int_Base(long value, int base)
@@ -953,7 +958,7 @@ int Str_To_Bool(char *S)
 long Str_To_Int(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
-    long l;
+    long l = 0;
     
     if (!S) 
       __Raise(YOYO_ERROR_NULL_PTR,0);
@@ -964,6 +969,7 @@ long Str_To_Int(char *S)
         if ( !*S || *ep )
           __Raise(YOYO_ERROR_ILLFORMED,__Format("invalid integer value '%s'",S));
       }
+      
     return l;
   }
 #endif
@@ -990,7 +996,7 @@ long Str_To_Int_Dflt(char *S, long dflt)
 double Str_To_Flt(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
-    double l;
+    double l = 0;
     
     if (!S) 
       __Raise(YOYO_ERROR_NULL_PTR,0);
@@ -1001,6 +1007,7 @@ double Str_To_Flt(char *S)
         if ( !*S || *ep )
           __Raise(YOYO_ERROR_ILLFORMED,__Format("invalid float value '%s'",S));
       }
+      
     return l;
   }
 #endif
@@ -1009,7 +1016,8 @@ double Str_To_Flt(char *S)
 double Str_To_Flt_Dflt(char *S, double dflt)
 #ifdef _YOYO_STRING_BUILTIN
   {
-    double l;
+    double l = 0;
+    
     if (!S) 
       l = dflt;
     else
@@ -1019,6 +1027,7 @@ double Str_To_Flt_Dflt(char *S, double dflt)
         if ( !*S || *ep )
           l = dflt;
       }
+    
     return l;
   }
 #endif

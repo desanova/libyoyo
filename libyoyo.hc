@@ -56,6 +56,7 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_XTMPL_BUILTIN
 #define _YOYO_CGIR_BUILTIN
 #define _YOYO_LOGOUT_BUILTIN
+#define _YOYO_STDF_BUILTIN
 #endif
 
 #include "core.hc"
@@ -80,6 +81,7 @@ in this Software without prior written authorization of the copyright holder.
 #include "xdataco.hc"
 #include "xtmpl.hc"
 #include "cgirqst.hc"
+#include "stdf.hc"
 
 /*
 #include "tcpip.hc"

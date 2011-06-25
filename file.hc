@@ -33,6 +33,7 @@ in this Software without prior written authorization of the copyright holder.
 #include "core.hc"
 #include "string.hc"
 #include "buffer.hc"
+#include "random.hc"
 
 #ifndef __windoze
 # include <dirent.h>
@@ -107,6 +108,27 @@ char *Current_Directory()
   }
 #endif
   ;
+
+char *Path_Unique_Name(char *dirname,char *pfx, char *sfx)
+  {
+  #ifdef __windoze
+    char DELIMITER[] = "\\";
+  #else
+    char DELIMITER[] = "/";
+  #endif
+    char unique[2+4+6] = {0};
+    char out[(sizeof(unique)*8+5)/6+1] = {0};
+    int pid = getpid();
+    uint_t tmx = (uint_t)time(0);
+    Unsigned_To_Two(pid,unique);
+    Unsigned_To_Four(tmx,unique+2);
+    System_Random(unique+6,sizeof(unique)-6);
+    Str_Xbit_Encode(unique,sizeof(unique)*8,6,Str_6bit_Encoding_Table,out);
+    if ( dirname )
+      return Str_Join_5(0,dirname,DELIMITER,(pfx?pfx:""),out,(sfx?sfx:""));
+    else
+      return Str_Join_3(0,(pfx?pfx:""),out,(sfx?sfx:""));
+  }
 
 char *Path_Join(char *dir, char *name)
 #ifdef _YOYO_FILE_BUILTIN
@@ -1105,6 +1127,7 @@ void __Pfd_Lock_Out(int *pfd)
   }
 #endif
   ;
+
 
 #endif /* C_once_E9479D04_5D69_4A1A_944F_0C99A852DC0B */
 
