@@ -40,6 +40,8 @@ in this Software without prior written authorization of the copyright holder.
 # include <sys/file.h>
 #endif
 
+enum { YOYO_FILE_COPY_BUFFER_SIZE = 4096, };
+
 #ifdef _YOYO_FILE_BUILTIN
 # define _YOYO_FILE_BUILTIN_CODE(Code) Code
 # define _YOYO_FILE_EXTERN
@@ -1128,6 +1130,273 @@ void __Pfd_Lock_Out(int *pfd)
 #endif
   ;
 
+#define __Pfd_Guard(Pfd) __Interlock_Opt( (void)0, Pfd, (void), __Pfd_Guard_Out, __Pfd_Guard_Out )
+void __Pfd_Guard_Out(int *pfd) 
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    STRICT_REQUIRE(pfd);
+    
+    if ( *pfd >= 0 )
+      {
+        close(*pfd);
+        *pfd = -1;
+      }
+  }
+#endif
+  ;
+
+int Oj_Copy_File(void *src, void *dst)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    char bf[YOYO_FILE_COPY_BUFFER_SIZE];
+    int count = 0;
+    int (*xread)(void*,void*,int,int) = Yo_Find_Method_Of(&src,Oj_Read_OjMID,YO_RAISE_ERROR);
+    int (*xwrite)(void*,void*,int,int) = Yo_Find_Method_Of(&dst,Oj_Write_OjMID,YO_RAISE_ERROR);
+    for ( ;; )
+      {
+        int i = xread(src,bf,YOYO_FILE_COPY_BUFFER_SIZE,0);
+        if ( !i ) break;
+        xwrite(dst,bf,i,i);
+        count += i;
+      }
+    return count;
+  }
+#endif
+  ;
+
+#define Write_Out(Fd,Data,Count) Fd_Write_Out(Fd,Data,Count,0)
+#define Write_Out_Raise(Fd,Data,Count) Fd_Write_Out(Fd,Data,Count,1)
+int Fd_Write_Out(int fd, void *data, int count, int do_raise) 
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int i;
+    
+    for ( i = 0; i < count;  )
+      {
+        int r = write(fd,(char*)data+i,count-i);
+        if ( r >= 0 )
+          i += r;
+        else if ( errno != EAGAIN )
+          {
+            int err = errno;
+            if ( do_raise )
+              __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to write file: %s",0),strerror(err)));
+            return err;
+          }
+      }
+      
+    return 0;
+  }
+#endif
+  ;
+
+#define Read_Into(Fd,Data,Count) Fd_Read_Into(Fd,Data,Count,0)
+#define Read_Into_Raise(Fd,Data,Count) Fd_Read_Into(Fd,Data,Count,1)
+int Fd_Read_Into(int fd, void *data, int count, int do_raise) 
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int i;
+    
+    for ( i = 0; i < count;  )
+      {
+        int r = read(fd,(char*)data+i,count-i);
+        if ( r >= 0 )
+          i += r;
+        else if ( errno != EAGAIN )
+          {
+            int err = errno;
+            if ( do_raise )
+              __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to read file: %s",0),strerror(err)));
+            return err;
+          }
+      }
+      
+    return 0;
+  }
+#endif
+  ;
+
+#define Lseek(Fd,Pos) Fd_Lseek(Fd,Pos,0)
+#define Lseek_Raise(Fd,Pos) Fd_Lseek(Fd,Pos,1)
+int Fd_Lseek(int fd, quad_t pos, int do_raise)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    if ( lseek(fd,pos,(pos<0?SEEK_END:SEEK_SET)) < 0 )
+      {
+        int err = errno;
+        if ( do_raise )
+          __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to seek file: %s",0),strerror(err)));
+        return err;
+      }
+    return 0;
+  }
+#endif
+  ;
+
+#define Open_File(Name,Opt) Fd_Open_File(Name,Opt,0600,0)
+#define Open_File_Raise(Name,Opt) Fd_Open_File(Name,Opt,0600,1)
+int Fd_Open_File(char *name, int opt, int secu, int do_raise)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int fd;
+    #ifdef __windoze
+      fd = _wopen(Str_Utf8_To_Unicode(name),opt,secu);
+    #else
+      fd = open(name,opt,secu);
+    #endif
+    if ( fd < 0 )
+      {
+        int err = errno;
+        if ( do_raise )
+          __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to seek file: %s",0),strerror(err)));
+        return -err;
+      }
+    return fd;
+  }
+#endif
+  ;
+  
+void File_Move(char *old_name, char *new_name)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int err = 0;
+  #ifdef __windoze
+    wchar_t *So = Str_Utf8_To_Unicode(old_name);
+    wchar_t *Sn = Str_Utf8_To_Unicode(new_name);
+    err = _wrename(So,Sn);
+    Yo_Release(Sn);
+    Yo_Release(So);
+  #else
+    err = rename(old_name,new_name);
+  #endif
+    if ( errno == EXDEV )
+      __Auto_Release 
+        {
+          void *src = Cfile_Open(old_name,"r");
+          void *dst = Cfile_Open(new_name,"w+P");
+          Oj_Copy_File(src,dst);
+          File_Unlink(old_name,0);
+        }
+    else if ( err < 0 )
+      {
+        File_Check_Error("rename",0,old_name,1); 
+      }
+  }
+#endif
+  ;
+
+enum 
+  { 
+    YOYO_STDF_PUMP_BUFFER = 1*KILOBYTE,
+    YOYO_STDF_PUMP_BUFFER_W = YOYO_STDF_PUMP_BUFFER-1,
+  };
+
+int Stdf_Read_In(FILE *stdf,char *buf, int L)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int i;
+    for ( i = 0; i < L; )
+      {
+        int q = fread(buf+i,1,L-i,stdf);
+        if ( q ) 
+          i += q;
+        else if ( feof(stdf) )
+          break;
+        else
+          {
+            int err = ferror(stdf);
+            if ( err == EAGAIN ) continue;
+            __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to read: %s",0),strerror(err)));
+          }
+      }
+    buf[i] = 0;
+    return i;
+  }
+#endif
+  ;
+  
+#define Stdf_Pump(stdf,buf) Stdf_Read_In(stdf,buf,YOYO_STDF_PUMP_BUFFER_W)
+
+char *Stdf_Pump_Part(FILE *stdf, char *buf, char *S, int *L)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int l = *L;
+    if ( !S ) S = buf+l;
+    l -= ( S-buf);
+    if ( l ) memmove(buf,S,l);
+    l += Stdf_Read_In(stdf,buf+l,YOYO_STDF_PUMP_BUFFER_W-l);
+    *L = l;
+    STRICT_REQUIRE(l <= YOYO_STDF_PUMP_BUFFER_W);
+    buf[l] = 0;
+    return buf;
+  }
+#endif
+  ;
+  
+#define Stdin_Pump(B) Stdf_Pump(stdin,B)
+#define Stdin_Pump_Part(B,S,L) Stdf_Pump_Part(stdin,B,S,L)
+
+/* returns -1 if error and read bytes count on success */
+typedef int Unknown_Write_Proc(void *buf, longptr_t f, int count, int *err);
+
+int Stdf_Write(void *buf, longptr_t f, int count, int *err)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int q = fwrite(buf,1,count,(FILE*)f);
+    if ( !q )
+      {
+        *err = ferror((FILE*)f);
+        q = -1;
+      }
+    return q;
+  }
+#endif
+  ;
+
+int Fdf_Write(void *buf, longptr_t f, int count, int *err)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int q = write((int)f,buf,count);
+    if ( q < 0 )
+      q = errno;
+    return q;
+  }
+#endif
+  ;
+
+int Bf_Write(void *buf, longptr_t f, int count, int *err)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    Buffer_Append((YOYO_BUFFER*)f,buf,count);
+    return count;
+  }
+#endif
+  ;
+
+int Cf_Write(void *buf, longptr_t f, int count, int *err)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    return Stdf_Write(buf,(longptr_t)((YOYO_CFILE*)f)->fd,count,err);
+  }
+#endif
+  ;
+
+int Unknown_Write(longptr_t f, void *bf, int count, Unknown_Write_Proc xwrite)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int i;
+    for ( i = 0; i < count; )
+      {
+        int err = 0;
+        int r = xwrite((char*)bf+i,f,count-i,&err);
+        if ( r > 0 ) i += r;
+        else if ( err != EAGAIN )
+          __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to write: %s",0),strerror(err)));
+      }
+    return i;
+  }
+#endif
+  ;
 
 #endif /* C_once_E9479D04_5D69_4A1A_944F_0C99A852DC0B */
 

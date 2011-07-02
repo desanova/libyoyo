@@ -31,6 +31,7 @@ in this Software without prior written authorization of the copyright holder.
 #define C_once_9629B105_86D6_4BF5_BAA2_62AB1ACE54EC
 
 #include "core.hc"
+#include "file.hc"
 
 enum 
   {
@@ -60,16 +61,16 @@ void Logout(int level, char *text)
             {
               YOYO_Log_Clock = t;
               sprintf(mark, "%%clocks%% %.3f\n",(double)YOYO_Log_Clock/CLOCKS_PER_SEC);
-              __Write_Out(YOYO_Log_Fd,mark,strlen(mark));
+              Write_Out(YOYO_Log_Fd,mark,strlen(mark));
             }
           if (0) //__Gogo
             {
               sprintf(mark,"[%4d] ",YOYO_Log_Line_No++);
-              __Write_Out(YOYO_Log_Fd,mark,strlen(mark));
+              Write_Out(YOYO_Log_Fd,mark,strlen(mark));
             }
-          __Write_Out(YOYO_Log_Fd,text,len);
+          Write_Out(YOYO_Log_Fd,text,len);
           if ( !len || text[len-1] != '\n' )
-            write(YOYO_Log_Fd,"\n",1);
+            Write_Out(YOYO_Log_Fd,"\n",1);
         }
   }
 #endif

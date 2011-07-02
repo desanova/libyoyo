@@ -37,6 +37,7 @@ in this Software without prior written authorization of the copyright holder.
 # define __yoTa(Text,NumId) Text
 #endif
 
+#define __FOUR_CHARS(C1,C2,C3,C4) ((uint_t)(C4)<<24)|((uint_t)(C3)<<16)|((uint_t)(C2)<<8)|((uint_t)(C1))
 #define __USE_GNU
 
 #include <stdlib.h>
@@ -465,7 +466,7 @@ typedef struct _YOYO_ERROR_INFO
     void *bt_cbk[YOYO_MAX_ERROR_BTRACE];
   } YOYO_ERROR_INFO;
 
-enum { YOYO_MAX_CS_COUNT = 5 };
+enum { YOYO_MAX_CS_COUNT = 7 };
 enum { YOYO_INI_JB_COUNT = 5 };
 enum { YOYO_EXT_JB_COUNT = 3 };
 enum { YOYO_INI_POOL_COUNT = 256 };
@@ -1696,27 +1697,6 @@ int Yo_Elm_Insert(void **inout, int pos, int count, void *S, int L, int type_wid
 #define __Vector_Append(Mem,Count,Capacity,S,L) (void)(*Count += Yo_Elm_Append((void**)Mem,*Count,S,L,1,Capacity))
 #define __Elm_Append(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append((void**)Mem,Count,S,L,Width,CpsPtr)
 #define __Elm_Append_Npl(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append_Npl((void**)Mem,Count,S,L,Width,CpsPtr)
-
-#define __Write_Out(Fd,Data,Count) Yo_Write_Out(Fd,Data,Count)
-int Yo_Write_Out(int fd, void *data, int count) 
-#ifdef _YOYO_CORE_BUILTIN  
-  {
-    int i;
-    
-    for ( i = 0; i < count;  )
-      {
-        int r = write(fd,(char*)data+i,count-i);
-        if ( r >= 0 )
-          i += r;
-        else 
-          if ( errno != EAGAIN )
-            return errno;
-      }
-      
-    return 0;
-  }
-#endif
-  ;
 
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
 

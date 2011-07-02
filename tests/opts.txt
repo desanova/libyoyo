@@ -1,0 +1,1 @@
+-Wall -Wno-pointer-sign -Wno-missing-braces -Wno-parentheses

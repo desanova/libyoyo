@@ -34,7 +34,8 @@ in this Software without prior written authorization of the copyright holder.
 #include "buffer.hc"
 #include "string.hc"
 #include "logout.hc"
-#include "stdf.hc"
+#include "xdata.hc"
+#include "defpars.hc"
 
 extern char **environ;
 
@@ -122,6 +123,8 @@ typedef struct _YOYO_CGIR
     YOYO_CGIR_COOKIE *cookie_out;
     YOYO_CGIR_UPLOAD *upload;
     YOYO_BUFFER *out;
+    void *dstrm;
+    char *dstrm_mimetype;
   } YOYO_CGIR;
 
 void Cgir_Destruct(YOYO_CGIR *self)
@@ -157,8 +160,10 @@ void Cgir_Destruct(YOYO_CGIR *self)
     free(self->query_string);
     free(self->path_info);
     free(self->content_boundary);
+    free(self->dstrm_mimetype);
     __Unrefe(self->params);
     __Unrefe(self->out);
+    __Unrefe(self->dstrm);
     memset(self,0xfe,sizeof(*self)); /* !!! */
     __Destruct(self);
   }
@@ -225,6 +230,51 @@ char *Cgir_Get_Cookie(YOYO_CGIR *cgir,char *name)
           return (*q)->value;
       }
     return 0;
+  }
+#endif
+  ;
+
+YOYO_CGIR_UPLOAD *Cgir_Find_Upload(YOYO_CGIR *cgir, char *upload_name)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    YOYO_CGIR_UPLOAD *up = cgir->upload;
+    for ( ; up ; up = up->next )
+      if ( Str_Equal_Nocase(up->name,upload_name) )
+        break;
+    return up;
+  }
+#endif
+  ;
+
+char *Cgir_Mime_Of_Upload(YOYO_CGIR *cgir, char *upload_name)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    YOYO_CGIR_UPLOAD *up = Cgir_Find_Upload(cgir,upload_name);
+    if ( up )
+      return up->mimetype;
+    return 0;
+  }
+#endif
+  ;
+
+char *Cgir_Get_Upload_Path(YOYO_CGIR *cgir, char *upload_name)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    YOYO_CGIR_UPLOAD *up = Cgir_Find_Upload(cgir,upload_name);
+    if ( up )
+      return up->path;
+    else
+      __Raise_Format(YOYO_ERROR_INVALID_PARAM,
+        ("CGI request does not have upload with name '%s'",upload_name));
+    return 0;
+  }
+#endif
+  ;
+
+void *Cgir_Open_Upload(YOYO_CGIR *cgir, char *upload_name)
+#ifdef _YOYO_CGIR_BUILTIN
+  {
+    return Cfile_Open(Cgir_Get_Upload_Path(cgir,upload_name),"r");
   }
 #endif
   ;
@@ -499,36 +549,13 @@ char *Cgir_Upload_Part(
         if ( count + j > maxlen )
           __Raise(YOYO_ERROR_OUT_OF_RANGE,__yoTa("payload size out of limit",0));
         Unknown_Write(out,S,j,xwrite);
+        count += j;
         S = Stdin_Pump_Part(bf,S+j+k,L);
         if ( *L < cb_l ) 
           __Raise(YOYO_ERROR_IO,__yoTa("uncomplete request",0));
       }
 
     return S;
-  }
-#endif
-  ;
-  
-char *Str_Fetch_Substr(char *S, char *prefx, char *skip, char *stopat)
-#ifdef _YOYO_CGIR_BUILTIN
-  {
-    int j = 0;
-    char *qoo;
-    char *Q = strstr(S,prefx);
-    if ( Q )
-      {
-        Q += strlen(prefx);
-        if ( skip )
-          l: for ( qoo = skip; *Q && *qoo; ++qoo ) if ( *qoo == *Q ) { ++Q; goto l; } 
-        for ( ; Q[j]; ++j )
-          if ( stopat )
-            for ( qoo = stopat; *qoo; ++qoo )
-              if ( *qoo == Q[j] )
-                goto ret;
-      }
-  ret:
-    if ( Q && j ) return Str_Copy(Q,j);
-    return 0;
   }
 #endif
   ;

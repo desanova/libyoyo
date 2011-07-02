@@ -31,6 +31,8 @@ in this Software without prior written authorization of the copyright holder.
 #define C_once_417421E0_F3B9_44A2_AA31_0384952C0D35
 
 #include "core.hc"
+
+#if 0
 #include "buffer.hc"
 #include "file.hc"
 
@@ -185,57 +187,7 @@ longptr_t f, int pos, int data_len, Unknown_Write_Proc xwrite)
 #define Buffer_Stdf_Write(Bf,Stdf,Pos,Count) Buffer_Unknown_Write(Bf,(longptr_t)(Stdf),Pos,Count,Stdf_Write)
 #define Buffer_Fdf_Write(Bf,Fdf,Pos,Count) Buffer_Unknown_Write(Bf,(longptr_t)(Fdf),Pos,Count,Fdf_Write)
 
-
-enum 
-  { 
-    YOYO_STDF_PUMP_BUFFER = 1*KILOBYTE,
-    YOYO_STDF_PUMP_BUFFER_W = YOYO_STDF_PUMP_BUFFER-1,
-  };
-
-int Stdf_Read_In(FILE *stdf,char *buf, int L)
-#ifdef _YOYO_FILE_BUILTIN
-  {
-    int i;
-    for ( i = 0; i < L; )
-      {
-        int q = fread(buf+i,1,L-i,stdf);
-        if ( q ) 
-          i += q;
-        else if ( feof(stdf) )
-          break;
-        else
-          {
-            int err = ferror(stdf);
-            if ( err == EAGAIN ) continue;
-            __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to read: %s",0),strerror(err)));
-          }
-      }
-    buf[i] = 0;
-    return i;
-  }
 #endif
-  ;
-  
-#define Stdf_Pump(stdf,buf) Stdf_Read_In(stdf,buf,YOYO_STDF_PUMP_BUFFER_W)
-
-char *Stdf_Pump_Part(FILE *stdf, char *buf, char *S, int *L)
-#ifdef _YOYO_FILE_BUILTIN
-  {
-    int l = *L;
-    if ( !S ) S = buf+l;
-    l -= ( S-buf);
-    if ( l ) memmove(buf,S,l);
-    l += Stdf_Read_In(stdf,buf+l,YOYO_STDF_PUMP_BUFFER_W-l);
-    *L = l;
-    STRICT_REQUIRE(l <= YOYO_STDF_PUMP_BUFFER_W);
-    buf[l] = 0;
-    return buf;
-  }
-#endif
-  ;
-  
-#define Stdin_Pump(B) Stdf_Pump(stdin,B)
-#define Stdin_Pump_Part(B,S,L) Stdf_Pump_Part(stdin,B,S,L)
 
 #endif /* C_once_417421E0_F3B9_44A2_AA31_0384952C0D35 */
 

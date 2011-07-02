@@ -470,6 +470,16 @@ int Str_Urldecode_Char(char **S)
 #endif
   ;
 
+void Quad_To_Hex16(uquad_t val,char *out)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i;
+    for ( i = 0; i < 8; ++i )
+      Str_Hex_Byte((byte_t)(val>>(i*8)),0,out+i*2);
+  }
+#endif
+  ;
+
 void Unsigned_To_Hex8(uint_t val,char *out)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -480,12 +490,46 @@ void Unsigned_To_Hex8(uint_t val,char *out)
 #endif
   ;
 
+void Unsigned_To_Hex2(uint_t val,char *out)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i;
+    for ( i = 0; i < 2; ++i )
+      Str_Hex_Byte((byte_t)(val>>(i*8)),0,out+i*2);
+  }
+#endif
+  ;
+
+uquad_t Hex16_To_Quad(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    uint_t ret = 0;
+    int i;
+    for ( i = 0; i < 8; ++i )
+      ret |= ( (uint_t)Str_Unhex_Byte(S+i*2,0,0) << (i*8) );
+    return ret;
+  }
+#endif
+  ;
+
 uint_t Hex8_To_Unsigned(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
     uint_t ret = 0;
     int i;
     for ( i = 0; i < 4; ++i )
+      ret |= ( (uint_t)Str_Unhex_Byte(S+i*2,0,0) << (i*8) );
+    return ret;
+  }
+#endif
+  ;
+
+uint_t Hex2_To_Unsigned(char *S)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    uint_t ret = 0;
+    int i;
+    for ( i = 0; i < 2; ++i )
       ret |= ( (uint_t)Str_Unhex_Byte(S+i*2,0,0) << (i*8) );
     return ret;
   }
@@ -1315,6 +1359,31 @@ int Str_Submatch(char *S, char *patt, int nocase)
     return 0;
   }
 #endif
+
+char *Str_Fetch_Substr(char *S, char *prefx, char *skip, char *stopat)
+#ifdef _YOYO_STRING_BUILTIN  
+  {
+    int j = 0;
+    char *qoo;
+    char *Q = strstr(S,prefx);
+    if ( Q )
+      {
+        Q += strlen(prefx);
+        if ( skip )
+          l: for ( qoo = skip; *Q && *qoo; ++qoo ) if ( *qoo == *Q ) { ++Q; goto l; } 
+        for ( ; Q[j]; ++j )
+          if ( stopat )
+            for ( qoo = stopat; *qoo; ++qoo )
+              if ( *qoo == Q[j] )
+                goto ret;
+      }
+  ret:
+    if ( Q && j ) return Str_Copy(Q,j);
+    return 0;
+  }
+#endif
+  ;
+  
 
 #endif /* C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48 */
 

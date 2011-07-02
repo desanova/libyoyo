@@ -259,6 +259,36 @@ void Array_Insert(YOYO_ARRAY *a,int pos,void *p)
 #endif
   ;
 
+void Array_Fill(YOYO_ARRAY *a,int pos,void *p, int count)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    uint_t capacity = 0;
+
+    if ( !count ) return;
+    else if ( count < 0 ) 
+      Yo_Raise(YOYO_ERROR_INVALID_PARAM,0,__Yo_FILE__,__LINE__);
+    
+    if ( pos < 0 ) pos = a->count + pos + 1;
+    if ( pos < 0 || pos > a->count ) 
+      {
+        void *self = a;
+        void (*destruct)(void *) = Yo_Find_Method_Of(&self,Oj_Destruct_Element_OjMID,0);
+        if ( destruct ) destruct(p);
+        Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
+      }
+    
+    capacity = Min_Pow2((a->count+1)*sizeof(void*));
+    if ( !a->at || malloc_size(a->at) < capacity )
+      a->at = Yo_Realloc_Npl(a->at,capacity);
+    if ( pos < a->count )
+      memmove(a->at+pos+1,a->at+pos,(a->count-pos)*sizeof(void*));
+    a->count+=count;
+    while ( count-- ) 
+      a->at[pos++] = p;
+  }
+#endif
+  ;
+
 void Array_Set(YOYO_ARRAY *a,int pos,void *val)
 #ifdef _YOYO_ARRAY_BUILTIN
   {
@@ -569,6 +599,16 @@ void *Array_Refs(void)
 #endif
   ;
 
+void *Array_Refs_Copy(void *refs, int count)
+  {
+    YOYO_ARRAY *arr = Array_Refs();
+    int i;
+    Array_Fill(arr,0,0,count);
+    for ( i = 0; i < count; ++i )
+      arr->at[i] = __Refe(((void**)refs)[i]);
+    return arr;
+  }
+  
 void *Array_Ptrs(void)
 #ifdef _YOYO_ARRAY_BUILTIN
   {
