@@ -51,10 +51,7 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_PEFILE_BUILTIN
 #define _YOYO_LZSS_BUILTIN
 #define _YOYO_XDATA_BUILTIN
-#define _YOYO_XDATACO_BUILTIN
 #define _YOYO_DEFPARS_BUILTIN
-#define _YOYO_XTMPL_BUILTIN
-#define _YOYO_CGIR_BUILTIN
 #define _YOYO_LOGOUT_BUILTIN
 #define _YOYO_DATETIME_BUILTIN
 #endif
@@ -78,9 +75,6 @@ in this Software without prior written authorization of the copyright holder.
 #include "lzss.hc"
 #include "xdata.hc"
 #include "defpars.hc"
-#include "xdataco.hc"
-#include "xtmpl.hc"
-#include "cgirqst.hc"
 #include "datetime.hc"
 
 /*
