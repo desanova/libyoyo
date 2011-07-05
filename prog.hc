@@ -35,8 +35,12 @@ in this Software without prior written authorization of the copyright holder.
 #include "array.hc"
 #include "string.hc"
 
+#ifdef _YOYO_PROG_BUILTIN
 static void *Prog_Data_Opts = 0;
 static void *Prog_Data_Args = 0;
+static char *Prog_Dir_S = 0;
+static char *Prog_Nam_S = 0;
+#endif
 
 enum _YOYO_ROG_FLAGS
   {
@@ -214,6 +218,12 @@ int Prog_Init(int argc, char **argv, char *patt, unsigned flags)
         setlocale(LC_NUMERIC,"C");
         setlocale(LC_TIME,"C");
         Prog_Parse_Command_Line(argc,argv,patt,flags);
+      #if __windoze
+      #else
+        Prog_Nam_S = __Retain(Path_Fullname(argv[0]));
+        Prog_Dir_S = __Retain(Path_Dirname(Prog_Nam_S));
+        REQUIRE(Prog_Dir_S != 0);
+      #endif
         rt = 1;
         atexit(Prog_Clear_At_Exit);
       }
@@ -331,6 +341,22 @@ int Prog_Last_Opt_Int(char *name,int dflt)
     char *Q = Prog_Last_Opt(name,0);
     if ( !Q ) return dflt;
     return strtol(Q,0,10);
+  }
+#endif
+  ;
+
+char *Prog_Directory()
+#ifdef _YOYO_PROG_BUILTIN
+  {
+    return Prog_Dir_S;
+  }
+#endif
+  ;
+
+char *Prog_Fullname()
+#ifdef _YOYO_PROG_BUILTIN
+  {
+    return Prog_Nam_S;
   }
 #endif
   ;

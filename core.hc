@@ -221,6 +221,7 @@ enum _YOYO_ERRORS
     YOYO_ERROR_UNEXPECTED_VALUE = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+23),
     YOYO_ERROR_ALREADY_EXISTS   = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+24),
     YOYO_ERROR_INCONSISTENT     = YOYO_STORAGE_ERROR_GROUP|(YOYO_ERROR_BASE+25),
+    YOYO_ERROR_TO_BIG           = YOYO_STORAGE_ERROR_GROUP|(YOYO_ERROR_BASE+26),
   };
 
 #define YOYO_ERROR_IS_USER_ERROR(err) !(err&YOYO_XXXX_ERROR_GROUP)
@@ -606,7 +607,7 @@ void *Yo_Unpool(void *pooled,int do_cleanup)
 #ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
-    if ( nfo )
+    if ( nfo && pooled )
       {
         int n = nfo->auto_top;
         while ( n >= 0 )
@@ -653,7 +654,7 @@ void *Yo_Unwind_Scope(void *pooled,int min_top)
             YOYO_AUTORELEASE *q = &nfo->auto_pool[nfo->auto_top];
             if ( q->ptr )
               {
-                //printf("%p ?= %p\n",q->ptr, pooled);
+                //printf("%p/%p ?= %p\n", q->ptr, q->cleanup, pooled);
                 if ( !pooled || q->ptr != pooled )
                   { 
                     q->cleanup(q->ptr);
@@ -1630,8 +1631,6 @@ void Yo_Elm_Resize_Npl(void **inout, int L, int type_width, int *capacity_ptr)
           }
         else
           {
-            STRICT_REQUIRE(!count);
-            
             if ( capacity < requires )
               capacity = Min_Pow2(requires);
               

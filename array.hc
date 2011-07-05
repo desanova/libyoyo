@@ -600,6 +600,7 @@ void *Array_Refs(void)
   ;
 
 void *Array_Refs_Copy(void *refs, int count)
+#ifdef _YOYO_ARRAY_BUILTIN
   {
     YOYO_ARRAY *arr = Array_Refs();
     int i;
@@ -608,6 +609,8 @@ void *Array_Refs_Copy(void *refs, int count)
       arr->at[i] = __Refe(((void**)refs)[i]);
     return arr;
   }
+#endif
+  ;
   
 void *Array_Ptrs(void)
 #ifdef _YOYO_ARRAY_BUILTIN

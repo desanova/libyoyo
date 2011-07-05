@@ -66,7 +66,7 @@ typedef struct _YOYO_XNODE
       {
         char   *txt;
         double  flt;
-        int     dec;
+        long    dec;
         byte_t  bval;
         YOYO_BUFFER *binary;
         YOYO_ARRAY  *strarr;
@@ -191,7 +191,7 @@ YOYO_BUFFER *Xvalue_Get_Binary(YOYO_XVALUE *val)
 #endif
   ;
 
-int Xvalue_Get_Int(YOYO_XVALUE *val, int dfltval)
+long Xvalue_Get_Int(YOYO_XVALUE *val, long dfltval)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     if ( val )
@@ -200,7 +200,7 @@ int Xvalue_Get_Int(YOYO_XVALUE *val, int dfltval)
           case XVALUE_OPT_VALTYPE_INT:
             return val->dec;
           case XVALUE_OPT_VALTYPE_FLT:          
-            return (int)val->flt;
+            return (long)val->flt;
           case XVALUE_OPT_VALTYPE_STR:
             return Str_To_Int(val->txt);
           case XVALUE_OPT_VALTYPE_LIT:
@@ -289,9 +289,9 @@ void Xvalue_Put_Str(YOYO_XVALUE *val, __Acquire char *S)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     STRICT_REQUIRE( val != 0 );
-    STRICT_REQUIRE( S != 0 );
+    //STRICT_REQUIRE( S != 0 );
     Xvalue_Purge(val);
-    val->txt = S;
+    val->txt = S?S:Str_Copy_Npl("",0);
     val->opt = XVALUE_OPT_VALTYPE_STR;
   }
 #endif
@@ -339,7 +339,7 @@ void Xvalue_Put_Str_Array(YOYO_XVALUE *val, __Acquire YOYO_ARRAY *arr)
 #endif
   ;
 
-void Xvalue_Set_Int(YOYO_XVALUE *val, int i)
+void Xvalue_Set_Int(YOYO_XVALUE *val, long i)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     STRICT_REQUIRE ( val );
@@ -452,7 +452,7 @@ int Xdata_Idxref_No(YOYO_XDATA *doc, ushort_t idx, int *no)
     if ( idx >= 32 )
       {
         int ref = Bitcount_Of(idx);
-        *no  = idx - ((1<<ref)-32);
+        *no  = idx - (1<<(ref-1)); //((1<<ref)-(1<<(ref-1)));
         STRICT_REQUIRE(ref >= 5);
         STRICT_REQUIRE(ref < XNODE_NUMBER_OF_NODE_LISTS+5);
         return ref-5;
@@ -709,7 +709,7 @@ YOYO_XNODE *Xnode_Down_If(YOYO_XNODE *node, char *tag_name)
     YOYO_XNODE *n;
       
     STRICT_REQUIRE( node );
-    STRICT_REQUIRE( tag );
+    STRICT_REQUIRE( tag_name );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
 
     tag = (ushort_t)(longptr_t)Xdata_Resolve_Name(node->xdata,tag_name,0);
@@ -774,23 +774,25 @@ YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_dnt_exi
       
     next = &node->opt;
     if ( valtag ) 
-      while ( *next )
-        {
-          value = (YOYO_XVALUE *)Xdata_Idxref(doc,*next);
-          STRICT_REQUIRE( value != 0 );
-          if ( value->tag == valtag )
-            goto found;
-          next = &value->next;
-        }
-    
-    STRICT_REQUIRE( !*next );
-    if ( create_if_dnt_exist )
       {
-        STRICT_REQUIRE( valtag );
-        value = Xdata_Create_Value(doc,valtag_S,next);
+        while ( *next )
+          {
+            value = (YOYO_XVALUE *)Xdata_Idxref(doc,*next);
+            STRICT_REQUIRE( value != 0 );
+            if ( value->tag == valtag )
+              goto found;
+            next = &value->next;
+          }
+    
+        STRICT_REQUIRE( !*next );
+        if ( create_if_dnt_exist )
+          {
+            STRICT_REQUIRE( valtag );
+            value = Xdata_Create_Value(doc,valtag_S,next);
+            goto found;
+          }
       }
-    else
-      return 0;
+    return 0;
       
   found:
     return value;
@@ -836,7 +838,7 @@ int Xnode_Opt_Of_Value(void *node, char *valtag)
   ;
   
 
-int Xnode_Value_Get_Int(void *node, char *valtag, int dfltval)
+long Xnode_Value_Get_Int(void *node, char *valtag, long dfltval)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -845,7 +847,7 @@ int Xnode_Value_Get_Int(void *node, char *valtag, int dfltval)
 #endif
   ;
   
-void Xnode_Value_Set_Int(void *node, char *valtag, int i)
+void Xnode_Value_Set_Int(void *node, char *valtag, long i)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,1);

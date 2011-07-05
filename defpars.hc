@@ -287,7 +287,7 @@ void Def_Parse_Get_Value(YOYO_DEFPARSE_STATE *st, YOYO_DEFPARS_VALUE *val)
             int neg = 1;
             int value = 0;
             
-            if ( *st->text ) { neg = -1; ++st->text; }
+            if ( *st->text == '-' ) { neg = -1; ++st->text; }
             
             for ( ; Chr_Isdigit(*st->text); ++st->text )
               value = value * 10 + ( *st->text - '0' );
@@ -369,7 +369,6 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
         int go_deeper = 0;
         YOYO_XNODE *nn = 0;
         
-        //printf("<<%s>>\n",st->text);
         __Auto_Release
           {
             YOYO_DEFPARS_VALUE value = {0};
@@ -420,6 +419,7 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
               
           }
         
+        //printf("<<%s>>\n",st->text);
         if ( go_deeper )
           {
             Def_Parse_In_Node(st,nn);
@@ -435,18 +435,6 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
 YOYO_XDATA *Def_Parse_Str(char *text)
 #ifdef _YOYO_DEFPARS_BUILTIN
   {
-    /*
-      number => [0-9]+(\.[0-9]*)?
-      hexseq => ([0-f][0-f])+
-      binary => \[ hexseq* \]
-      literal => [^][() \n\t\r]*
-      text => \"[^"]\"|literal
-      value => number|text|binary
-      node => literal \( value \) [ \= value ] [ \{ (node|attr)* \} ]
-      node => literal [ \= value ] \{ (node|attr)* \}
-      attr => literal \= value
-      file => (node|attr)*
-    */
     YOYO_DEFPARSE_STATE st = { text, 1 };
     YOYO_XDATA *doc = Xdata_Init();
     Def_Parse_In_Node(&st,&doc->root);
@@ -498,7 +486,7 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                   break;
                   
                 case XVALUE_OPT_VALTYPE_INT:
-                  Buffer_Printf(bf,"%d",val->dec);
+                  Buffer_Printf(bf,"%ld",val->dec);
                   break;
                   
                 case XVALUE_OPT_VALTYPE_FLT:

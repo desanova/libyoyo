@@ -430,9 +430,10 @@ void *Str_Hex_Decode(char *S,int *len)
     if ( rq_len )
       {
         int i;
-        byte_t *out = Yo_Malloc(rq_len);
+        byte_t *out = Yo_Malloc(rq_len+1);
         for ( i = 0; i < rq_len; ++i )
           out[i] = Str_Unhex_Byte(S+i*2,0,0);
+        out[rq_len] = 0;
         if ( len ) *len = rq_len;
         return out;
       }
@@ -968,12 +969,15 @@ char *Str_From_Flt_Perc(double value, int perc)
   ;
 
 char *Str_From_Bool(int b)
+#ifdef _YOYO_STRING_BUILTIN
   {
     if ( b )
       return Str_Copy("#true",5);
     else
       return Str_Copy("#false",6);
   }
+#endif
+  ;
 
 int Str_To_Bool_Dflt(char *S,int dflt)
 #ifdef _YOYO_STRING_BUILTIN

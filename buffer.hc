@@ -41,6 +41,16 @@ typedef struct _YOYO_BUFFER
     int count; 
   } YOYO_BUFFER;
 
+void Buffer_Clear(YOYO_BUFFER *bf)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    free(bf->at);
+    bf->at = 0;
+    bf->count = 0;
+  }
+#endif
+  ;
+  
 void Buffer_Resize(YOYO_BUFFER *bf,int count)
 #ifdef _YOYO_BUFFER_BUILTIN
   {

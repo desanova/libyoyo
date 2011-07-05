@@ -45,7 +45,7 @@ uint_t Get_Curr_Date()
   }
 #endif
   ;
-  
+
 uint_t Get_Mclocks()
 #ifdef _YOYO_DATETIME_BUILTIN
   {

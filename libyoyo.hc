@@ -38,12 +38,9 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_BUFFER_BUILTIN
 #define _YOYO_FILE_BUILTIN
 #define _YOYO_DICTO_BUILTIN
-#define _YOYO_HTTPX_BUILTIN
-#define _YOYO_TCPIP_BUILTIN
 #define _YOYO_STRING_BUILTIN
 #define _YOYO_PROG_BUILTIN
 #define _YOYO_RANDOM_BUILTIN
-#define _YOYO_BINGNUM_BUILTIN
 #define _YOYO_WINREG_BUILTIN
 #define _YOYO_CIPHER_BUILTIN
 #define _YOYO_NEWDES96_BUILTIN
@@ -78,6 +75,9 @@ in this Software without prior written authorization of the copyright holder.
 #include "datetime.hc"
 
 /*
+#define _YOYO_HTTPX_BUILTIN
+#define _YOYO_TCPIP_BUILTIN
+#define _YOYO_BINGNUM_BUILTIN
 #include "tcpip.hc"
 #include "httpx.hc"
 #include "bignum.hc"
