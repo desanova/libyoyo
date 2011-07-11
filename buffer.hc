@@ -38,7 +38,8 @@ char *Str_Hex_Byte(byte_t val,char pfx,void *out);
 typedef struct _YOYO_BUFFER
   { 
     byte_t *at; 
-    int count; 
+    int count;
+    int capacity;
   } YOYO_BUFFER;
 
 void Buffer_Clear(YOYO_BUFFER *bf)
@@ -47,29 +48,70 @@ void Buffer_Clear(YOYO_BUFFER *bf)
     free(bf->at);
     bf->at = 0;
     bf->count = 0;
+    bf->capacity = 0;
   }
 #endif
   ;
   
+void *Buffer_Init(int count);
+YOYO_BUFFER *Buffer_Reserve(YOYO_BUFFER *bf,int capacity)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    if ( capacity < 0 )
+      __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
+
+    if ( !bf ) bf = Buffer_Init(0);
+
+    if ( bf->capacity < capacity )
+      {
+        bf->at = __Realloc_Npl(bf->at,capacity+1);
+        bf->capacity = capacity;
+      }
+      
+    return bf;
+  }
+#endif
+  ;
+
+YOYO_BUFFER *Buffer_Grow_Reserve(YOYO_BUFFER *bf,int capacity)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    if ( capacity < 0 )
+      __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
+
+    if ( !bf ) bf = Buffer_Init(0);
+
+    if ( bf->capacity < capacity )
+      {
+        capacity = Min_Pow2(capacity+1)-1;
+        bf->at = __Realloc_Npl(bf->at,capacity+1);
+        bf->capacity = capacity;
+      }
+      
+    return bf;
+  }
+#endif
+  ;
+
 void Buffer_Resize(YOYO_BUFFER *bf,int count)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
-    if ( count < 0 )
-      __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
-    
-    if ( count < bf->count ) 
-      bf->count = count;
-    else
-      {
-        bf->at = Yo_Resize_Npl(bf->at,count+1,1);
-        bf->count = count;
-      }
-    
+    Buffer_Reserve(bf,count);
+    bf->count = count;
     bf->at[bf->count] = 0;
   }
 #endif
   ;
 
+void Buffer_Grow(YOYO_BUFFER *bf,int count)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    Buffer_Grow_Reserve(bf,count);
+    bf->count = count;
+    bf->at[bf->count] = 0;
+  }
+#endif
+  ;
 void Buffer_Append(YOYO_BUFFER *bf,void *S,int len)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
@@ -78,8 +120,7 @@ void Buffer_Append(YOYO_BUFFER *bf,void *S,int len)
 
     if ( len && S )
       {
-        int capacity = Min_Pow2(bf->count+len+1);
-        bf->at = Yo_Resize_Npl(bf->at,capacity,1);
+        Buffer_Grow_Reserve(bf,bf->count+len);
         memcpy(bf->at+bf->count,S,len);
         bf->count += len;
         bf->at[bf->count] = 0;
@@ -95,8 +136,7 @@ void Buffer_Fill_Append(YOYO_BUFFER *bf,int c,int count)
 
     if ( count > 0 )
       {
-        int capacity = Min_Pow2(bf->count+count+1);
-        bf->at = Yo_Resize_Npl(bf->at,capacity,1);
+        Buffer_Grow_Reserve(bf,bf->count+count);
         memset(bf->at+bf->count,c,count);
         bf->count += count;
         bf->at[bf->count] = 0;
@@ -117,11 +157,10 @@ void Buffer_Puts(YOYO_BUFFER *bf, char *S)
 void Buffer_Printf_Va(YOYO_BUFFER *bf, char *fmt, va_list va)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
-    int q, rq_len, capacity;
+    int q, rq_len;
     
     rq_len = Yo_Detect_Required_Buffer_Size(fmt,va)+1;
-    capacity = Min_Pow2(bf->count+rq_len+1);
-    bf->at = Yo_Resize_Npl(bf->at,capacity,1);
+    Buffer_Grow_Reserve(bf,bf->count+rq_len);
     
   #ifdef __windoze
     q = vsprintf(bf->at+bf->count,fmt,va);
@@ -131,7 +170,7 @@ void Buffer_Printf_Va(YOYO_BUFFER *bf, char *fmt, va_list va)
   
     if ( q >= 0 )
       bf->count += q;
-    STRICT_REQUIRE(bf->count >= 0 && bf->count <= capacity);
+    STRICT_REQUIRE(bf->count >= 0 && bf->count <= bf->capacity);
   
     bf->at[bf->count] = 0;
   }
@@ -158,9 +197,7 @@ void Buffer_Hex_Append(YOYO_BUFFER *bf, void *S, int len)
     if ( len && S )
       {
         int i;
-        int capacity = Min_Pow2(bf->count+len*2+1);
-        bf->at = Yo_Resize_Npl(bf->at,capacity,1);
-        
+        Buffer_Grow_Reserve(bf,bf->count+len*2);
         for ( i = 0; i < len; ++i )
           Str_Hex_Byte( ((byte_t*)S)[i], 0, bf->at+bf->count+i*2 );
 
@@ -265,18 +302,14 @@ void Buffer_Html_Quote_Append(YOYO_BUFFER *bf, void *S, int len)
 void Buffer_Insert(YOYO_BUFFER *bf,int pos,void *S,int len)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
-    int capacity = Min_Pow2(bf->count+len+1);
-
     if ( len < 0 ) /* appending C string */
       len = S?strlen(S):0;
 
     if ( pos < 0 ) pos = bf->count + pos + 1;
     if ( pos < 0 || pos > bf->count ) 
-      {
-        Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
-      }
+      __Raise(YOYO_ERROR_OUT_OF_RANGE,0);
     
-    bf->at = Yo_Resize_Npl(bf->at,capacity,1);
+    Buffer_Grow_Reserve(bf,bf->count+len);
     if ( pos < bf->count )
       memmove(bf->at+pos+len,bf->at+pos,bf->count-pos);
     memcpy(bf->at+pos,S,len);
@@ -286,6 +319,7 @@ void Buffer_Insert(YOYO_BUFFER *bf,int pos,void *S,int len)
 #endif
   ;
 
+
 #define Buffer_Take_Data(Bf) __Pool(Buffer_Take_Data_Npl(Bf))
 void *Buffer_Take_Data_Npl(YOYO_BUFFER *bf)
 #ifdef _YOYO_BUFFER_BUILTIN
@@ -293,6 +327,7 @@ void *Buffer_Take_Data_Npl(YOYO_BUFFER *bf)
     void *R = bf->at;
     bf->count = 0;
     bf->at = 0;
+    bf->capacity = 0;
     return R;
   }
 #endif
@@ -312,7 +347,8 @@ void *Buffer_Take_Data_Non(YOYO_BUFFER *bf)
 #endif
   ;
   
-#define Buffer_COUNT(Bf)    ((int)((YOYO_BUFFER *)(Bf))->count+0)
+#define Buffer_COUNT(Bf)    ((int)((YOYO_BUFFER *)(Bf))->count)
+#define Buffer_CAPACITY(Bf) ((int)((YOYO_BUFFER *)(Bf))->capacity)
 #define Buffer_BEGIN(Bf)    (((YOYO_BUFFER *)(Bf))->at)
 #define Buffer_END(Bf)      (Buffer_BEGIN(Bf)+Buffer_COUNT(Bf))
 
@@ -326,7 +362,16 @@ int Buffer_Count(YOYO_BUFFER *bf)
 #endif
   ;
   
-void *Buffer_Begin(YOYO_BUFFER *bf)
+int Buffer_Capacity(YOYO_BUFFER *bf)
+#ifdef _YOYO_BUFFER_BUILTIN
+  {
+    if ( bf )
+      return Buffer_CAPACITY(bf);
+    return 0;
+  }
+#endif
+  ;
+ void *Buffer_Begin(YOYO_BUFFER *bf)
 #ifdef _YOYO_BUFFER_BUILTIN
   {
     if ( bf )
@@ -351,7 +396,7 @@ void Buffer_Destruct(YOYO_BUFFER *bf)
   {
     if ( bf->at )
       free(bf->at);
-    Yo_Object_Destruct(bf);
+    __Destruct(bf);
   }
 #endif
   ;

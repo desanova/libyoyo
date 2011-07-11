@@ -34,6 +34,7 @@ in this Software without prior written authorization of the copyright holder.
 #include "dicto.hc"
 #include "array.hc"
 #include "string.hc"
+#include "logout.hc"
 
 #ifdef _YOYO_PROG_BUILTIN
 static void *Prog_Data_Opts = 0;
@@ -201,10 +202,13 @@ void Prog_Parse_Command_Line(int argc, char **argv, char *patt, unsigned flags)
 void Prog_Clear_At_Exit(void)
 #ifdef _YOYO_PROG_BUILTIN
   {
+    Close_Log();
     Yo_Unrefe(Prog_Data_Opts);
     Yo_Unrefe(Prog_Data_Args);
     Yo_Thread_Cleanup();
     Yo_Global_Cleanup();
+    free(Prog_Dir_S);
+    free(Prog_Nam_S);
   }
 #endif
   ;
@@ -218,7 +222,7 @@ int Prog_Init(int argc, char **argv, char *patt, unsigned flags)
         setlocale(LC_NUMERIC,"C");
         setlocale(LC_TIME,"C");
         Prog_Parse_Command_Line(argc,argv,patt,flags);
-      #if __windoze
+      #ifdef __windoze
       #else
         Prog_Nam_S = __Retain(Path_Fullname(argv[0]));
         Prog_Dir_S = __Retain(Path_Dirname(Prog_Nam_S));

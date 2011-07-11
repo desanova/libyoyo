@@ -48,8 +48,10 @@ enum XVALUE_OPT_VALTYPE
     XVALUE_OPT_VALTYPE_LIT      = 0x08006,
     XVALUE_OPT_VALTYPE_STR_ARR  = 0x08007,
     XVALUE_OPT_VALTYPE_FLT_ARR  = 0x08008,
+    XVALUE_OPT_VALTYPE_REFNODE  = 0x08009,
     XVALUE_OPT_VALTYPE_MASK     = 0x0800f,
     XVALUE_OPT_IS_VALUE         = 0x08000,
+    XVALUE_DOWN_REFNODE         = 0x0ffff,
   };
 
 struct _YOYO_XNODE;
@@ -71,6 +73,7 @@ typedef struct _YOYO_XNODE
         YOYO_BUFFER *binary;
         YOYO_ARRAY  *strarr;
         struct _YOYO_XDATA *xdata;
+        struct _YOYO_XNODE *refval;
         char   holder[Yo_MAX(sizeof(double),sizeof(void*))];
       };
   } YOYO_XNODE;
@@ -372,6 +375,45 @@ void Xvalue_Set_Bool(YOYO_XVALUE *val, int b)
 #endif
   ;
 
+int Xdata_Idxref_No(YOYO_XDATA *doc, ushort_t idx, int *no)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    --idx;
+    
+    if ( idx >= 32 )
+      {
+        int ref = Bitcount_Of(idx);
+        *no  = idx - (1<<(ref-1)); //((1<<ref)-(1<<(ref-1)));
+        STRICT_REQUIRE(ref >= 5);
+        STRICT_REQUIRE(ref < XNODE_NUMBER_OF_NODE_LISTS+5);
+        return ref-5;
+      }
+    else
+      {
+        *no = idx;
+        return 0;
+      }
+  }
+#endif
+  ;
+
+void *Xdata_Idxref(YOYO_XDATA *doc, ushort_t idx)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    STRICT_REQUIRE( doc );
+    STRICT_REQUIRE( idx );
+    __Gogo
+      {
+        YOYO_XNODE *n;
+        int no;
+        int ref = Xdata_Idxref_No(doc,idx,&no);
+        n = doc->nodes[ref]+no;
+        return n;
+      }
+  }
+#endif
+  ;
+
 void YOYO_XDATA_Destruct(YOYO_XDATA *self)
 #ifdef _YOYO_XDATA_BUILTIN
   {
@@ -383,7 +425,14 @@ void YOYO_XDATA_Destruct(YOYO_XDATA *self)
           for ( j = 0; j < Number_Of_Nodes_In_List(i); ++j )
             {
               YOYO_XNODE *r = self->nodes[i]+j;
-              if (((r->opt&XVALUE_OPT_VALTYPE_MASK) == XVALUE_OPT_VALTYPE_STR
+              if ( !(r->opt&XVALUE_OPT_IS_VALUE) && r->down == XVALUE_DOWN_REFNODE )
+                {
+                  YOYO_XNODE *ref = Xdata_Idxref(r->xdata,r->opt);
+                  STRICT_REQUIRE(ref->opt ==  XVALUE_OPT_VALTYPE_REFNODE);
+                  r->down = 0;
+                  __Unrefe(ref->refval);
+                }
+              else if (((r->opt&XVALUE_OPT_VALTYPE_MASK) == XVALUE_OPT_VALTYPE_STR
                   || (r->opt&XVALUE_OPT_VALTYPE_MASK) == XVALUE_OPT_VALTYPE_BIN ))
                 Xvalue_Purge(r);
             }
@@ -392,17 +441,6 @@ void YOYO_XDATA_Destruct(YOYO_XDATA *self)
     free(self->tags);
     __Unrefe(self->dicto);
     __Destruct(self);
-  }
-#endif
-  ;
-
-void *Xdata_Init()
-#ifdef _YOYO_XDATA_BUILTIN
-  {
-    YOYO_XDATA *doc = __Object_Dtor(sizeof(YOYO_XDATA),YOYO_XDATA_Destruct);
-    doc->dicto = __Refe(Dicto_Init());
-    doc->root.xdata = doc;
-    return doc;
   }
 #endif
   ;
@@ -444,39 +482,14 @@ char *Xdata_Resolve_Name(YOYO_XDATA *doc, char *tag, int create_if_doesnt_exist)
 #endif
   ;
 
-int Xdata_Idxref_No(YOYO_XDATA *doc, ushort_t idx, int *no)
+void *Xdata_Init()
 #ifdef _YOYO_XDATA_BUILTIN
   {
-    --idx;
-    
-    if ( idx >= 32 )
-      {
-        int ref = Bitcount_Of(idx);
-        *no  = idx - (1<<(ref-1)); //((1<<ref)-(1<<(ref-1)));
-        STRICT_REQUIRE(ref >= 5);
-        STRICT_REQUIRE(ref < XNODE_NUMBER_OF_NODE_LISTS+5);
-        return ref-5;
-      }
-    else
-      {
-        *no = idx;
-        return 0;
-      }
-  }
-#endif
-  ;
-
-void *Xdata_Idxref(YOYO_XDATA *doc, ushort_t idx)
-#ifdef _YOYO_XDATA_BUILTIN
-  {
-    STRICT_REQUIRE( doc );
-    STRICT_REQUIRE( idx );
-    __Gogo
-      {
-        int no;
-        int ref = Xdata_Idxref_No(doc,idx,&no);
-        return doc->nodes[ref]+no;
-      }
+    YOYO_XDATA *doc = __Object_Dtor(sizeof(YOYO_XDATA),YOYO_XDATA_Destruct);
+    doc->dicto = __Refe(Dicto_Init());
+    doc->root.xdata = doc;
+    doc->root.tag = (ushort_t)(longptr_t)Xdata_Resolve_Name(doc,"root",1);
+    return doc;
   }
 #endif
   ;
@@ -508,11 +521,28 @@ int Xnode_Tag_Is(YOYO_XNODE *node, char *tag_name)
 #endif
   ;
 
+YOYO_XNODE *Xnode_Refacc(YOYO_XNODE *node)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    if ( !(node->opt&XVALUE_OPT_IS_VALUE) && node->down == XVALUE_DOWN_REFNODE )
+      {
+        YOYO_XNODE *ref = Xdata_Idxref(node->xdata,node->opt);
+        STRICT_REQUIRE(ref->opt ==  XVALUE_OPT_VALTYPE_REFNODE);
+        node = ref->refval;
+      }
+    return node;
+  }
+#endif
+  ;
+
 char *Xnode_Value_Get_Tag(YOYO_XNODE *node,YOYO_XVALUE *value)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( value );
+
+    node = Xnode_Refacc(node);
+
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
     STRICT_REQUIRE( (value->opt&XVALUE_OPT_IS_VALUE) != 0 );
     STRICT_REQUIRE( value->tag > 0 && value->tag <= node->xdata->last_tag );
@@ -528,9 +558,10 @@ YOYO_XNODE *Xnode_Down(YOYO_XNODE *node)
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
     
+    node = Xnode_Refacc(node);
     if ( node->down )
       return Xdata_Idxref(node->xdata,node->down);
-  
+
     return 0;
   }
 #endif
@@ -542,6 +573,7 @@ YOYO_XVALUE *Xnode_First_Value(YOYO_XNODE *node)
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
 
+    node = Xnode_Refacc(node);
     if ( node->opt )
       return (YOYO_XVALUE*)Xdata_Idxref(node->xdata,node->opt);
   
@@ -558,6 +590,7 @@ YOYO_XVALUE *Xnode_Next_Value(YOYO_XNODE *node, YOYO_XVALUE *value)
     STRICT_REQUIRE( value );
     STRICT_REQUIRE( (value->opt&XVALUE_OPT_IS_VALUE) != 0 );
 
+    node = Xnode_Refacc(node);
     if ( value->next )
       return (YOYO_XVALUE*)Xdata_Idxref(node->xdata,value->next);
   
@@ -681,6 +714,27 @@ YOYO_XNODE *Xnode_Append(YOYO_XNODE *node, char *tag)
 #endif
   ;
 
+YOYO_XNODE *Xnode_Append_Refnode(YOYO_XNODE *node, char *tagname, YOYO_XNODE *ref)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XNODE *n;
+    YOYO_XNODE *v;
+    
+    STRICT_REQUIRE( ref );
+    STRICT_REQUIRE( (ref->opt&XVALUE_OPT_IS_VALUE) == 0 );
+    
+    if ( !tagname ) tagname = Xnode_Get_Tag(ref);
+    n = Xnode_Append(node,tagname);
+    v = Xdata_Allocate(node->xdata,".refout.",&n->opt);
+    n->down = XVALUE_DOWN_REFNODE;
+    v->opt = XVALUE_OPT_VALTYPE_REFNODE;
+    v->refval = ref;
+    __Refe( v->refval );
+    return n;
+  }
+#endif
+  ;
+
 YOYO_XNODE *Xnode_Insert(YOYO_XNODE *node, char *tag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
@@ -708,6 +762,8 @@ YOYO_XNODE *Xnode_Down_If(YOYO_XNODE *node, char *tag_name)
     ushort_t tag;
     YOYO_XNODE *n;
       
+    node = Xnode_Refacc(node);
+
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( tag_name );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
@@ -761,6 +817,8 @@ YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_dnt_exi
     ushort_t *next;
     ushort_t valtag;
     
+    node = Xnode_Refacc(node);
+
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( valtag_S );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
@@ -806,6 +864,8 @@ YOYO_XVALUE *Xnode_Match_Value(YOYO_XNODE *node, char *patt)
     YOYO_XDATA  *doc;
     ushort_t *next;
     
+    node = Xnode_Refacc(node);
+
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( patt );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
@@ -965,7 +1025,7 @@ int Xnode_Query_Chop_Op(char **query, char *elm, int elm_size)
     int patt = YOYO_XNODE_QUERY_EQUAL;
     int i = 0;
     
-    if ( !**query )
+    if ( !query || !*query || !**query )
       return 0;
       
     while ( **query )
@@ -1002,6 +1062,8 @@ YOYO_XNODE *Xnode_Down_If_Named(YOYO_XNODE *node, char *named_tag)
     char *name;
     char *tag;
       
+    node = Xnode_Refacc(node);
+
     STRICT_REQUIRE( node );
     STRICT_REQUIRE( named_tag );
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
@@ -1038,6 +1100,9 @@ YOYO_XNODE *Xnode_Down_Match(YOYO_XNODE *node, char *patt)
     STRICT_REQUIRE( (node->opt&XVALUE_OPT_IS_VALUE) == 0 );
 
     n = Xnode_Down(node);
+    name_patt[0] = 0;
+    tag_patt[sizeof(tag_patt)-1] = 0;
+    strncpy(tag_patt,patt,sizeof(tag_patt)-1);
     
     __Gogo
       {
@@ -1063,8 +1128,8 @@ YOYO_XNODE *Xnode_Down_Match(YOYO_XNODE *node, char *patt)
 
     while ( n )
       {
-        if ( !tag_patt[0] || Str_Match(Xnode_Get_Tag(node),tag_patt) )
-          if ( !name_patt[0] || Str_Match_Nocase(Xnode_Value_Get_Str(node,"@",0),tag_patt) )
+        if ( !tag_patt[0] || Str_Match(Xnode_Get_Tag(n),tag_patt) )
+          if ( !name_patt[0] || Str_Match_Nocase(Xnode_Value_Get_Str(n,"@",0),name_patt) )
             break;
         n = Xnode_Next(n);
       }
@@ -1120,11 +1185,33 @@ YOYO_XVALUE *Xnode_Deep_Value(YOYO_XNODE *n, char *query)
 #endif
   ;
   
+YOYO_XNODE *Xnode_Query_Node(YOYO_XNODE *n, char *query)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    int qtype;
+    char elm[128];
+    
+    while( n && (qtype=Xnode_Query_Chop_Op(&query,elm,sizeof(elm))) )
+      {
+        if ( qtype == YOYO_XNODE_QUERY_MATCH )
+          n = Xnode_Down_Match(n,elm);
+        else if ( qtype == YOYO_XNODE_QUERY_NAMED )
+          n = Xnode_Down_If_Named(n,elm);
+        else /* qtype == YOYO_XNODE_QUERY_EQUAL */
+          n = Xnode_Down_If(n,elm);
+      }
+
+    return n;
+  }
+#endif
+  ;
+
 YOYO_XVALUE *Xnode_Query_Value(YOYO_XNODE *n, char *query)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     int qtype;
     char elm[128];
+    
     while( n && (qtype=Xnode_Query_Chop_Op(&query,elm,sizeof(elm))) )
       {
         if ( !query && qtype != YOYO_XNODE_QUERY_NAMED ) /* looking for value? */
@@ -1137,7 +1224,7 @@ YOYO_XVALUE *Xnode_Query_Value(YOYO_XNODE *n, char *query)
             if ( value )
               return value;
           }
-          
+        
         if ( qtype == YOYO_XNODE_QUERY_MATCH )
           n = Xnode_Down_Match(n,elm);
         else if ( qtype == YOYO_XNODE_QUERY_NAMED )
@@ -1153,21 +1240,13 @@ YOYO_XVALUE *Xnode_Query_Value(YOYO_XNODE *n, char *query)
   }
 #endif
   ;
-  
-/*
-  be carrefull when assume non-null result as succeeded
-  if empty buffer adding empty string retvalue will be 0
-*/
-char *Xnode_Query_Str_Bf(YOYO_BUFFER *bf, YOYO_XNODE *n, char *query)
+
+char *Xvalue_Str_Bf(YOYO_XVALUE *value,YOYO_BUFFER *bf)
 #ifdef _YOYO_XDATA_BUILTIN
   {
-    YOYO_XVALUE *value;
-    
-    int start = bf->count;
-    value = Xnode_Query_Value(n,query);
-    
     if ( value )
       {
+        int start = bf->count;
         char *S = Xvalue_Get_Str(value,0);
         if ( S )
           Buffer_Append(bf,S,-1);
@@ -1179,8 +1258,21 @@ char *Xnode_Query_Str_Bf(YOYO_BUFFER *bf, YOYO_XNODE *n, char *query)
           }
         return bf->at+start;
       }
-      
+    
     return 0;
+  }
+#endif
+  ;
+  
+/*
+  be carrefull when assume non-null result as succeeded
+  if empty buffer adding empty string retvalue will be 0
+*/
+char *Xnode_Query_Str_Bf(YOYO_BUFFER *bf, YOYO_XNODE *n, char *query)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XVALUE *value = Xnode_Query_Value(n,query);
+    return Xvalue_Str_Bf(value,bf);
   }
 #endif
   ;

@@ -87,7 +87,7 @@ char Str_Last(char *S)
 #endif
   ;
   
-#define Str_Copy(Str,Len) Yo_Pool(Str_Copy_Npl(Str,Len))
+#define Str_Copy(Str,Len) __Pool(Str_Copy_Npl(Str,Len))
 char *Str_Copy_Npl(char *S,int L)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -98,6 +98,21 @@ char *Str_Copy_Npl(char *S,int L)
       memcpy(p,S,L);
     p[L] = 0;
     return p;
+  }
+#endif
+  ;
+
+#define Str_Trim_Copy(Str,Len) __Pool(Str_Trim_Copy_Npl(Str,Len))
+char *Str_Trim_Copy_Npl(char *S, int L)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    if ( L < 0 ) L = S?strlen(S):0;
+    if ( L && S )
+      {
+        while ( *S && isspace(*S) ) { ++S; --L; }
+        while ( L && isspace(S[L-1]) ) --L;
+      }
+    return Str_Copy_Npl(S,L);
   }
 #endif
   ;
@@ -1334,32 +1349,37 @@ int Str_Submatch_Nocase_(char *S, char *patt)
 int Str_Submatch(char *S, char *patt, int nocase)
   {
     if ( S && patt )
-      while ( *S && *patt )
-        {
-          char *SS = S;
-          int c = nocase ? Utf8_Get_Wide(&SS) : *SS++;
-          int pc = nocase ? Utf8_Get_Wide(&patt) : *patt++;
+      {
+        while ( *S && *patt )
+          {
+            char *SS = S;
+            int c = nocase ? Utf8_Get_Wide(&SS) : *SS++;
+            int pc = nocase ? Utf8_Get_Wide(&patt) : *patt++;
         
-          switch ( pc )
-            {
-              case '?': S = SS; break;
-              case '*':
-                if ( nocase )
-                  return Str_Submatch_Nocase_(SS,patt);
-                else
-                  {
-                    while (*SS) ++SS;
-                    for (; S != SS; --S )
-                      if ( Str_Submatch(S,patt,0) )
-                        return 1;
-                  }
-                return 0;
-              //case '[':
-              default:
-                if ( c != pc ) return 0;
-                S = SS;
-            }
-        }
+            switch ( pc )
+              {
+                case '?': S = SS; break;
+                case '*':
+                  if ( !*patt ) 
+                    return 1;
+                  if ( nocase )
+                    return Str_Submatch_Nocase_(SS,patt);
+                  else
+                    {
+                      while ( *SS ) ++SS;
+                      while ( S != --SS )
+                        if ( Str_Submatch(SS,patt,0) )
+                          return 1;
+                    }
+                  return 0;
+                //case '[':
+                default:
+                  if ( c != pc ) return 0;
+                  S = SS;
+              }
+          }
+        return !*S && *S==*patt;
+      }
     return 0;
   }
 #endif
