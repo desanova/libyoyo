@@ -174,6 +174,7 @@ typedef struct _YOYO_ARRAY
   {
     void **at;
     int count;
+    int capacity;
   } YOYO_ARRAY;
 
 void Array_Del(YOYO_ARRAY *a,int pos,int n)
@@ -234,11 +235,22 @@ void *Array_Take(YOYO_ARRAY *a,int pos)
 #endif
   ;
 
+void Array_Grow(YOYO_ARRAY *a,int require)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    int capacity = Min_Pow2(require*sizeof(void*));
+    if ( !a->at || a->capacity < capacity )
+      {
+        a->at = Yo_Realloc_Npl(a->at,capacity);
+        a->capacity = capacity;
+      }
+  }
+#endif
+  ;
+  
 void Array_Insert(YOYO_ARRAY *a,int pos,void *p)
 #ifdef _YOYO_ARRAY_BUILTIN
   {
-    uint_t capacity = 0;
-    
     if ( pos < 0 ) pos = a->count + pos + 1;
     if ( pos < 0 || pos > a->count ) 
       {
@@ -248,9 +260,7 @@ void Array_Insert(YOYO_ARRAY *a,int pos,void *p)
         Yo_Raise(YOYO_ERROR_OUT_OF_RANGE,0,__Yo_FILE__,__LINE__);
       }
     
-    capacity = Min_Pow2((a->count+1)*sizeof(void*));
-    if ( !a->at || malloc_size(a->at) < capacity )
-      a->at = Yo_Realloc_Npl(a->at,capacity);
+    Array_Grow(a,a->count+1);
     if ( pos < a->count )
       memmove(a->at+pos+1,a->at+pos,(a->count-pos)*sizeof(void*));
     a->at[pos] = p;
@@ -270,9 +280,7 @@ void Array_Fill(YOYO_ARRAY *a,int pos,void *p, int count)
     
     if ( !a->at || a->count-pos < count )
       {
-        int capacity = Min_Pow2((a->count-pos+count)*sizeof(void*));
-        if ( !a->at || malloc_size(a->at) < capacity )
-          a->at = Yo_Realloc_Npl(a->at,capacity);
+        Array_Grow(a,a->count-pos+count);
         memset(a->at+pos,0,sizeof(void*)*count);
         a->count = a->count-pos+count;
       }

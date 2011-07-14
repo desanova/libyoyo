@@ -554,7 +554,8 @@ void Yo_Extend_Csup_Autopool()
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     uint_t ncount = nfo->auto_count + YOYO_EXT_POOL_COUNT; 
     nfo->auto_pool = Yo_Realloc_Npl(nfo->auto_pool,sizeof(*nfo->auto_pool)*ncount);
-    nfo->auto_top = ncount;
+    nfo->auto_count = ncount;
+    //nfo->auto_top = ncount;
   }
 #endif
   ;
@@ -590,6 +591,8 @@ void *Yo_Pool_Ptr(void *ptr,void *cleanup)
         STRICT_REQUIRE( (cleanup == Yo_Pool_Marker_Tag) || !Yo_Find_Ptr_In_Pool(nfo,ptr) );
 
         ++nfo->auto_top;
+        STRICT_REQUIRE(nfo->auto_top <= nfo->auto_count);
+        
         if ( nfo->auto_top == nfo->auto_count )
           Yo_Extend_Csup_Autopool();
         nfo->auto_pool[nfo->auto_top].ptr = ptr;
@@ -652,6 +655,7 @@ void *Yo_Unwind_Scope(void *pooled,int min_top)
         while ( nfo->auto_top >= L )
           {
             YOYO_AUTORELEASE *q = &nfo->auto_pool[nfo->auto_top];
+            STRICT_REQUIRE(nfo->auto_top <= nfo->auto_count);
             if ( q->ptr )
               {
                 //printf("%p/%p ?= %p\n", q->ptr, q->cleanup, pooled);
@@ -667,6 +671,7 @@ void *Yo_Unwind_Scope(void *pooled,int min_top)
             if ( q->cleanup == Yo_Pool_Marker_Tag && !min_top )
               break;
           }
+        REQUIRE(nfo->auto_top < nfo->auto_count);
         if ( q_p )
           {
             ++nfo->auto_top;

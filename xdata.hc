@@ -300,6 +300,23 @@ void Xvalue_Put_Str(YOYO_XVALUE *val, __Acquire char *S)
 #endif
   ;
   
+void Xvalue_Set_Or_Put_Str(YOYO_XVALUE *val, char *S)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    int L = S?strlen(S):0;
+    if ( L >= sizeof(val->down)+sizeof(val->holder) )
+      Xvalue_Put_Str(val,__Retain(S));
+    else
+      {
+        Xvalue_Purge(val);
+        if (L) memcpy((char*)&val->down,S,L);
+        /* already filled by 0 in Xvalue_Purge //((char*)&val->down)[L] = 0; */
+        val->opt = XVALUE_OPT_VALTYPE_LIT;
+      }
+  }
+#endif
+  ;
+  
 void Xvalue_Put_Binary(YOYO_XVALUE *val, __Acquire YOYO_BUFFER *bf)
 #ifdef _YOYO_XDATA_BUILTIN
   {
