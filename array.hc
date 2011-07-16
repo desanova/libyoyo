@@ -696,5 +696,16 @@ void *Array_Pwide(void)
 #endif
   ;
 
+void *Array_Take_Data_Npl(YOYO_ARRAY *a)
+#ifdef _YOYO_ARRAY_BUILTIN
+  {
+    void *p = a->at;
+    a->at = 0;
+    a->capacity = a->count = 0;
+    return p;
+  }
+#endif
+  ;
+
 #endif /* C_once_44A7F9A5_269A_48D5_AABB_F08291F9087B */
 

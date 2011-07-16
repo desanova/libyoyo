@@ -488,7 +488,7 @@ char *Xdata_Resolve_Name(YOYO_XDATA *doc, char *tag, int create_if_doesnt_exist)
             q = (char*)(longptr_t)(++doc->last_tag);
             STRICT_REQUIRE(q < XNODE_MAX_NAME_INDEX_PTR);
             stored = Dicto_Put(doc->dicto,tag,q);
-            doc->tags = __Resize_Npl(doc->tags,sizeof(char*)*doc->last_tag,0);
+            doc->tags = __Resize_Npl(doc->tags,sizeof(char*)*(doc->last_tag+1),0);
             doc->tags[doc->last_tag-1] = stored;
           }
         return q;
@@ -863,7 +863,7 @@ YOYO_XVALUE *Xnode_Value(YOYO_XNODE *node, char *valtag_S, int create_if_dnt_exi
         if ( create_if_dnt_exist )
           {
             STRICT_REQUIRE( valtag );
-            value = Xdata_Create_Value(doc,valtag_S,next);
+            value = Xdata_Create_Value(doc,(char*)(longptr_t)valtag,next);
             goto found;
           }
       }

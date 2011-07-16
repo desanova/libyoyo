@@ -155,16 +155,18 @@ void *Dicto_Put(YOYO_DICTO *o, char *key, void *val)
             if ( destructor )
               (*destructor)(p->ptr);
             p->ptr = val;
+            key = (*Q)->key;
           }
         else
           {
             *Q = Dicto_Allocate(key);
+            key = (*Q)->key;
             (*Q)->ptr = val;
             ++o->count;
             if ( o->count > o->width*3 )
               Dicto_Rehash(o);
           }
-        return (*Q)->key;
+        return key;
       }
     else
       return 0;
