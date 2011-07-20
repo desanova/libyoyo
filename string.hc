@@ -1408,6 +1408,21 @@ char *Str_Fetch_Substr(char *S, char *prefx, char *skip, char *stopat)
 #endif
   ;
   
-
+#define Str_Reverse(S,L) __Pool(Str_Reverse(S,L))
+char *Str_Reverse_Npl(char *S, int L)
+#ifdef _YOYO_STRING_BUILTIN  
+  {
+    int i;
+    char *ret;
+    if ( L < 0 ) L = S?strlen(S):0;
+    ret = __Malloc_Npl(L+1);
+    for ( i = 0; i < L; ++i )
+      ret[i] = S[(L-i)-1];
+    ret[L] = 0;
+    return ret;
+  }
+#endif
+  ;
+  
 #endif /* C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48 */
 
