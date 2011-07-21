@@ -51,6 +51,7 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_DEFPARS_BUILTIN
 #define _YOYO_LOGOUT_BUILTIN
 #define _YOYO_DATETIME_BUILTIN
+#define _YOYO_BINGINT_BUILTIN
 #endif
 
 #include "core.hc"
@@ -77,10 +78,9 @@ in this Software without prior written authorization of the copyright holder.
 /*
 #define _YOYO_HTTPX_BUILTIN
 #define _YOYO_TCPIP_BUILTIN
-#define _YOYO_BINGNUM_BUILTIN
 #include "tcpip.hc"
 #include "httpx.hc"
-#include "bignum.hc"
+#include "bigint.hc"
 */
 
 #endif /* C_once_9C09BC1E_F80E_4C2D_8EF5_8B6E388D7975 */

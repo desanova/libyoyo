@@ -1408,7 +1408,7 @@ char *Str_Fetch_Substr(char *S, char *prefx, char *skip, char *stopat)
 #endif
   ;
   
-#define Str_Reverse(S,L) __Pool(Str_Reverse(S,L))
+#define Str_Reverse(S,L) __Pool(Str_Reverse_Npl(S,L))
 char *Str_Reverse_Npl(char *S, int L)
 #ifdef _YOYO_STRING_BUILTIN  
   {
