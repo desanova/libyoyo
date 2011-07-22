@@ -223,6 +223,7 @@ enum _YOYO_ERRORS
     YOYO_ERROR_INCONSISTENT     = YOYO_STORAGE_ERROR_GROUP|(YOYO_ERROR_BASE+25),
     YOYO_ERROR_TO_BIG           = YOYO_STORAGE_ERROR_GROUP|(YOYO_ERROR_BASE+26),
     YOYO_ERROR_ZERODIVIDE       = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+27),
+    YOYO_ERROR_LIMIT_REACHED    = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+28),
   };
 
 #define YOYO_ERROR_IS_USER_ERROR(err) !(err&YOYO_XXXX_ERROR_GROUP)
@@ -704,6 +705,8 @@ void *Yo_Refresh_Ptr(void *old,void *new,void *cleaner)
   }
 #endif
   ;
+
+enum { YOYO_DEFAULT_PURGE_CAP = 5 };
 
 int Yo_Pool_Purge(int *thold, int cap)
 #ifdef _YOYO_CORE_BUILTIN
@@ -1530,7 +1533,7 @@ void Error_Exit(char *pfx)
 #define __Pool(Ptr)                     Yo_Pool_Ptr(Ptr,0)
 #define __Release(Pooled)               Yo_Release(Pooled)
 #define __Retain(Pooled)                Yo_Retain(Pooled)
-#define __Purge(TholdPtr,Cap)           Yo_Pool_Purge(TholdPtr,Cap)
+#define __Purge(TholdPtr)               Yo_Pool_Purge(TholdPtr,YOYO_DEFAULT_PURGE_CAP)
 #define __Refe(Ptr)                     Yo_Refe(Ptr)
 #define __Unrefe(Ptr)                   Yo_Unrefe(Ptr)
 #define __Raise(Err,Msg)                Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)

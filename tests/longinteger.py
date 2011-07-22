@@ -27,7 +27,7 @@ def invmod(p,mod):
 
 def gen_long(l = 0):
     if not l:
-        l = int(random.random()*12) + 1;
+        l = int(random.random()*64) + 1;
     Q = os.urandom(l)
     L = 0L
     for i in range(l):
@@ -65,6 +65,16 @@ def gen_div(n):
         r = a / b
         print '/',a,b,0,r
 
+def gen_mod(n):
+    for i in range(n):
+        a = gen_long()
+        while True:
+            b = gen_long()
+            if b: break
+        if b > a : a,b = b,a
+        r = a % b
+        print '%',a,b,0,r
+
 def gen_modexp(n):
     for i in range(n):
         a = gen_long()
@@ -74,6 +84,16 @@ def gen_modexp(n):
             if c: break
         r = modexp(a,b,c)
         print '**%',a,b,c,r
+
+def gen_mulmod(n):
+    for i in range(n):
+        a = gen_long()
+        b = gen_long()
+        while True:
+            c = gen_long()
+            if c: break
+        r = a*b % c
+        print '*%',a,b,c,r
 
 def gen_invmod(n):
     for i in range(n):
@@ -114,8 +134,12 @@ def gen_rshift(n):
                 c = 0
         print '>>',a,b,r&0xffffffff,r
 
-N = 1000
+N = 100
 
+gen_invmod(N)
+gen_modexp(N)
+gen_mod(N)
+gen_mulmod(N)
 gen_rshift(N)
 gen_lshift(N)
 gen_sub(N)
@@ -123,7 +147,6 @@ gen_add(N)
 gen_div(N)
 gen_mul(N)
 gen_modexp(N)
-gen_invmod(N)
 
 def test():
     a = gen_long()
