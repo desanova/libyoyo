@@ -134,7 +134,7 @@ def gen_rshift(n):
                 c = 0
         print '>>',a,b,r&0xffffffff,r
 
-N = 100
+N = 1000
 
 gen_invmod(N)
 gen_modexp(N)

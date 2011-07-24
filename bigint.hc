@@ -190,7 +190,8 @@ YOYO_BIGINT *Bigint_Expand(YOYO_BIGINT *bint, int extra_digits)
     return Bigint_Copy_Expand(bint,extra_digits);
   }
 #endif
-
+  ;
+  
 #define Bigint_Alloca(Digits) Bigint_Setup_(alloca(Bigint_Size_Of_Digits(Digits)), Digits)
 YOYO_BIGINT *Bigint_Setup_(YOYO_BIGINT *bint, int digits)
 #ifdef _YOYO_BINGINT_BUILTIN
@@ -1007,6 +1008,9 @@ YOYO_BIGINT *Bigint_Invmod(YOYO_BIGINT *bint, YOYO_BIGINT *mod)
 #endif
   ;
 
+#ifndef _YOYO_BINGINT_BUILTIN
+extern
+#endif
 halflong_t First_Prime_Values[]
 #ifdef _YOYO_BINGINT_BUILTIN
 = {
@@ -1015,13 +1019,24 @@ halflong_t First_Prime_Values[]
 #endif
   ;
 
+#ifndef _YOYO_BINGINT_BUILTIN
+extern
+#endif
+int First_Prime_Values_Count
+#ifdef _YOYO_BINGINT_BUILTIN
+= sizeof(First_Prime_Values)/sizeof(First_Prime_Values[0])
+#endif
+  ;
+
+#ifdef _YOYO_BINGINT_BUILTIN
 enum 
   { 
-    YOYO_PRIME_MAX_COUNT = /*1229*/ sizeof(First_Prime_Values)/sizeof(int),
-    YOYO_PRIME_TEST_Q    = 32,
+    YOYO_PRIME_MAX_COUNT = /*1229*/ sizeof(First_Prime_Values)/sizeof(First_Prime_Values[0]),
     YOYO_PRIME_RSAPUBLIC_MIN = 256, 
-    YOYO_PRIME_RSAPUBLIC_MAX = YOYO_PRIME_MAX_COUNT 
+    YOYO_PRIME_RSAPUBLIC_MAX = YOYO_PRIME_MAX_COUNT,
+    YOYO_PRIME_TEST_Q = 32,
   };
+#endif
 
 halflong_t First_Prime(int no)
 #ifdef _YOYO_BINGINT_BUILTIN
@@ -1066,7 +1081,7 @@ int Bigint_Ferma_Prime_Test(YOYO_BIGINT *bint, int q)
 YOYO_BIGINT *Bigint_Prime(int bits, int q, int maxcount,YOYO_BIGINT *tmp)
 #ifdef _YOYO_BINGINT_BUILTIN
   {
-    int i;
+    int i,n;
     YOYO_BIGINT *ret = 0;
     YOYO_BIGINT *r = tmp;
     
@@ -1077,7 +1092,7 @@ YOYO_BIGINT *Bigint_Prime(int bits, int q, int maxcount,YOYO_BIGINT *tmp)
     STRICT_REQUIRE( bits > 8 );
     STRICT_REQUIRE( q > 0 && q < 500 );
 
-    int n = Yo_MIN(128,bits-3);
+    n = Yo_MIN(128,bits-3);
     if ( !r )
       r = Bigint_Alloca(Bigint_Digits_Of_Bits(bits)+1);
     
