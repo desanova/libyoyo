@@ -327,7 +327,6 @@ void Def_Parse_In_Node_Set_Value(YOYO_XNODE *n, char *name, YOYO_DEFPARS_VALUE *
 #ifdef _YOYO_DEFPARS_BUILTIN
   {
     YOYO_XVALUE *xv = Xnode_Value(n,name,1);;
-    //printf("value [%s] = %08x\n",name,val->type);
     switch ( val->type )
       {
         case XVALUE_OPT_VALTYPE_INT:
@@ -377,8 +376,6 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
             name = Def_Parse_Get_Literal(st);
             Def_Parse_Skip_Spaces(st);
 
-            //printf("name[%s]\n",name);
-
             if ( *st->text == '(' )
               {
                 char *dflt;
@@ -419,7 +416,6 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
               
           }
         
-        //printf("<<%s>>\n",st->text);
         if ( go_deeper )
           {
             Def_Parse_In_Node(st,nn);

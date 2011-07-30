@@ -689,6 +689,7 @@ void Aes_Destruct(YOYO_AES *ctx)
   #define Aes_Internal_Decode memcpy
 #else
   void Aes_Internal_Encode(byte_t *output, uint_t *input, uint_t len) 
+  #ifdef _YOYO_AES_BUILTIN
     {
       uint_t i, j;
 
@@ -700,8 +701,11 @@ void Aes_Destruct(YOYO_AES *ctx)
           output[j+3] = (byte_t)((input[i] >> 24) & 0xff);
         }
     }
-
+  #endif
+    ;
+    
   void Aes_Internal_Decode(uint_t *output, byte_t *input, uint_t len)
+  #ifdef _YOYO_AES_BUILTIN
     {
       uint_t i, j;
 
@@ -709,6 +713,9 @@ void Aes_Destruct(YOYO_AES *ctx)
         output[i] = ((uint_t)input[j]) | (((uint_t)input[j+1]) << 8) |
           (((uint_t)input[j+2]) << 16) | (((uint_t)input[j+3]) << 24);
     }
+  #endif
+    ;
+    
 #endif
 
 void *Aes_Init_Encipher_Static(YOYO_AES *ctx, void *key, int key_len_bits) 
@@ -797,7 +804,7 @@ void *Aes_Init_Encipher_Static(YOYO_AES *ctx, void *key, int key_len_bits)
 #endif
   ;
   
- void *Aes_Init_Decipher_Static(YOYO_AES *ctx, void *key, int key_len_bits) 
+void *Aes_Init_Decipher_Static(YOYO_AES *ctx, void *key, int key_len_bits) 
 #ifdef _YOYO_AES_BUILTIN
   {
     int i,j;
@@ -858,7 +865,8 @@ void *Aes_Init_Encipher_Static(YOYO_AES *ctx, void *key, int key_len_bits)
                  YOYO_AES_FT3[ ( Y2 >> 24 ) & 0x0ff ]; \
   }
 
-int Aes_Encrypt16( YOYO_AES *ctx, void *block16 )
+void Aes_Encrypt16( YOYO_AES *ctx, void *block16 )
+#ifdef _YOYO_AES_BUILTIN
   {
     int i;
     uint_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
@@ -907,7 +915,9 @@ int Aes_Encrypt16( YOYO_AES *ctx, void *block16 )
     Unsigned_To_Four( X2, (byte_t*)block16+8 );
     Unsigned_To_Four( X3, (byte_t*)block16+12 );
   }
-
+#endif
+  ;
+  
 #undef FROUND
 
 #define RROUND(X0,X1,X2,X3,Y0,Y1,Y2,Y3) \
@@ -933,7 +943,8 @@ int Aes_Encrypt16( YOYO_AES *ctx, void *block16 )
                  YOYO_AES_RT3[ ( Y0 >> 24 ) & 0x0ff ]; \
   }
 
-int Aes_Decrypt16( YOYO_AES *ctx, void *block16 )
+void Aes_Decrypt16( YOYO_AES *ctx, void *block16 )
+#ifdef _YOYO_AES_BUILTIN
   {
     int i;
     uint_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
@@ -981,7 +992,9 @@ int Aes_Decrypt16( YOYO_AES *ctx, void *block16 )
     Unsigned_To_Four( X2, (byte_t*)block16+8 );
     Unsigned_To_Four( X3, (byte_t*)block16+12 );
   }
-
+#endif
+  ;
+  
 #undef RROUND
 
 void *Aes_Init_Encipher(void *key,int key_len) 
