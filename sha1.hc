@@ -1,6 +1,11 @@
 
 /*
 
+//
+// The SHA-1 standard was published by NIST in 1993.
+//   http://www.itl.nist.gov/fipspubs/fip180-1.htm
+//
+
 (C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,9 +29,6 @@ THE SOFTWARE.
 Except as contained in this notice, the name of a copyright holder shall not
 be used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization of the copyright holder.
-
-The SHA-1 standard was published by NIST in 1993.
-http://www.itl.nist.gov/fipspubs/fip180-1.htm
 
 */
 

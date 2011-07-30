@@ -1,6 +1,11 @@
 
 /*
 
+//
+// The SHA-256 Secure Hash Standard was published by NIST in 2002.
+//   http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
+//
+
 (C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,9 +29,6 @@ THE SOFTWARE.
 Except as contained in this notice, the name of a copyright holder shall not
 be used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization of the copyright holder.
-
-The SHA-256 Secure Hash Standard was published by NIST in 2002.
-http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
 
 */
 
@@ -111,57 +113,26 @@ void *Sha2_Sign_Sign_Data(void *data, int len, void *digest)
 
 #ifdef _YOYO_SHA2_BUILTIN
 
+  void Sha2_Internal_Encode(byte_t *output, uint_t *input, uint_t len) 
+    {
+      uint_t i, j;
 
-#if 0
-  #if defined _X86 || defined __i386 || defined __x86_64
-    #define Sha2_Internal_Encode memcpy
-    #define Sha2_Internal_Decode memcpy
-  #else
-    void Sha2_Internal_Encode(byte_t *output, uint_t *input, uint_t len) 
-      {
-        uint_t i, j;
+      for (i = 0, j = 0; j < len; i++, j += 4) 
+        {
+          output[j+0] = (byte_t)(input[i] >> 24);
+          output[j+1] = (byte_t)(input[i] >> 16);
+          output[j+2] = (byte_t)(input[i] >> 8);
+          output[j+3] = (byte_t)(input[i]);
+        }
+    }
 
-        for (i = 0, j = 0; j < len; i++, j += 4) 
-          {
-            output[j]   = (byte_t)(input[i] & 0xff);
-            output[j+1] = (byte_t)((input[i] >> 8) & 0xff);
-            output[j+2] = (byte_t)((input[i] >> 16) & 0xff);
-            output[j+3] = (byte_t)((input[i] >> 24) & 0xff);
-          }
-      }
-
-    void Sha2_Internal_Decode(uint_t *output, byte_t *input, uint_t len)
-      {
-        uint_t i, j;
-
-        for (i = 0, j = 0; j < len; i++, j += 4)
-          output[i] = ((uint_t)input[j]) | (((uint_t)input[j+1]) << 8) |
-            (((uint_t)input[j+2]) << 16) | (((uint_t)input[j+3]) << 24);
-      }
-  #endif
-
-#else
-    void Sha2_Internal_Encode(byte_t *output, uint_t *input, uint_t len) 
-      {
-        uint_t i, j;
-
-        for (i = 0, j = 0; j < len; i++, j += 4) 
-          {
-            output[j+0] = (byte_t)(input[i] >> 24);
-            output[j+1] = (byte_t)(input[i] >> 16);
-            output[j+2] = (byte_t)(input[i] >> 8);
-            output[j+3] = (byte_t)(input[i]);
-          }
-      }
-
-    void Sha2_Internal_Decode(uint_t *output, byte_t *input, uint_t len)
-      {
-        uint_t i, j;
-        for (i = 0, j = 0; j < len; i++, j += 4)
-          output[i] = ((uint_t)input[j+3]) | (((uint_t)input[j+2]) << 8) |
-            (((uint_t)input[j+1]) << 16) | (((uint_t)input[j+0]) << 24);
-      }
-#endif
+  void Sha2_Internal_Decode(uint_t *output, byte_t *input, uint_t len)
+    {
+      uint_t i, j;
+      for (i = 0, j = 0; j < len; i++, j += 4)
+        output[i] = ((uint_t)input[j+3]) | (((uint_t)input[j+2]) << 8) |
+          (((uint_t)input[j+1]) << 16) | (((uint_t)input[j+0]) << 24);
+    }
 
   #define SHR(x,n) ((x) >> n)
   #define ROTR(x,n) (SHR(x,n) | (x << (32 - n)))
