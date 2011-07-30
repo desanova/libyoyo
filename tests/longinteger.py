@@ -134,19 +134,21 @@ def gen_rshift(n):
                 c = 0
         print '>>',a,b,r&0xffffffff,r
 
-N = 1000
+if len(sys.argv) > 1:
+    N = int(sys.argv[1])
+else:
+    N = 100
 
 gen_invmod(N)
-gen_modexp(N)
-gen_mod(N)
-gen_mulmod(N)
 gen_rshift(N)
 gen_lshift(N)
 gen_sub(N)
 gen_add(N)
+gen_mod(N)
 gen_div(N)
 gen_mul(N)
 gen_modexp(N)
+gen_mulmod(N)
 
 def test():
     a = gen_long()

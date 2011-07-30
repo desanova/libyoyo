@@ -422,7 +422,7 @@ void Blowfish_Decrypt8(YOYO_BLOWFISH *self,void *block8)
 void Blowfish_Destruct(YOYO_BLOWFISH *self)
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
-    Yo_Object_Destruct(self);
+    __Destruct(self);
   }
 #endif
   ;

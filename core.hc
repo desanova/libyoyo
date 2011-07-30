@@ -30,6 +30,13 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C
 #define C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C
 
+#if defined _MSC_VER && _MSC_VER > 1400
+#pragma warning(disable:4996) /*The POSIX name for this item is deprecated*/
+# ifndef _CRT_SECURE_NO_WARNINGS
+#   define _CRT_SECURE_NO_WARNINGS
+# endif
+#endif
+
 /* markers */
 #define __Acquire /* a function acquire the ownership of argument */
 
@@ -99,6 +106,11 @@ in this Software without prior written authorization of the copyright holder.
 #   define malloc_size(Ptr) malloc_usable_size(Ptr)
 # endif
 #endif
+
+#define iszof(x)     ((int)sizeof(x))
+#define iszof_double ((int)sizeof(double))
+#define iszof_long   ((int)sizeof(int))
+#define iszof_wchar  ((int)sizeof(wchar_t))
 
 typedef unsigned char  byte_t;
 typedef unsigned short ushort_t;
@@ -224,6 +236,7 @@ enum _YOYO_ERRORS
     YOYO_ERROR_TO_BIG           = YOYO_STORAGE_ERROR_GROUP|(YOYO_ERROR_BASE+26),
     YOYO_ERROR_ZERODIVIDE       = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+27),
     YOYO_ERROR_LIMIT_REACHED    = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+28),
+    YOYO_ERROR_UNSUPPORTED      = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+29),
   };
 
 #define YOYO_ERROR_IS_USER_ERROR(err) !(err&YOYO_XXXX_ERROR_GROUP)
@@ -285,16 +298,9 @@ void Yo_Xchg_Unlock_Proc(int volatile *p) _YOYO_CORE_BUILTIN_CODE({Yo_Atomic_Cmp
 # define STRICT_CHECK(Expr) (1)
 #endif /* _STRICT */
 
-uint_t Two_To_Unsigned(void *b)
-#ifdef _YOYO_CORE_BUILTIN
-  {
-    uint_t q =   (unsigned int)((unsigned char*)b)[0]
-              | ((unsigned int)((unsigned char*)b)[1] << 8);
-    return q;
-  }
-#endif
-  ;
-
+#if defined _X86 || defined __i386 || defined __x86_64
+#define Four_To_Unsigned(Four)  (*(uint_t*)(Four))
+#else
 uint_t Four_To_Unsigned(void *b)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -306,7 +312,11 @@ uint_t Four_To_Unsigned(void *b)
   }
 #endif
   ;
+#endif
 
+#if defined _X86 || defined __i386 || defined __x86_64
+#define Unsigned_To_Four(Uval,Four) ((*(uint_t*)(Four)) = (Uval))
+#else
 void Unsigned_To_Four(uint_t q, void *b)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -315,6 +325,17 @@ void Unsigned_To_Four(uint_t q, void *b)
     p[1] = (byte_t)(q>>8);
     p[2] = (byte_t)(q>>16);
     p[3] = (byte_t)(q>>24);
+  }
+#endif
+  ;
+#endif
+
+uint_t Two_To_Unsigned(void *b)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    uint_t q =   (unsigned int)((unsigned char*)b)[0]
+              | ((unsigned int)((unsigned char*)b)[1] << 8);
+    return q;
   }
 #endif
   ;
@@ -392,10 +413,12 @@ uint_t Align_To_Pow2(uint_t a, uint_t mod)
 size_t malloc_size(void *p) _YOYO_CORE_BUILTIN_CODE({return _msize(p);});
 #endif /* __windoze */
 
-void *Yo_Malloc_Npl(unsigned size)
+void *Yo_Malloc_Npl(int size)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    void *p = malloc(size);
+    void *p;
+    STRICT_REQUIRE(size >= 0);
+    p = malloc(size);
     if ( !p )
       Yo_Fatal(YOYO_ERROR_OUT_OF_MEMORY,0,0,0);
     return p;
@@ -403,9 +426,10 @@ void *Yo_Malloc_Npl(unsigned size)
 #endif
   ;
 
-void *Yo_Realloc_Npl(void *p,unsigned size)
+void *Yo_Realloc_Npl(void *p,int size)
 #ifdef _YOYO_CORE_BUILTIN
   {
+    STRICT_REQUIRE(size >= 0);
     p = realloc(p,size);
     if ( !p )
       Yo_Fatal(YOYO_ERROR_OUT_OF_MEMORY,0,0,0);
@@ -414,10 +438,11 @@ void *Yo_Realloc_Npl(void *p,unsigned size)
 #endif
   ;
 
-void *Yo_Resize_Npl(void *p,unsigned size,int granularity)
+void *Yo_Resize_Npl(void *p,int size,int granularity)
 #ifdef _YOYO_CORE_BUILTIN
   {
     int capacity = p?malloc_size(p):0;
+    STRICT_REQUIRE(size >= 0);
     if ( !p || capacity < size )
       {
         if ( !granularity )
@@ -438,10 +463,12 @@ void *Yo_Resize_Npl(void *p,unsigned size,int granularity)
 #endif
   ;
 
-void *Yo_Memcopy_Npl(void *src,unsigned size)
+void *Yo_Memcopy_Npl(void *src,int size)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    void *p = malloc(size);
+    void *p;
+    STRICT_REQUIRE(size >= 0);
+    p = malloc(size);
     if ( !p )
       Yo_Fatal(YOYO_ERROR_OUT_OF_MEMORY,0,0,0);
     memcpy(p,src,size);
@@ -863,7 +890,7 @@ void *Yo_Clone_Dynamic( YOYO_DYNAMIC *dynco, int extra )
   {
     int count = dynco->contsig&0x0ff;
     int fc = count?count-1:0;
-    int fcc = count+extra?count+extra-1:0;
+    int fcc = (count+extra)?count+extra-1:0;
     YOYO_DYNAMIC *d = Yo_Malloc_Npl(sizeof(YOYO_DYNAMIC)+sizeof(YOYO_FUNCTABLE)*fcc);
     *d = *dynco;
     if ( fc )
@@ -878,7 +905,7 @@ void *Yo_Extend_Dynamic( YOYO_DYNAMIC *dynco, int extra )
 #ifdef _YOYO_CORE_BUILTIN
   {
     int count = dynco->contsig&0x0ff;
-    int fcc = count+extra?count+extra-1:0;
+    int fcc = (count+extra)?count+extra-1:0;
     YOYO_DYNAMIC *d = Yo_Realloc_Npl(dynco,sizeof(YOYO_DYNAMIC)+sizeof(YOYO_FUNCTABLE)*fcc);
     return d;
   }

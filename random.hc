@@ -81,7 +81,7 @@ void System_Random(void *bits,int count /* of bytes*/ )
     static HCRYPTPROV cp = 0;
     if ( !fCryptAcquireContext )
       {
-        HMODULE hm = LoadLibrary("advapi32.dll");
+        HMODULE hm = LoadLibraryA("advapi32.dll");
         fCryptAcquireContext = (tCryptAcquireContext)GetProcAddress(hm,"CryptAcquireContextA");
         fCryptGenRandom = (tCryptGenRandom)GetProcAddress(hm,"CryptGenRandom");
       }

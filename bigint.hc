@@ -71,8 +71,6 @@ YOYO_BIGINT *Bigint_Init_Digits(quad_t val, int digits)
     YOYO_BIGINT *bint;
     if ( digits < YOYO_BIGINT_MINDIGITS ) digits = YOYO_BIGINT_MINDIGITS;
     bint = __Malloc(Bigint_Size_Of_Digits(digits));
-    //printf("malloc %d\n",Bigint_Size_Of_Digits(digits));
-    //puts(Yo_Btrace());
     if ( val < 0 ) { bint->sign = -1; val = -val; } else bint->sign = 1;
     while ( val & YOYO_BIGINT_DIGIT_MASK )
      {
@@ -151,8 +149,6 @@ YOYO_BIGINT *Bigint_Copy_Expand(YOYO_BIGINT *bint, int extra_digits)
       gap = digits-YOYO_BIGINT_MINDIGITS;
     
     out = __Malloc(Bigint_Size_Of_Digits(digits));
-    //printf("malloc %d\n",Bigint_Size_Of_Digits(digits));
-    //puts(Yo_Btrace());
     memset(out,0,Bigint_Size_Of_Digits(digits));
     if ( bint )
       memcpy(out,bint,sizeof(*bint)+((bint->digits-1)*sizeof(halflong_t)));
@@ -173,7 +169,6 @@ YOYO_BIGINT *Bigint_Expand(YOYO_BIGINT *bint, int extra_digits)
     if ( bint )
       {
         int digits = bint->digits+extra_digits;
-        YOYO_BIGINT *out = 0;
     
         STRICT_REQUIRE( bint );
         STRICT_REQUIRE( bint->digits > 0 );
@@ -715,8 +710,30 @@ YOYO_BIGINT *Bigint_Divrem_Short(YOYO_BIGINT *bint, halflong_t q, halflong_t *re
   }
 #endif
   ;
-  
-YOYO_BIGINT *Bigint_Decode_Str(char *S, int radix)
+
+YOYO_BIGINT *Bigint_Decode_2(char *S)
+#ifdef _YOYO_BINGINT_BUILTIN
+  {
+    YOYO_BIGINT *bint = Bigint_Init(0);
+    char *p = S;
+    
+    __Auto_Ptr(bint)
+      if ( p )
+        {
+          for ( ;*p; ++p )
+            {
+              if ( *p != '0' && *p != '1' ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid binary number %s",S));
+              bint = Bigint_Lshift_1(bint);
+              bint->value[0] |= (byte_t)(*p-'0');
+            }
+        }
+    
+    return bint;
+  }
+#endif
+  ;
+
+YOYO_BIGINT *Bigint_Decode_10(char *S)
 #ifdef _YOYO_BINGINT_BUILTIN
   {
     YOYO_BIGINT *bint = Bigint_Init(0);
@@ -730,27 +747,32 @@ YOYO_BIGINT *Bigint_Decode_Str(char *S, int radix)
           
           for ( ;*p; ++p )
             {
-              if ( radix == 10 )
-                {
-                  if ( !isdigit(*p) ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid decimal number %s",S));
-                  bint = Bigint_Mul_Short(bint,10);
-                  bint = Bigint_Add_Short(bint,*p-'0');
-                }
-              else if ( radix == 16 )
-                {
-                  if ( !isxdigit(*p) || !isxdigit(p[1]) ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid hexadecimal number %s",S));
-                  bint = Bigint_Lshift(bint,8);
-                  bint->value[0] |= Str_Unhex_Byte(p,0,0);
-                  ++p;
-                }
-              else if ( radix == 2 )
-                {
-                  if ( *p != '0' && *p != '1' ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid binary number %s",S));
-                  bint = Bigint_Lshift_1(bint);
-                  bint->value[0] |= (byte_t)(*p-'0');
-                }
-              else
-                __Raise_Format(YOYO_ERROR_INVALID_PARAM,("invalid radix %d",radix));
+              if ( !isdigit(*p) ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid decimal number %s",S));
+              bint = Bigint_Mul_Short(bint,10);
+              bint = Bigint_Add_Short(bint,*p-'0');
+            }
+        }
+    
+    return bint;
+  }
+#endif
+  ;
+
+YOYO_BIGINT *Bigint_Decode_16(char *S)
+#ifdef _YOYO_BINGINT_BUILTIN
+  {
+    YOYO_BIGINT *bint = Bigint_Init(0);
+    char *p = S;
+    
+    __Auto_Ptr(bint)
+      if ( p )
+        {
+          for ( ;*p; ++p )
+            {
+              if ( !isxdigit(*p) || !isxdigit(p[1]) ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid hexadecimal number %s",S));
+              bint = Bigint_Lshift(bint,8);
+              bint->value[0] |= Str_Unhex_Byte(p,0,0);
+              ++p;
             }
         }
     
@@ -1201,7 +1223,7 @@ YOYO_BIGINT *Bigint_First_Mutal_Prime(YOYO_BIGINT *bint, int skip_primes)
       {
         YOYO_BIGINT *x = Bigint_Copy_To(bint,r);
         prime = First_Prime_Values[i];
-        Bigint_Divrem_Short(r,prime,&rem);
+        Bigint_Divrem_Short(x,prime,&rem);
       }
     
     if ( rem )         
@@ -1224,7 +1246,6 @@ void Bigint_Generate_Rsa_Key_Pair(
         YOYO_BIGINT *p, *q, *n, *phi;
         int pBits = Get_Random(bits/5,bits/2);
         int qBits = (bits+1)-pBits;
-        int skip_primes = Get_Random(YOYO_PRIME_RSAPUBLIC_MIN,(YOYO_PRIME_RSAPUBLIC_MAX-YOYO_PRIME_RSAPUBLIC_MIN)/2);
 
         STRICT_REQUIRE(pBits < bits/2);
         STRICT_REQUIRE(pBits+qBits == bits+1);

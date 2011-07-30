@@ -346,7 +346,7 @@ void Buffer_LZSS_Compress(YOYO_BUFFER *bf)
 void Buffer_LZSS_Decompress(YOYO_BUFFER *bf)
 #ifdef _YOYO_LZSS_BUILTIN
   {
-    uint_t sz = Four_To_Unsigned(bf->at);
+    int sz = Four_To_Unsigned(bf->at);
     if ( sz > bf->count*30 ) 
       Yo_Raise(YOYO_ERROR_CORRUPTED,"is not LZSS compressed buffer",__Yo_FILE__,__LINE__); 
     else

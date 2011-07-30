@@ -42,6 +42,8 @@ in this Software without prior written authorization of the copyright holder.
 
 _YOYO_CIPHER_EXTERN char Oj_Encrypt8_OjMID[] _YOYO_CIPHER_BUILTIN_CODE ( = "encrypt8/@*" );
 _YOYO_CIPHER_EXTERN char Oj_Decrypt8_OjMID[] _YOYO_CIPHER_BUILTIN_CODE ( = "decrypt8/@*" );
+_YOYO_CIPHER_EXTERN char Oj_Encrypt16_OjMID[] _YOYO_CIPHER_BUILTIN_CODE ( = "encrypt16/@*" );
+_YOYO_CIPHER_EXTERN char Oj_Decrypt16_OjMID[] _YOYO_CIPHER_BUILTIN_CODE ( = "decrypt16/@*" );
 
 void Oj_Encrypt8(void *cipher,void *block8) _YOYO_CIPHER_BUILTIN_CODE(
   { ((void(*)(void*,void*))Yo_Find_Method_Of(cipher,Oj_Encrypt8_OjMID,YO_RAISE_ERROR))
@@ -51,6 +53,14 @@ void Oj_Decrypt8(void *cipher,void *block8) _YOYO_CIPHER_BUILTIN_CODE(
   { ((void(*)(void*,void*))Yo_Find_Method_Of(cipher,Oj_Decrypt8_OjMID,YO_RAISE_ERROR))
         (cipher,block8); });
         
+void Oj_Encrypt16(void *cipher,void *block16) _YOYO_CIPHER_BUILTIN_CODE(
+  { ((void(*)(void*,void*))Yo_Find_Method_Of(cipher,Oj_Encrypt16_OjMID,YO_RAISE_ERROR))
+        (cipher,block16); });
+
+void Oj_Decrypt16(void *cipher,void *block16) _YOYO_CIPHER_BUILTIN_CODE(
+  { ((void(*)(void*,void*))Yo_Find_Method_Of(cipher,Oj_Decrypt16_OjMID,YO_RAISE_ERROR))
+        (cipher,block16); });
+
 void _Oj_Check_Buffer_Size_N_Alignment_8(int S_len)
 #ifdef _YOYO_CIPHER_BUILTIN
   {

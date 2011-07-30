@@ -565,30 +565,30 @@ void Def_Format_Node_In_Depth(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags, int ind
                     
                     Buffer_Append(bf,"[",2);
                     
-                    if ( val->binary->count > nums_per_line*sizeof(double) )
+                    if ( val->binary->count > nums_per_line*iszof_double )
                       {  
                         Buffer_Append(bf,"\n",1);
                         Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);
                       }
                       
-                    while ( q+sizeof(double) <= val->binary->count )
+                    while ( q+iszof_double <= val->binary->count )
                       {
-                        int l = (val->binary->count - q)/sizeof(double);
+                        int l = (val->binary->count - q)/iszof_double;
                         if ( l > nums_per_line ) l = nums_per_line;
                         for ( ; l > 0; --l )
                           {
-                            double d = *(double*)(val->binary->at+q*sizeof(double));
+                            double d = *(double*)(val->binary->at+q*iszof_double);
                             
                             if ( (d - (double)((long)d)) > 0.000999999 )
                               Buffer_Printf(bf,"%.3f",d);
                             else
                               Buffer_Printf(bf,"%.f",d);
                             
-                            q += sizeof(double);
-                            if ( q+sizeof(double) <= val->binary->count )
+                            q += iszof_double;
+                            if ( q+iszof_double <= val->binary->count )
                             Buffer_Append(bf,",",1);
                           }
-                        if ( q+sizeof(double) <= val->binary->count )
+                        if ( q+iszof_double <= val->binary->count )
                           {
                             Buffer_Append(bf,"\n",1);
                             Buffer_Fill_Append(bf,' ',(indent+1)*YOYO_DEFPARS_INDENT_WIDTH);

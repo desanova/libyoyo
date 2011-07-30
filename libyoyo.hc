@@ -34,6 +34,8 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_CORE_BUILTIN 
 #define _YOYO_CRC_BUILTIN 
 #define _YOYO_MD5_BUILTIN
+#define _YOYO_SHA1_BUILTIN
+#define _YOYO_SHA2_BUILTIN
 #define _YOYO_ARRAY_BUILTIN
 #define _YOYO_BUFFER_BUILTIN
 #define _YOYO_FILE_BUILTIN
@@ -45,6 +47,7 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_CIPHER_BUILTIN
 #define _YOYO_NEWDES96_BUILTIN
 #define _YOYO_BLOWFISH_BUILTIN
+#define _YOYO_AES_BUILTIN
 #define _YOYO_PEFILE_BUILTIN
 #define _YOYO_LZSS_BUILTIN
 #define _YOYO_XDATA_BUILTIN
@@ -58,6 +61,8 @@ in this Software without prior written authorization of the copyright holder.
 #include "logout.hc"
 #include "crc.hc"
 #include "md5.hc"
+#include "sha1.hc"
+#include "sha2.hc"
 #include "dicto.hc"
 #include "array.hc"
 #include "buffer.hc"
@@ -69,6 +74,7 @@ in this Software without prior written authorization of the copyright holder.
 #include "cipher.hc"
 #include "newdes96.hc"
 #include "blowfish.hc"
+#include "aes.hc"
 #include "pefile.hc"
 #include "lzss.hc"
 #include "xdata.hc"

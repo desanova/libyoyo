@@ -1,5 +1,4 @@
 
-//#define _LIBYOYO
 #include "../libyoyo.hc"
 
 int main(int argc, char **argv)
@@ -12,7 +11,7 @@ int main(int argc, char **argv)
     Prog_Init(argc,argv,"?|h,l",PROG_EXIT_ON_ERROR);
     
     logout = Prog_Has_Opt("l");
-    f = Cfile_Open("longinteger.txt","r");
+    f = Cfile_Open(Prog_Argument_Dflt(0,"longinteger.txt"),"r");
     
     while ( !Oj_Eof(f) ) __Auto_Release 
       {
@@ -21,10 +20,10 @@ int main(int argc, char **argv)
         YOYO_ARRAY *q = Str_Split(l,0);
         if ( !q->count ) continue;
 
-        a = Bigint_Decode_Str(q->at[1],10);
-        b = Bigint_Decode_Str(q->at[2],10);
-        c = Bigint_Decode_Str(q->at[3],10);
-        R = Bigint_Decode_Str(q->at[4],10);
+        a = Bigint_Decode_10(q->at[1]);
+        b = Bigint_Decode_10(q->at[2]);
+        c = Bigint_Decode_10(q->at[3]);
+        R = Bigint_Decode_10(q->at[4]);
         
         if ( !strcmp(q->at[0],"*") )
           {

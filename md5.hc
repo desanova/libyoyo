@@ -91,6 +91,19 @@ void *Md5_Sign_Data(void *data, int len, void *digest)
 #endif
   ;
 
+void *Md5_Sign_Sign_Data(void *data, int len, void *digest)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    byte_t tmp[16];
+    YOYO_MD5_SIGNER md5 = YOYO_MD5_INITIALIZER;
+    Md5_Sign_Data(data,len,tmp);
+    Md5_Update(&md5,tmp,16);
+    Md5_Update(&md5,data,len);
+    return Md5_Finish(&md5,digest);
+  }
+#endif
+  ;
+
 #define Md5_Digest_Of(Data,Len) Md5_Sign_Data(Data,Len,0)
 
 #ifdef _YOYO_MD5_BUILTIN
@@ -289,7 +302,7 @@ void *Md5_Sign_Data(void *data, int len, void *digest)
           Md5_Update(md5, bits, 8);
           md5->finished = 1;
         }
-      if ( !digest ) digest = Yo_Malloc(16);
+      if ( !digest ) digest = __Malloc(16);
       Md5_Internal_Encode(digest, md5->state, 16);
       return digest;
     }
