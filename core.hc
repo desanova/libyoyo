@@ -29,6 +29,7 @@ in this Software without prior written authorization of the copyright holder.
 
 #ifndef C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C
 #define C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C
+#define YOYO_CORE_VERSION 1000
 
 #if defined _MSC_VER && _MSC_VER > 1400
 #pragma warning(disable:4996) /*The POSIX name for this item is deprecated*/
@@ -109,8 +110,9 @@ in this Software without prior written authorization of the copyright holder.
 
 #define iszof(x)     ((int)sizeof(x))
 #define iszof_double ((int)sizeof(double))
-#define iszof_long   ((int)sizeof(int))
+#define iszof_long   ((int)sizeof(long))
 #define iszof_wchar  ((int)sizeof(wchar_t))
+#define __Offset_Of(T,Memb) ((longptr_t)(&((T*)0)->Memb))
 
 typedef unsigned char  byte_t;
 typedef unsigned short ushort_t;
@@ -147,9 +149,6 @@ typedef unsigned long  ulong_t;
 # define Yo_Fatal(Error,Msg,File,Line) _Yo_Fatal(Error,0,0,0)
 #endif
 
-#define Yo_MIN(a,b) ( (a) < (b) ? (a) : (b) )
-#define Yo_MAX(a,b) ( (a) > (b) ? (a) : (b) )
-
 #define YOYO_COMPOSE2(a,b) a##b
 #define YOYO_COMPOSE3(a,b,c) a##b##_##c
 #define YOYO_ID(Name,Line) YOYO_COMPOSE3(_YoYo_Label_,Name,Line)
@@ -162,6 +161,18 @@ typedef unsigned long  ulong_t;
 # define _YOYO_CORE_BUILTIN_CODE(Code)
 # define _YOYO_CORE_EXTERN extern 
 #endif
+
+#define Yo_MIN(a,b) ( (a) < (b) ? (a) : (b) )
+#define Yo_MAX(a,b) ( (a) > (b) ? (a) : (b) )
+#define Yo_ALIGNU(a,n) ( ((a) + ((n) - 1))&~((n) - 1) )
+
+#define YOYO_REPN_2(Val)   Val,Val
+#define YOYO_REPN_4(Val)   YOYO_REPN_2(Val),YOYO_REPN_2(Val)
+#define YOYO_REPN_8(Val)   YOYO_REPN_4(Val),YOYO_REPN_4(Val)
+#define YOYO_REPN_16(Val)  YOYO_REPN_8(Val),YOYO_REPN_8(Val)
+#define YOYO_REPN_32(Val)  YOYO_REPN_16(Val),YOYO_REPN_16(Val)
+#define YOYO_REPN_64(Val)  YOYO_REPN_32(Val),YOYO_REPN_32(Val)
+#define YOYO_REPN_128(Val) YOYO_REPN_64(Val),YOYO_REPN_64(Val)
 
 _YOYO_CORE_EXTERN char Oj_Destruct_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = "~/@" );
 _YOYO_CORE_EXTERN char Oj_Destruct_Element_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = "~1/@" );
@@ -397,6 +408,11 @@ uint_t Min_Pow2(uint_t a)
   }
 #endif
   ;
+
+int Yo_Mini(int a, int b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MIN(a,b); });
+int Yo_Maxi(int a, int b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MAX(a,b); });
+uint_t Yo_Minu(uint_t a, uint_t b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MIN(a,b); });
+uint_t Yo_Maxu(uint_t a, uint_t b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MAX(a,b); });
 
 uint_t Align_To_Pow2(uint_t a, uint_t mod)
 #ifdef _YOYO_CORE_BUILTIN

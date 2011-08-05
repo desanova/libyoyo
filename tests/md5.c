@@ -16,7 +16,7 @@ int main(int argc, char **argv)
       }
     
     bf = Oj_Read_All(Cfile_Open(Prog_Argument(0),"r"));
-    Md5_Sign_Data(bf->at,bf->count,sign);
+    Md5_Digest(bf->at,bf->count,sign);
     puts(Str_Hex_Encode(sign,16));
   }
 

@@ -37,18 +37,34 @@ in this Software without prior written authorization of the copyright holder.
 
 #include "core.hc"
 
-typedef struct _YOYO_SHA1_SIGNER
+typedef struct _YOYO_SHA1
   {
     uint_t state[5];   /* state (ABCDE) */
     uint_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
     int    finished;
     byte_t buffer[64]; /* input buffer */
-  } YOYO_SHA1_SIGNER;
+  } YOYO_SHA1;
 
-void *Sha1_Clone(YOYO_SHA1_SIGNER *sha1)
+#define YOYO_SHA1_INITIALIZER {{0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0},{0},0,{0}}
+
+void *Sha1_Clone(YOYO_SHA1 *sha1)
 #ifdef _YOYO_SHA1_BUILTIN
   {
-    return Yo_Object_Clone(sizeof(YOYO_SHA1_SIGNER),sha1);
+    return __Clone(sizeof(YOYO_SHA1),sha1);
+  }
+#endif
+  ;
+
+void *Sha1_Start(YOYO_SHA1 *sha1)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    memset(sha1,0,sizeof(*sha1));
+    sha1->state[0] = 0x67452301; 
+    sha1->state[1] = 0xefcdab89; 
+    sha1->state[2] = 0x98badcfe; 
+    sha1->state[3] = 0x10325476;
+    sha1->state[4] = 0xc3d2e1f0;
+    return sha1;
   }
 #endif
   ;
@@ -61,40 +77,31 @@ void *Sha1_Init()
         {Oj_Clone_OjMID, Sha1_Clone },
         {0}};
     
-    YOYO_SHA1_SIGNER *sha1 = Yo_Object(sizeof(YOYO_SHA1_SIGNER),funcs);
-
-    sha1->state[0] = 0x67452301; 
-    sha1->state[1] = 0xefcdab89; 
-    sha1->state[2] = 0x98badcfe; 
-    sha1->state[3] = 0x10325476;
-    sha1->state[4] = 0xc3d2e1f0;
-
-    return sha1;
+    YOYO_SHA1 *sha1 = __Object(sizeof(YOYO_SHA1),funcs);
+    return Sha1_Start(sha1);
   }
 #endif
   ;
 
-void Sha1_Update(YOYO_SHA1_SIGNER *sha1, void *data, int len);
-void *Sha1_Finish(YOYO_SHA1_SIGNER *sha1, void *digest);
+void Sha1_Update(YOYO_SHA1 *sha1, void *data, int len);
+void *Sha1_Finish(YOYO_SHA1 *sha1, void *digest);
 
-#define YOYO_SHA1_INITIALIZER {{0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0},{0},0,{0}}
-
-void *Sha1_Sign_Data(void *data, int len, void *digest)
+void *Sha1_Digest(void *data, int len, void *digest)
 #ifdef _YOYO_SHA1_BUILTIN
   {
-    YOYO_SHA1_SIGNER sha1 = YOYO_SHA1_INITIALIZER;
+    YOYO_SHA1 sha1 = YOYO_SHA1_INITIALIZER;
     Sha1_Update(&sha1,data,len);
     return Sha1_Finish(&sha1,digest);
   }
 #endif
   ;
 
-void *Sha1_Sign_Sign_Data(void *data, int len, void *digest)
+void *Sha1_Digest_Digest(void *data, int len, void *digest)
 #ifdef _YOYO_SHA1_BUILTIN
   {
     byte_t tmp[20];
-    YOYO_SHA1_SIGNER sha1 = YOYO_SHA1_INITIALIZER;
-    Sha1_Sign_Data(data,len,tmp);
+    YOYO_SHA1 sha1 = YOYO_SHA1_INITIALIZER;
+    Sha1_Digest(data,len,tmp);
     Sha1_Update(&sha1,tmp,20);
     Sha1_Update(&sha1,data,len);
     return Sha1_Finish(&sha1,digest);
@@ -102,61 +109,30 @@ void *Sha1_Sign_Sign_Data(void *data, int len, void *digest)
 #endif
   ;
 
-#define Sha1_Digest_Of(Data,Len) Sha1_Sign_Data(Data,Len,0)
+#define Sha1_Digest_Of(Data,Len) Sha1_Digest(Data,Len,0)
 
 #ifdef _YOYO_SHA1_BUILTIN
 
+  void Sha1_Internal_Encode(byte_t *output, uint_t *input, uint_t len) 
+    {
+      uint_t i, j;
 
-#if 0
-  #if defined _X86 || defined __i386 || defined __x86_64
-    #define Sha1_Internal_Encode memcpy
-    #define Sha1_Internal_Decode memcpy
-  #else
-    void Sha1_Internal_Encode(byte_t *output, uint_t *input, uint_t len) 
-      {
-        uint_t i, j;
+      for (i = 0, j = 0; j < len; i++, j += 4) 
+        {
+          output[j+0] = (byte_t)(input[i] >> 24);
+          output[j+1] = (byte_t)(input[i] >> 16);
+          output[j+2] = (byte_t)(input[i] >> 8);
+          output[j+3] = (byte_t)(input[i]);
+        }
+    }
 
-        for (i = 0, j = 0; j < len; i++, j += 4) 
-          {
-            output[j]   = (byte_t)(input[i] & 0xff);
-            output[j+1] = (byte_t)((input[i] >> 8) & 0xff);
-            output[j+2] = (byte_t)((input[i] >> 16) & 0xff);
-            output[j+3] = (byte_t)((input[i] >> 24) & 0xff);
-          }
-      }
-
-    void Sha1_Internal_Decode(uint_t *output, byte_t *input, uint_t len)
-      {
-        uint_t i, j;
-
-        for (i = 0, j = 0; j < len; i++, j += 4)
-          output[i] = ((uint_t)input[j]) | (((uint_t)input[j+1]) << 8) |
-            (((uint_t)input[j+2]) << 16) | (((uint_t)input[j+3]) << 24);
-      }
-  #endif
-
-#else
-    void Sha1_Internal_Encode(byte_t *output, uint_t *input, uint_t len) 
-      {
-        uint_t i, j;
-
-        for (i = 0, j = 0; j < len; i++, j += 4) 
-          {
-            output[j+0] = (byte_t)(input[i] >> 24);
-            output[j+1] = (byte_t)(input[i] >> 16);
-            output[j+2] = (byte_t)(input[i] >> 8);
-            output[j+3] = (byte_t)(input[i]);
-          }
-      }
-
-    void Sha1_Internal_Decode(uint_t *output, byte_t *input, uint_t len)
-      {
-        uint_t i, j;
-        for (i = 0, j = 0; j < len; i++, j += 4)
-          output[i] = ((uint_t)input[j+3]) | (((uint_t)input[j+2]) << 8) |
-            (((uint_t)input[j+1]) << 16) | (((uint_t)input[j+0]) << 24);
-      }
-#endif
+  void Sha1_Internal_Decode(uint_t *output, byte_t *input, uint_t len)
+    {
+      uint_t i, j;
+      for (i = 0, j = 0; j < len; i++, j += 4)
+        output[i] = ((uint_t)input[j+3]) | (((uint_t)input[j+2]) << 8) |
+          (((uint_t)input[j+1]) << 16) | (((uint_t)input[j+0]) << 24);
+    }
 
   #define ROTATE_LEFT(x,n) (((x) << (n)) | ((x) >> (32-(n))))
   #define R(t) (x[t&0x0f] = ROTATE_LEFT( \
@@ -175,7 +151,7 @@ void *Sha1_Sign_Sign_Data(void *data, int len, void *digest)
   #define I(x,y,z) (x ^ y ^ z)
   #define II(a,b,c,d,e,q) e += ROTATE_LEFT(a,5) + I(b,c,d) + 0xca62c1d6u + q; b = ROTATE_LEFT(b,30)
 
-  void Sha1_Internal_Transform(YOYO_SHA1_SIGNER *sha1, void *block)
+  void Sha1_Internal_Transform(YOYO_SHA1 *sha1, void *block)
     {
       uint_t *state = sha1->state;
       uint_t a = state[0], b = state[1], c = state[2], d = state[3], e = state[4], x[16];
@@ -282,7 +258,7 @@ void *Sha1_Sign_Sign_Data(void *data, int len, void *digest)
   #undef HH
   #undef II
 
-  void Sha1_Update(YOYO_SHA1_SIGNER *sha1, void *input, int input_length)
+  void Sha1_Update(YOYO_SHA1 *sha1, void *input, int input_length)
     {      
       int i, index, partLen;
       uint_t *count = sha1->count;
@@ -305,7 +281,7 @@ void *Sha1_Sign_Sign_Data(void *data, int len, void *digest)
       memcpy(&sha1->buffer[index],&((byte_t*)input)[i],input_length-i);
     }
 
-  void *Sha1_Finish(YOYO_SHA1_SIGNER *sha1, void *digest)
+  void *Sha1_Finish(YOYO_SHA1 *sha1, void *digest)
     {
       if ( !sha1->finished )
         {
@@ -314,7 +290,7 @@ void *Sha1_Sign_Sign_Data(void *data, int len, void *digest)
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
           };
-          byte_t bits[8];
+          byte_t bits[8] = {0};
           uint_t index, padLen;
           Sha1_Internal_Encode(bits, sha1->count+1, 4);
           Sha1_Internal_Encode(bits+4, sha1->count, 4);
@@ -330,6 +306,99 @@ void *Sha1_Sign_Sign_Data(void *data, int len, void *digest)
     }
 
 #endif /* _YOYO_SHA1_BUILTIN */
+
+typedef struct _YOYO_HMAC_SHA1
+  {
+    YOYO_SHA1 sha1;
+    byte_t ipad[64];
+    byte_t opad[64];
+  } YOYO_HMAC_SHA1;
+
+void *Hmac_Sha1_Clone(YOYO_HMAC_SHA1 *hmac)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    return __Clone(sizeof(YOYO_HMAC_SHA1),hmac);
+  }
+#endif
+  ;
+
+void *Hmac_Sha1_Start(YOYO_HMAC_SHA1 *hmac, void *key, int key_len)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    int i;
+    byte_t sum[20];
+    
+    if ( key_len > 64 )
+      {
+        Sha1_Start(&hmac->sha1);
+        Sha1_Update(&hmac->sha1,key,key_len);
+        Sha1_Finish(&hmac->sha1,sum);
+        key = sum;
+        key_len = 20;
+      }
+    
+    memset( hmac->ipad, 0x36, 64 );
+    memset( hmac->opad, 0x5C, 64 );
+    
+    for( i = 0; i < key_len; ++i )
+      {
+        hmac->ipad[i] = (byte_t)( hmac->ipad[i] ^ ((byte_t*)key)[i] );
+        hmac->opad[i] = (byte_t)( hmac->opad[i] ^ ((byte_t*)key)[i] );
+      }
+    
+    Sha1_Start(&hmac->sha1);
+    Sha1_Update(&hmac->sha1,hmac->ipad,64);
+    
+    memset(sum,0,sizeof(sum));
+    return hmac;
+  }
+#endif
+  ;
+
+void *Hmac_Sha1_Init(void *key, int key_len)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Clone_OjMID, Hmac_Sha1_Clone },
+        {0}};
+    
+    YOYO_HMAC_SHA1 *sha1 = __Object(sizeof(YOYO_HMAC_SHA1),funcs);
+    return Hmac_Sha1_Start(sha1,key,key_len);
+  }
+#endif
+  ;
+
+void Hmac_Sha1_Update(YOYO_HMAC_SHA1 *hmac, void *input, int input_length)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    Sha1_Update(&hmac->sha1,input,input_length);
+  }
+#endif
+  ;
+
+void *Hmac_Sha1_Finish(YOYO_HMAC_SHA1 *hmac, void *digest)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    byte_t tmpb[20];
+    Sha1_Finish(&hmac->sha1,tmpb);
+    Sha1_Start(&hmac->sha1);
+    Sha1_Update(&hmac->sha1,&hmac->opad,64);
+    Sha1_Update(&hmac->sha1,tmpb,20);
+    memset(tmpb,0,20);
+    return Sha1_Finish(&hmac->sha1,digest);
+  }
+#endif
+  ;
+
+void Hmac_Sha1_Reset(YOYO_HMAC_SHA1 *hmac)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    Sha1_Start(&hmac->sha1);
+    Sha1_Update(&hmac->sha1,hmac->ipad,64);
+  }
+#endif
+  ;
 
 #endif /* C_once_1B3E01E2_7457_494E_A17C_3A12388FC4AF */
 

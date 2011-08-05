@@ -1016,7 +1016,7 @@ void *Aes_Encipher(char *S)
 #ifdef _YOYO_AES_BUILTIN
   {
     byte_t key[32];
-    Sha2_Sign_Sign_Data(S,strlen(S),key);
+    Sha2_Digest_Digest(S,strlen(S),key);
     return Aes_Init_Encipher(key,256);
   }
 #endif
@@ -1042,7 +1042,7 @@ void *Aes_Decipher(char *S)
 #ifdef _YOYO_AES_BUILTIN
   {
     byte_t key[32];
-    Sha2_Sign_Sign_Data(S,strlen(S),key);
+    Sha2_Digest_Digest(S,strlen(S),key);
     return Aes_Init_Decipher(key,256);
   }
 #endif
@@ -1054,7 +1054,7 @@ void Aes_Encrypt(char *data, int len, char *S)
     int i;
     YOYO_AES actx = {0,0,{0}};
     byte_t key[32];
-    Sha2_Sign_Sign_Data(S,strlen(S),key);
+    Sha2_Digest_Digest(S,strlen(S),key);
     Aes_Init_Encipher_Static(&actx,key,256);
     
     for ( i = 0; i < len && len-i >= 16 ; i += 16 )
@@ -1071,7 +1071,7 @@ void Aes_Decrypt(char *data, int len, char *S)
     int i;
     YOYO_AES actx = {0,0,{0}};
     byte_t key[32];
-    Sha2_Sign_Sign_Data(S,strlen(S),key);
+    Sha2_Digest_Digest(S,strlen(S),key);
     Aes_Init_Decipher_Static(&actx,key,256);
     
     for ( i = 0; i < len && len-i >= 16 ; i += 16 )

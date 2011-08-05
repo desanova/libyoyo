@@ -146,13 +146,13 @@ enum _PE_DLL_CHARACTERISTICS
     PE_DLL_CHARACTERISTICS_DYNAMIC_BASE     = 0x0040, // DLL can be relocated at load time.
     PE_DLL_CHARACTERISTICS_FORCE_INTEGRITY  = 0x0080, // Code Integrity checks are enforced.
     PE_DLL_CHARACTERISTICS_NX_COMPAT        = 0x0100, // Image is NX compatible.
-    PE_DLLCHARACTERISTICS_NO_ISOLATION      = 0x0200, // Isolation aware, but do not isolate the image.
-    PE_DLLCHARACTERISTICS_NO_SEH            = 0x0400, 
+    PE_DLL_CHARACTERISTICS_NO_ISOLATION     = 0x0200, // Isolation aware, but do not isolate the image.
+    PE_DLL_CHARACTERISTICS_NO_SEH           = 0x0400, 
       // Does not use structured exception (SE) handling. No SE handler may be called in this image.
     PE_IMAGE_DLLCHARACTERISTICS_NO_BIND     = 0x0800, // Do not bind the image.
     // = 0x1000 - Reserved, must be zero.
-    PE_DLLCHARACTERISTICS_WDM_DRIVER        = 0x2000, // A WDM driver.
-    PE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE = 0x8000 // Terminal Server aware.      
+    PE_DLL_CHARACTERISTICS_WDM_DRIVER       = 0x2000, // A WDM driver.
+    PE_DLL_CHARACTERISTICS_TERMINAL_SERVER_AWARE = 0x8000 // Terminal Server aware.      
   };
      
 enum _PE_DIRECTORY_INDEX
@@ -174,7 +174,49 @@ enum _PE_DIRECTORY_INDEX
     PE_DIRECTORY_ENTRY_DELAY_IMPORT    = 13,
     PE_DIRECTORY_ENTRY_COM_DESCRIPTOR  = 14,
   };
-      
+
+enum _PE_SCN
+  {
+    PE_SCN_TYPE_NO_PAD                 = 0x00000008,  // Reserved.
+    PE_SCN_CNT_CODE                    = 0x00000020,  // Section contains code.
+    PE_SCN_CNT_INITIALIZED_DATA        = 0x00000040,  // Section contains initialized data.
+    PE_SCN_CNT_UNINITIALIZED_DATA      = 0x00000080,  // Section contains uninitialized data.
+    PE_SCN_LNK_OTHER                   = 0x00000100,  // Reserved.
+    PE_SCN_LNK_INFO                    = 0x00000200,  // Section contains comments or some other type of information.
+    PE_SCN_LNK_REMOVE                  = 0x00000800,  // Section contents will not become part of image.
+    PE_SCN_LNK_COMDAT                  = 0x00001000,  // Section contents comdat.
+    PE_SCN_NO_DEFER_SPEC_EXC           = 0x00004000,  // Reset speculative exceptions handling bits in the TLB entries for this section.
+    PE_SCN_GPREL                       = 0x00008000,  // Section content can be accessed relative to GP
+    PE_SCN_MEM_FARDATA                 = 0x00008000,
+    PE_SCN_MEM_PURGEABLE               = 0x00020000,
+    PE_SCN_MEM_16BIT                   = 0x00020000,
+    PE_SCN_MEM_LOCKED                  = 0x00040000,
+    PE_SCN_MEM_PRELOAD                 = 0x00080000,
+    PE_SCN_ALIGN_1BYTES                = 0x00100000,  //
+    PE_SCN_ALIGN_2BYTES                = 0x00200000,  //
+    PE_SCN_ALIGN_4BYTES                = 0x00300000,  //
+    PE_SCN_ALIGN_8BYTES                = 0x00400000,  //
+    PE_SCN_ALIGN_16BYTES               = 0x00500000,  // Default alignment if no others are specified.
+    PE_SCN_ALIGN_32BYTES               = 0x00600000,  //
+    PE_SCN_ALIGN_64BYTES               = 0x00700000,  //
+    PE_SCN_ALIGN_128BYTES              = 0x00800000,  //
+    PE_SCN_ALIGN_256BYTES              = 0x00900000,  //
+    PE_SCN_ALIGN_512BYTES              = 0x00A00000,  //
+    PE_SCN_ALIGN_1024BYTES             = 0x00B00000,  //
+    PE_SCN_ALIGN_2048BYTES             = 0x00C00000,  //
+    PE_SCN_ALIGN_4096BYTES             = 0x00D00000,  //
+    PE_SCN_ALIGN_8192BYTES             = 0x00E00000,  //
+    PE_SCN_ALIGN_MASK                  = 0x00F00000,
+    PE_SCN_LNK_NRELOC_OVFL             = 0x01000000,  // Section contains extended relocations.
+    PE_SCN_MEM_DISCARDABLE             = 0x02000000,  // Section can be discarded.
+    PE_SCN_MEM_NOT_CACHED              = 0x04000000,  // Section is not cachable.
+    PE_SCN_MEM_NOT_PAGED               = 0x08000000,  // Section is not pageable.
+    PE_SCN_MEM_SHARED                  = 0x10000000,  // Section is shareable.
+    PE_SCN_MEM_EXECUTE                 = 0x20000000,  // Section is executable.
+    PE_SCN_MEM_READ                    = 0x40000000,  // Section is readable.
+    PE_SCN_MEM_WRITE                   = 0x80000000,  // Section is writeable.
+  };
+
 typedef struct _PE_DOS_HEADER
   {
     ushort_t   e_magic;       // Magic number
@@ -485,7 +527,7 @@ PE_SECTION_HEADER *Pe_RVA_To_Section(void *pe, longptr_t rva)
 #endif
   ;
 
-void *Pe_RVA_To_Ptr(void *pe, longptr_t rva)
+longptr_t Pe_RVA_To_Offs(void *pe, longptr_t rva)
 #ifdef _YOYO_PEFILE_BUILTIN
   {
     if ( rva )
@@ -496,11 +538,20 @@ void *Pe_RVA_To_Ptr(void *pe, longptr_t rva)
             longptr_t offs = rva - sec->VirtualAddress;
             longptr_t datasize = Pe_Align_To_File(pe,sec->SizeOfRawData);
             if ( offs <= datasize )
-              return (char*)pe + (sec->PointerToRawData + offs);
+              return sec->PointerToRawData + offs;
           }
       }
       
     return 0;
+  }
+#endif
+  ;
+
+void *Pe_RVA_To_Ptr(void *pe, longptr_t rva)
+#ifdef _YOYO_PEFILE_BUILTIN
+  {
+    longptr_t offs = Pe_RVA_To_Offs(pe,rva);
+    return offs ? (byte_t*)pe+offs : 0;
   }
 #endif
   ;

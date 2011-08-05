@@ -37,18 +37,35 @@ in this Software without prior written authorization of the copyright holder.
 
 #include "core.hc"
 
-typedef struct _YOYO_SHA2_SIGNER
+typedef struct _YOYO_SHA2
   {
     uint_t state[8];   /* state (ABCDEFGH) */
     uint_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
     int    finished;
     byte_t buffer[64]; /* input buffer */
-  } YOYO_SHA2_SIGNER;
+  } YOYO_SHA2;
 
-void *Sha2_Clone(YOYO_SHA2_SIGNER *sha2)
+void *Sha2_Clone(YOYO_SHA2 *sha2)
 #ifdef _YOYO_SHA2_BUILTIN
   {
-    return Yo_Object_Clone(sizeof(YOYO_SHA2_SIGNER),sha2);
+    return __Clone(sizeof(YOYO_SHA2),sha2);
+  }
+#endif
+  ;
+
+void *Sha2_Start(YOYO_SHA2 *sha2)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    memset(sha2,0,sizeof(*sha2));
+    sha2->state[0] = 0x6a09e667;
+    sha2->state[1] = 0xbb67ae85;
+    sha2->state[2] = 0x3c6ef372;
+    sha2->state[3] = 0xa54ff53a;
+    sha2->state[4] = 0x510e527f;
+    sha2->state[5] = 0x9b05688c;
+    sha2->state[6] = 0x1f83d9ab;
+    sha2->state[7] = 0x5be0cd19;
+    return sha2;
   }
 #endif
   ;
@@ -61,47 +78,36 @@ void *Sha2_Init()
         {Oj_Clone_OjMID, Sha2_Clone },
         {0}};
     
-    YOYO_SHA2_SIGNER *sha2 = Yo_Object(sizeof(YOYO_SHA2_SIGNER),funcs);
-
-    sha2->state[0] = 0x6a09e667;
-    sha2->state[1] = 0xbb67ae85;
-    sha2->state[2] = 0x3c6ef372;
-    sha2->state[3] = 0xa54ff53a;
-    sha2->state[4] = 0x510e527f;
-    sha2->state[5] = 0x9b05688c;
-    sha2->state[6] = 0x1f83d9ab;
-    sha2->state[7] = 0x5be0cd19;
-    
-    
-    return sha2;
+    YOYO_SHA2 *sha2 = __Object(sizeof(YOYO_SHA2),funcs);
+    return Sha2_Start(sha2);
   }
 #endif
   ;
 
-void Sha2_Update(YOYO_SHA2_SIGNER *sha2, void *data, int len);
-void *Sha2_Finish(YOYO_SHA2_SIGNER *sha2, void *digest);
+void Sha2_Update(YOYO_SHA2 *sha2, void *data, int len);
+void *Sha2_Finish(YOYO_SHA2 *sha2, void *digest);
 
 #define YOYO_SHA2_INITIALIZER {\
   {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, \
    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19} \
    ,{0},0,{0}}
 
-void *Sha2_Sign_Data(void *data, int len, void *digest)
+void *Sha2_Digest(void *data, int len, void *digest)
 #ifdef _YOYO_SHA2_BUILTIN
   {
-    YOYO_SHA2_SIGNER sha2 = YOYO_SHA2_INITIALIZER;
+    YOYO_SHA2 sha2 = YOYO_SHA2_INITIALIZER;
     Sha2_Update(&sha2,data,len);
     return Sha2_Finish(&sha2,digest);
   }
 #endif
   ;
 
-void *Sha2_Sign_Sign_Data(void *data, int len, void *digest)
+void *Sha2_Digest_Digest(void *data, int len, void *digest)
 #ifdef _YOYO_SHA2_BUILTIN
   {
     byte_t tmp[32];
-    YOYO_SHA2_SIGNER sha2 = YOYO_SHA2_INITIALIZER;
-    Sha2_Sign_Data(data,len,tmp);
+    YOYO_SHA2 sha2 = YOYO_SHA2_INITIALIZER;
+    Sha2_Digest(data,len,tmp);
     Sha2_Update(&sha2,tmp,32);
     Sha2_Update(&sha2,data,len);
     return Sha2_Finish(&sha2,digest);
@@ -109,7 +115,7 @@ void *Sha2_Sign_Sign_Data(void *data, int len, void *digest)
 #endif
   ;
 
-#define Sha2_Digest_Of(Data,Len) Sha2_Sign_Data(Data,Len,0)
+#define Sha2_Digest_Of(Data,Len) Sha2_Digest(Data,Len,0)
 
 #ifdef _YOYO_SHA2_BUILTIN
 
@@ -151,7 +157,7 @@ void *Sha2_Sign_Sign_Data(void *data, int len, void *digest)
       d += foo; h = foo + bar; \
   }
   
-  void Sha2_Internal_Transform(YOYO_SHA2_SIGNER *sha2, void *block)
+  void Sha2_Internal_Transform(YOYO_SHA2 *sha2, void *block)
     {
       uint_t *state = sha2->state;
       uint_t 
@@ -254,7 +260,7 @@ void *Sha2_Sign_Sign_Data(void *data, int len, void *digest)
   #undef SHR
   #undef ROTR
 
-  void Sha2_Update(YOYO_SHA2_SIGNER *sha2, void *input, int input_length)
+  void Sha2_Update(YOYO_SHA2 *sha2, void *input, int input_length)
     {      
       int i, index, partLen;
       uint_t *count = sha2->count;
@@ -277,7 +283,7 @@ void *Sha2_Sign_Sign_Data(void *data, int len, void *digest)
       memcpy(&sha2->buffer[index],&((byte_t*)input)[i],input_length-i);
     }
 
-  void *Sha2_Finish(YOYO_SHA2_SIGNER *sha2, void *digest)
+  void *Sha2_Finish(YOYO_SHA2 *sha2, void *digest)
     {
       if ( !sha2->finished )
         {
@@ -302,6 +308,99 @@ void *Sha2_Sign_Sign_Data(void *data, int len, void *digest)
     }
 
 #endif /* _YOYO_SHA2_BUILTIN */
+
+typedef struct _YOYO_HMAC_SHA2
+  {
+    YOYO_SHA2 sha2;
+    byte_t ipad[64];
+    byte_t opad[64];
+  } YOYO_HMAC_SHA2;
+
+void *Hmac_Sha2_Clone(YOYO_HMAC_SHA2 *hmac)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    return __Clone(sizeof(YOYO_HMAC_SHA2),hmac);
+  }
+#endif
+  ;
+
+void *Hmac_Sha2_Start(YOYO_HMAC_SHA2 *hmac, void *key, int key_len)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    int i;
+    byte_t sum[32];
+    
+    if ( key_len > 64 )
+      {
+        Sha2_Start(&hmac->sha2);
+        Sha2_Update(&hmac->sha2,key,key_len);
+        Sha2_Finish(&hmac->sha2,sum);
+        key = sum;
+        key_len = 32;
+      }
+    
+    memset( hmac->ipad, 0x36, 64 );
+    memset( hmac->opad, 0x5C, 64 );
+    
+    for( i = 0; i < key_len; ++i )
+      {
+        hmac->ipad[i] = (byte_t)( hmac->ipad[i] ^ ((byte_t*)key)[i] );
+        hmac->opad[i] = (byte_t)( hmac->opad[i] ^ ((byte_t*)key)[i] );
+      }
+    
+    Sha2_Start(&hmac->sha2);
+    Sha2_Update(&hmac->sha2,hmac->ipad,64);
+    
+    memset(sum,0,sizeof(sum));
+    return hmac;
+  }
+#endif
+  ;
+
+void *Hmac_Sha2_Init(void *key, int key_len)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Clone_OjMID, Hmac_Sha2_Clone },
+        {0}};
+    
+    YOYO_HMAC_SHA2 *sha2 = __Object(sizeof(YOYO_HMAC_SHA2),funcs);
+    return Hmac_Sha2_Start(sha2,key,key_len);
+  }
+#endif
+  ;
+
+void Hmac_Sha2_Update(YOYO_HMAC_SHA2 *hmac, void *input, int input_length)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    Sha2_Update(&hmac->sha2,input,input_length);
+  }
+#endif
+  ;
+
+void *Hmac_Sha2_Finish(YOYO_HMAC_SHA2 *hmac, void *digest)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    byte_t tmpb[32];
+    Sha2_Finish(&hmac->sha2,tmpb);
+    Sha2_Start(&hmac->sha2);
+    Sha2_Update(&hmac->sha2,&hmac->opad,64);
+    Sha2_Update(&hmac->sha2,tmpb,32);
+    memset(tmpb,0,32);
+    return Sha2_Finish(&hmac->sha2,digest);
+  }
+#endif
+  ;
+
+void Hmac_Sha2_Reset(YOYO_HMAC_SHA2 *hmac)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    Sha2_Start(&hmac->sha2);
+    Sha2_Update(&hmac->sha2,hmac->ipad,64);
+  }
+#endif
+  ;
 
 #endif /* C_once_18F7EAA7_0DBC_4720_BA4A_7E0B1A9A5B1E */
 

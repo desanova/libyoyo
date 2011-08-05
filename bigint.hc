@@ -1063,7 +1063,7 @@ enum
 halflong_t First_Prime(int no)
 #ifdef _YOYO_BINGINT_BUILTIN
   {
-    STRICT_REQUIRE(no >= 0 && no<YOY_PRIME_MAX_COUNT);
+    STRICT_REQUIRE(no >= 0 && no < YOYO_PRIME_MAX_COUNT);
     return First_Prime_Values[no];
   }
 #endif
@@ -1081,7 +1081,7 @@ int Bigint_Ferma_Prime_Test(YOYO_BIGINT *bint, int q)
         YOYO_BIGINT *t   = Bigint_Alloca(1);
     
         if ( !q ) q = YOYO_PRIME_TEST_Q;
-        STRICT_REQUIRE( q > 0 && q < PRIME_MAX_COUNT );
+        STRICT_REQUIRE( q > 0 && q < YOYO_PRIME_MAX_COUNT );
 
         p = Bigint_Copy_To(bint,p);
         p_1 = Bigint_Sub_Short(Bigint_Copy_To(bint,p_1),1);
@@ -1110,7 +1110,7 @@ YOYO_BIGINT *Bigint_Prime(int bits, int q, int maxcount,YOYO_BIGINT *tmp)
     if ( !q ) q = YOYO_PRIME_TEST_Q;
     if ( !maxcount ) maxcount = 101;
     
-    STRICT_REQUIRE( maxount > 0 );
+    STRICT_REQUIRE( maxcount > 0 );
     STRICT_REQUIRE( bits > 8 );
     STRICT_REQUIRE( q > 0 && q < 500 );
 

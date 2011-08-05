@@ -1,5 +1,4 @@
 
-#define _LIBYOYO
 #include "../libyoyo.hc"
 
 enum { MAX_ITER_COUNT = 3 };

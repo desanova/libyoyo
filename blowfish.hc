@@ -477,7 +477,7 @@ void *Blowfish_Object_Init_With_Text_Key(char *Skey)
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
     byte_t key[16] = {0};
-    Md5_Sign_Data(Skey,strlen(Skey),key);
+    Md5_Digest(Skey,strlen(Skey),key);
     return Blowfish_Init(key,16);
   }
 #endif

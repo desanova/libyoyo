@@ -44,22 +44,37 @@ or this function.
 
 #include "core.hc"
 
-typedef struct _YOYO_MD5_SIGNER
+typedef struct _YOYO_MD5
   {
     uint_t state[4];   /* state (ABCD) */
     uint_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
     int    finished;
     byte_t buffer[64]; /* input buffer */
-  } YOYO_MD5_SIGNER;
+  } YOYO_MD5;
 
-void *Md5_Clone(YOYO_MD5_SIGNER *md5)
+typedef YOYO_MD5 YOYO_MD5_SIGNER;
+
+void *Md5_Clone(YOYO_MD5 *md5)
 #ifdef _YOYO_MD5_BUILTIN
   {
-    return Yo_Object_Clone(sizeof(YOYO_MD5_SIGNER),md5);
+    return __Clone(sizeof(YOYO_MD5),md5);
   }
 #endif
   ;
-  
+
+void * Md5_Start(YOYO_MD5 *md5)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    memset(md5,0,sizeof(*md5));
+    md5->state[0] = 0x67452301; 
+    md5->state[1] = 0xefcdab89; 
+    md5->state[2] = 0x98badcfe; 
+    md5->state[3] = 0x10325476;
+    return md5;
+  }
+#endif
+  ;
+
 void *Md5_Init()
 #ifdef _YOYO_MD5_BUILTIN
   {
@@ -68,39 +83,33 @@ void *Md5_Init()
         {Oj_Clone_OjMID, Md5_Clone },
         {0}};
     
-    YOYO_MD5_SIGNER *md5 = Yo_Object(sizeof(YOYO_MD5_SIGNER),funcs);
-
-    md5->state[0] = 0x67452301; 
-    md5->state[1] = 0xefcdab89; 
-    md5->state[2] = 0x98badcfe; 
-    md5->state[3] = 0x10325476;
-
-    return md5;
+    YOYO_MD5 *md5 = __Object(sizeof(YOYO_MD5),funcs);
+    return Md5_Start(md5);
   }
 #endif
   ;
 
-void Md5_Update(YOYO_MD5_SIGNER *md5, void *data, int len);
-void *Md5_Finish(YOYO_MD5_SIGNER *md5, void *digest);
+void Md5_Update(YOYO_MD5 *md5, void *data, int len);
+void *Md5_Finish(YOYO_MD5 *md5, void *digest);
 
 #define YOYO_MD5_INITIALIZER {{0x67452301,0xefcdab89,0x98badcfe,0x10325476},{0},0,{0}}
 
-void *Md5_Sign_Data(void *data, int len, void *digest)
+void *Md5_Digest(void *data, int len, void *digest)
 #ifdef _YOYO_MD5_BUILTIN
   {
-    YOYO_MD5_SIGNER md5 = YOYO_MD5_INITIALIZER;
+    YOYO_MD5 md5 = YOYO_MD5_INITIALIZER;
     Md5_Update(&md5,data,len);
     return Md5_Finish(&md5,digest);
   }
 #endif
   ;
 
-void *Md5_Sign_Sign_Data(void *data, int len, void *digest)
+void *Md5_Digest_Digest(void *data, int len, void *digest)
 #ifdef _YOYO_MD5_BUILTIN
   {
     byte_t tmp[16];
-    YOYO_MD5_SIGNER md5 = YOYO_MD5_INITIALIZER;
-    Md5_Sign_Data(data,len,tmp);
+    YOYO_MD5 md5 = YOYO_MD5_INITIALIZER;
+    Md5_Digest(data,len,tmp);
     Md5_Update(&md5,tmp,16);
     Md5_Update(&md5,data,len);
     return Md5_Finish(&md5,digest);
@@ -108,7 +117,7 @@ void *Md5_Sign_Sign_Data(void *data, int len, void *digest)
 #endif
   ;
 
-#define Md5_Digest_Of(Data,Len) Md5_Sign_Data(Data,Len,0)
+#define Md5_Digest_Of(Data,Len) Md5_Digest(Data,Len,0)
 
 #ifdef _YOYO_MD5_BUILTIN
 
@@ -149,7 +158,7 @@ void *Md5_Sign_Sign_Data(void *data, int len, void *digest)
   #define HH(a, b, c, d, x, s, ac) (a) += H((b), (c), (d)) + (x) + (ac); (a) = ROTATE_LEFT((a), (s)) + (b)
   #define II(a, b, c, d, x, s, ac) (a) += I((b), (c), (d)) + (x) + (ac); (a) = ROTATE_LEFT((a), (s)) + (b)
 
-  void Md5_Internal_Transform(YOYO_MD5_SIGNER *md5, void *block)
+  void Md5_Internal_Transform(YOYO_MD5 *md5, void *block)
     {
       enum _S_constants
         {
@@ -265,7 +274,7 @@ void *Md5_Sign_Sign_Data(void *data, int len, void *digest)
   #undef HH
   #undef II
 
-  void Md5_Update(YOYO_MD5_SIGNER *md5, void *input, int input_length)
+  void Md5_Update(YOYO_MD5 *md5, void *input, int input_length)
     {
       int i, index, partLen;
       uint_t *count = md5->count;
@@ -288,7 +297,7 @@ void *Md5_Sign_Sign_Data(void *data, int len, void *digest)
       memcpy(&md5->buffer[index],&((byte_t*)input)[i],input_length-i);
     }
 
-  void *Md5_Finish(YOYO_MD5_SIGNER *md5, void *digest)
+  void *Md5_Finish(YOYO_MD5 *md5, void *digest)
     {
       if ( !md5->finished )
         {
@@ -312,6 +321,99 @@ void *Md5_Sign_Sign_Data(void *data, int len, void *digest)
     }
 
 #endif /* _YOYO_MD5_BUILTIN */
+
+typedef struct _YOYO_HMAC_MD5
+  {
+    YOYO_MD5 md5;
+    byte_t ipad[64];
+    byte_t opad[64];
+  } YOYO_HMAC_MD5;
+
+void *Hmac_Md5_Clone(YOYO_HMAC_MD5 *hmac)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    return __Clone(sizeof(YOYO_HMAC_MD5),hmac);
+  }
+#endif
+  ;
+
+void *Hmac_Md5_Start(YOYO_HMAC_MD5 *hmac, void *key, int key_len)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    int i;
+    byte_t sum[16];
+    
+    if ( key_len > 64 )
+      {
+        Md5_Start(&hmac->md5);
+        Md5_Update(&hmac->md5,key,key_len);
+        Md5_Finish(&hmac->md5,sum);
+        key = sum;
+        key_len = 16;
+      }
+    
+    memset( hmac->ipad, 0x36, 64 );
+    memset( hmac->opad, 0x5C, 64 );
+    
+    for( i = 0; i < key_len; ++i )
+      {
+        hmac->ipad[i] = (byte_t)( hmac->ipad[i] ^ ((byte_t*)key)[i] );
+        hmac->opad[i] = (byte_t)( hmac->opad[i] ^ ((byte_t*)key)[i] );
+      }
+    
+    Md5_Start(&hmac->md5);
+    Md5_Update(&hmac->md5,hmac->ipad,64);
+    
+    memset(sum,0,sizeof(sum));
+    return hmac;
+  }
+#endif
+  ;
+
+void *Hmac_Md5_Init(void *key, int key_len)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Clone_OjMID, Hmac_Md5_Clone },
+        {0}};
+    
+    YOYO_HMAC_MD5 *md5 = __Object(sizeof(YOYO_HMAC_MD5),funcs);
+    return Hmac_Md5_Start(md5,key,key_len);
+  }
+#endif
+  ;
+
+void Hmac_Md5_Update(YOYO_HMAC_MD5 *hmac, void *input, int input_length)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    Md5_Update(&hmac->md5,input,input_length);
+  }
+#endif
+  ;
+
+void *Hmac_Md5_Finish(YOYO_HMAC_MD5 *hmac, void *digest)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    byte_t tmpb[16];
+    Md5_Finish(&hmac->md5,tmpb);
+    Md5_Start(&hmac->md5);
+    Md5_Update(&hmac->md5,&hmac->opad,64);
+    Md5_Update(&hmac->md5,tmpb,16);
+    memset(tmpb,0,16);
+    return Md5_Finish(&hmac->md5,digest);
+  }
+#endif
+  ;
+
+void Hmac_Md5_Reset(YOYO_HMAC_MD5 *hmac)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    Md5_Start(&hmac->md5);
+    Md5_Update(&hmac->md5,hmac->ipad,64);
+  }
+#endif
+  ;
 
 #endif /* C_once_C5021104_5DB9_4FCC_BAFC_AFB22BD458D3 */
 

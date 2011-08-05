@@ -1283,7 +1283,7 @@ char *Xvalue_Str_Bf(YOYO_XVALUE *value,YOYO_BUFFER *bf)
   
 /*
   be carrefull when assume non-null result as succeeded
-  if empty buffer adding empty string retvalue will be 0
+  if add empty string to empty buffer, retvalue will be 0
 */
 char *Xnode_Query_Str_Bf(YOYO_BUFFER *bf, YOYO_XNODE *n, char *query)
 #ifdef _YOYO_XDATA_BUILTIN

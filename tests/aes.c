@@ -29,7 +29,7 @@ int main(int argc, char **argv)
       }
     
     System_Random(passwd+strlen(passwd),4);
-    Sha2_Sign_Data(passwd,sizeof(passwd),sign);
+    Sha2_Digest(passwd,sizeof(passwd),sign);
     
     Aes_Init_Encipher_Static(&ctxe,sign,256);
     Aes_Init_Decipher_Static(&ctxd,sign,256);

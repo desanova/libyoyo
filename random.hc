@@ -3,7 +3,7 @@
 
 (C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
+Permission is hereby granted, free of charge, to any person ornd_bcontaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -31,6 +31,8 @@ in this Software without prior written authorization of the copyright holder.
 #define C_once_FF657866_8205_4CAE_9D01_65B8583E9D19
 
 #include "core.hc"
+#include "sha2.hc"
+#include "md5.hc"
 
 #ifdef __windoze
 # include <wincrypt.h>
@@ -48,25 +50,76 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_RANDOM_EXTERN extern
 #endif
 
+void Soft_Random(byte_t *bits, int count)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    static uquad_t rnd_ct[4] = {0};
+    static byte_t rnd_bits[32] = {0}; 
+    static int rnd_bcont = 0;
+    static int initialized = 0;
+    __Xchg_Interlock
+      {
+        if ( !initialized )
+          {
+            rnd_ct[0] = ((quad_t)getpid() << 48 ) | (quad_t)time(0);
+            rnd_ct[1] = 0;
+            rnd_ct[2] = 0;
+            rnd_ct[3] = (longptr_t)&bits;
+            initialized = 1;
+          }
+          
+        while ( count )
+          {
+            if ( !rnd_bcont )
+              {
+                rnd_ct[1] = clock();
+              #ifdef _SOFTRND_ADDENTRPY  
+                rnd_ct[2] = (*(quad_t*)((byte_t*)&count - 256) ^  *(quad_t*)((byte_t*)&count + 256)) + 1;
+              #else
+                rnd_ct[2] = (quad_t)count ^ (longptr_t)bits;
+              #endif
+                Md5_Digest(rnd_ct,64,rnd_bits);
+                ++rnd_ct[3];
+                Md5_Digest(rnd_ct,64,rnd_bits+16);
+                ++rnd_ct[3];
+                rnd_bcont = 32;
+              }
+            *bits++ = rnd_bits[--rnd_bcont];
+            --count;
+          }
+      }
+  }
+#endif
+  ;
+  
 void System_Random(void *bits,int count /* of bytes*/ )
 #ifdef _YOYO_RANDOM_BUILTIN
   {
-  #ifndef __windoze
-    int i, fd = open(_YOYO_DEV_RANDOM,O_RDONLY);
+  #ifdef _SOFTRND
+    goto simulate;
+  #elif !defined __windoze
+    int i, fd = open(_YOYO_DEV_RANDOM,O_RDONLY|O_NONBLOCK);
     if ( fd >= 0 )
       {
         for ( i = 0; i < count; )
           {
-            int rd = read(fd,bits+i,count);
+            int rd = read(fd,bits+i,count-i);
             if ( rd < 0 )
               {
-                close(fd);
-                Yo_Raise(YOYO_ERROR_IO,
-                  _YOYO_DEV_RANDOM " does not have required data: failed to read",
-                  __FILE__,__LINE__);
+                if ( rd == EAGAIN )
+                  {
+                    Soft_Random(bits+i,count-i);
+                    break;
+                  }
+                else
+                  {
+                    char *err = strerror(errno);
+                    close(fd);
+                    __Raise_Format(YOYO_ERROR_IO,
+                      (_YOYO_DEV_RANDOM " does not have required data: %s",err));
+                  }
               }
             i += rd;
-            count -= rd;
           }
         close(fd);
         return;
@@ -94,22 +147,7 @@ void System_Random(void *bits,int count /* of bytes*/ )
     return;
   #endif      
   simulate:
-  #ifdef _STRICT
-    Yo_Raise(YOYO_ERROR_IO,_YOYO_DEV_RANDOM " is not accessable",__Yo_FILE__,__LINE__);
-  #else
-    if ( 1 )
-      {
-        static uint_t sid = 0; 
-        int i;
-        
-        if ( !sid ) sid = (uint_t)time(0);
-        for ( i = 0; i < count; i+=4 )
-          {
-            sid = 1664525U * sid + 1013904223U;
-            memcpy((char*)bits+i,&sid,Yo_MIN(count-i,4));
-          }
-      }
-  #endif
+    Soft_Random(bits,count);
   }
 #endif
   ;
@@ -117,7 +155,7 @@ void System_Random(void *bits,int count /* of bytes*/ )
 ulong_t Random_Bits(int no)
 #ifdef _YOYO_RANDOM_BUILTIN
   {
-    static byte_t bits[256] = {0};
+    static byte_t bits[128] = {0};
     static int bits_count = 0;
     ulong_t r = 0;
     

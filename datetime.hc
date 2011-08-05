@@ -102,5 +102,18 @@ quad_t Get_Curr_Datetime()
 #define Dt_Mon(Dt)  ((int)((Dt)>>(32+ 8))&0x0ff)
 #define Dt_Mday(Dt) ((int)((Dt)>>(32+ 0))&0x0ff)
 
+#ifdef __windoze
+  void Timet_To_Filetime(time_t t, FILETIME *pft)
+# ifdef _YOYO_DATETIME_BUILTIN
+    {
+      LONGLONG ll;
+      ll = Int32x32To64(t, 10000000) + 116444736000000000;
+      pft->dwLowDateTime = (DWORD)ll;
+      pft->dwHighDateTime = ll >> 32;
+    }
+# endif
+    ;
+#endif /*__windoze*/
+
 #endif /* C_once_A998DD5F_3579_4977_B115_DCCE42423C49 */
 

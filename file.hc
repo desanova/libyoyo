@@ -53,7 +53,7 @@ enum { YOYO_FILE_COPY_BUFFER_SIZE = 4096, };
 char *Path_Basename(char *path)
 #ifdef _YOYO_FILE_BUILTIN
   {
-    char *ret = 0;
+    char *ret = path;
     char *p = strrchr(path,'/');
   #ifdef __windoze
     char *p2 = strrchr(path,'\\');
@@ -1013,6 +1013,7 @@ void Cfile_Remove_Nonstandard_AC(char *nonst, char *ac)
           case '+': ac_plus = 1; break;
           case 'r': ac_r = 1; break;
           case 'w': ac_w = 1; break;
+          case 'c': ac_w = ac_plus = 1; break;
           case 'a': ac_a = 1; break;
           case 't': ac_t = 1; break;
           case 'b': ac_b = 1; break;
@@ -1203,8 +1204,14 @@ int Fd_Read_Into(int fd, void *data, int count, int do_raise)
     for ( i = 0; i < count;  )
       {
         int r = read(fd,(char*)data+i,count-i);
-        if ( r >= 0 )
+        if ( r > 0 )
           i += r;
+        else if ( !r )
+          {
+            if ( do_raise )
+              __Raise_Format(YOYO_ERROR_IO,(__yoTa("failed to read file: %s",0),"eof"));
+            return -1;
+          }
         else if ( errno != EAGAIN )
           {
             int err = errno;
@@ -1243,6 +1250,7 @@ int Fd_Open_File(char *name, int opt, int secu, int do_raise)
   {
     int fd;
     #ifdef __windoze
+      if ( !(opt & _O_TEXT) ) opt |= _O_BINARY;
       fd = _wopen(Str_Utf8_To_Unicode(name),opt,secu);
     #else
       fd = open(name,opt,secu);

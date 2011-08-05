@@ -1424,5 +1424,24 @@ char *Str_Reverse_Npl(char *S, int L)
 #endif
   ;
   
+wchar_t *Str_Unicode_Transform_Npl(wchar_t *S, int L, wchar_t (*transform)(wchar_t))
+#ifdef _YOYO_STRING_BUILTIN  
+  {
+    int i;
+    wchar_t *ret;
+    if ( L < 0 ) L = S?wcslen(S):0;
+    ret = __Malloc_Npl(L*sizeof(wchar_t)+1);
+    for ( i = 0; i < L; ++i )
+      ret[i] = transform(S[i]);
+    return ret;
+  }
+#endif
+  ;
+
+#define Str_Unicode_Upper(S,L) ((wchar_t*)__Pool(Str_Unicode_Upper_Npl(S,L)))
+#define Str_Unicode_Upper_Npl(S,L) Str_Unicode_Transform_Npl(S,L,towupper)
+#define Str_Unicode_Lower(S,L) ((wchar_t*)__Pool(Str_Unicode_Lower_Npl(S,L)))
+#define Str_Unicode_Lower_Npl(S,L) Str_Unicode_Transform_Npl(S,L,towlower)
+
 #endif /* C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48 */
 

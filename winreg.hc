@@ -84,7 +84,7 @@ char *WinReg_Query_String(YOYO_WINREG *o,char *opt)
             Yo_Format("failed to query value '%s' of '%s': is not string value",(opt?opt:""),o->name));
 
         //buf = Yo_Malloc((L+1)*sizeof(wchar_t));
-        buf = Yo_Malloc(L+1);
+        buf = Yo_Malloc(L+2);
         buf[L/sizeof(wchar_t)] = 0;
         
         if ( ERROR_SUCCESS == (err=RegQueryValueExW(o->hkey,name,0,&ltype,(LPBYTE)buf,&L)) )
