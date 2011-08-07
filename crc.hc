@@ -41,6 +41,9 @@ uint_t    Adler_32(uint_t adler, void *, int len);
 #define Digest_Crc_32(Data,Len) Crc_32(0,Data,Len)
 #define Digest_Crc_16(Data,Len) Crc_16(0,Data,Len)
 #define Digest_Crc_8(Data,Len)  Crc_8(0,Data,Len)
+#define Crc32_Digest(Data,Len,Buf)  Unsigned_To_Four(Crc_32(0,Data,Len),(Buf))
+#define Crc16_Digest(Data,Len,Buf)  Unsigned_To_Two(Crc_16(0,Data,Len),(Buf))
+#define Crc8_Digest(Data,Len,Buf)   (*(byte_t*)(Buf) = Crc_8(0,Data,Len))
 
 byte_t Crc_8_32(byte_t start, uint_t val) 
 #ifdef _YOYO_CRC_BUILTIN

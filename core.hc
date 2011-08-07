@@ -1574,6 +1574,7 @@ void Error_Exit(char *pfx)
   ;
 
 #define __Pool(Ptr)                     Yo_Pool_Ptr(Ptr,0)
+#define __Pool_Ptr(Ptr,Free)            Yo_Pool_Ptr(Ptr,Free)
 #define __Release(Pooled)               Yo_Release(Pooled)
 #define __Retain(Pooled)                Yo_Retain(Pooled)
 #define __Purge(TholdPtr)               Yo_Pool_Purge(TholdPtr,YOYO_DEFAULT_PURGE_CAP)

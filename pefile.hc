@@ -345,6 +345,47 @@ typedef struct _PE_EXPORT_DIRECTORY
     uint_t   AddressOfNameOrdinals;
   } PE_EXPORT_DIRECTORY;
 
+typedef struct _PE_RESOURCE_DIRECTORY 
+  {
+    uint_t   Characteristics;
+    uint_t   TimeDateStamp;
+    ushort_t MajorVersion;
+    ushort_t MinorVersion;
+    ushort_t NumberOfNamedEntries;
+    ushort_t NumberOfIdEntries;
+//  IMAGE_RESOURCE_DIRECTORY_ENTRY DirectoryEntries[];
+  } PE_RESOURCE_DIRECTORY;
+
+typedef struct _PE_RESOURCE_DIRECTORY_ENTRY 
+  {
+    union {
+        struct {
+            uint_t NameOffset:31;
+            uint_t NameIsString:1;
+        };
+        uint_t   Name;
+        ushort_t Id;
+    };
+    union {
+        uint_t OffsetToData;
+        struct {
+            uint_t OffsetToDirectory:31;
+            uint_t DataIsDirectory:1;
+        };
+    };
+  } PE_RESOURCE_DIRECTORY_ENTRY;
+
+typedef struct _PE_RESOURCE_DATA_ENTRY 
+  {
+    uint_t OffsetToData;
+    uint_t Size;
+    uint_t CodePage;
+    uint_t Reserved;
+  } PE_RESOURCE_DATA_ENTRY;
+
+#define IMAGE_RESOURCE_NAME_IS_STRING        0x80000000
+#define IMAGE_RESOURCE_DATA_IS_DIRECTORY     0x80000000
+
 #define Pe_GET_NTH_32(Pe) \
   ((PE_HEADERS_32*)((char*)(Pe) + ((PE_DOS_HEADER*)(Pe))->e_lfanew))
 #define Pe_GET_SEC_32(Pe) \
@@ -607,6 +648,53 @@ longptr_t Pe_Get_Proc_RVA(void *pe, char *procname)
       }
     
     return 0;
+  }
+#endif
+  ;
+
+void Pe_Fixup_Rsrc_Req(byte_t *rsrc, longptr_t rva, PE_RESOURCE_DIRECTORY *dir)
+#ifdef _YOYO_PEFILE_BUILTIN
+  {
+    PE_RESOURCE_DIRECTORY_ENTRY *r = (PE_RESOURCE_DIRECTORY_ENTRY *)((byte_t*)dir + sizeof(*dir));
+    PE_RESOURCE_DIRECTORY_ENTRY *rE = r+dir->NumberOfIdEntries+dir->NumberOfNamedEntries;
+    for ( ; r != rE; ++r )
+      if ( r->DataIsDirectory )
+        Pe_Fixup_Rsrc_Req(rsrc,rva,(PE_RESOURCE_DIRECTORY *)(rsrc+r->OffsetToDirectory));
+      else
+        {
+          PE_RESOURCE_DATA_ENTRY *e = (PE_RESOURCE_DATA_ENTRY *)(rsrc+r->OffsetToData);
+          e->OffsetToData += rva;
+        }
+  }
+#endif
+  ;
+
+void Pe_Fixup_Rsrc(void *rsrc, longptr_t rva)
+#ifdef _YOYO_PEFILE_BUILTIN
+  {
+    Pe_Fixup_Rsrc_Req(rsrc,rva,(PE_RESOURCE_DIRECTORY *)rsrc);
+  }
+#endif
+  ;
+  
+YOYO_BUFFER *Pe_Copy_Rsrc(void *pe)
+#ifdef _YOYO_PEFILE_BUILTIN
+  {
+    PE_SECTION_HEADER *S = Pe_RVA_To_Section(pe,Pe_Get_Dir(pe,PE_DIRECTORY_ENTRY_RESOURCE)->VirtualAddress);
+    YOYO_BUFFER *bf = 0;
+    
+    if ( S )
+      {
+        int q = S->SizeOfRawData;
+        if ( q > S->Misc.VirtualSize && S->Misc.VirtualSize && q-S->Misc.VirtualSize < 0x1000)
+         {
+           q = S->Misc.VirtualSize;
+         }
+        bf = Buffer_Copy((byte_t*)pe+S->PointerToRawData,q);
+        Pe_Fixup_Rsrc(bf->at,-S->VirtualAddress);
+      }
+    
+    return bf;
   }
 #endif
   ;

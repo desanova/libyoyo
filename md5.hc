@@ -415,5 +415,16 @@ void Hmac_Md5_Reset(YOYO_HMAC_MD5 *hmac)
 #endif
   ;
 
+void *Hmac_Md5_Digest(void *data, int len, void *key, int key_len, void *digest)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    YOYO_HMAC_MD5 hmac5;
+    Hmac_Md5_Start(&hmac5,key,key_len);
+    Md5_Update(&hmac5.md5,data,len);
+    return Hmac_Md5_Finish(&hmac5,digest);
+  }
+#endif
+  ;
+
 #endif /* C_once_C5021104_5DB9_4FCC_BAFC_AFB22BD458D3 */
 

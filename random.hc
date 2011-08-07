@@ -31,8 +31,7 @@ in this Software without prior written authorization of the copyright holder.
 #define C_once_FF657866_8205_4CAE_9D01_65B8583E9D19
 
 #include "core.hc"
-#include "sha2.hc"
-#include "md5.hc"
+#include "sha1.hc"
 
 #ifdef __windoze
 # include <wincrypt.h>
@@ -54,7 +53,7 @@ void Soft_Random(byte_t *bits, int count)
 #ifdef _YOYO_RANDOM_BUILTIN
   {
     static uquad_t rnd_ct[4] = {0};
-    static byte_t rnd_bits[32] = {0}; 
+    static byte_t  rnd_bits[20] = {0}; 
     static int rnd_bcont = 0;
     static int initialized = 0;
     __Xchg_Interlock
@@ -73,16 +72,13 @@ void Soft_Random(byte_t *bits, int count)
             if ( !rnd_bcont )
               {
                 rnd_ct[1] = clock();
+                rnd_ct[2] = (rnd_ct[2] + ((quad_t)count ^ (longptr_t)bits)) >> 1;
               #ifdef _SOFTRND_ADDENTRPY  
-                rnd_ct[2] = (*(quad_t*)((byte_t*)&count - 256) ^  *(quad_t*)((byte_t*)&count + 256)) + 1;
-              #else
-                rnd_ct[2] = (quad_t)count ^ (longptr_t)bits;
+                rnd_ct[2] ^= (*(quad_t*)((byte_t*)&count - 256) ^  *(quad_t*)((byte_t*)&count + 256)) + 1;
               #endif
-                Md5_Digest(rnd_ct,64,rnd_bits);
+                Sha1_Digest(rnd_ct,sizeof(rnd_ct),rnd_bits);
                 ++rnd_ct[3];
-                Md5_Digest(rnd_ct,64,rnd_bits+16);
-                ++rnd_ct[3];
-                rnd_bcont = 32;
+                rnd_bcont = 20;
               }
             *bits++ = rnd_bits[--rnd_bcont];
             --count;
