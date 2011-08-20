@@ -46,7 +46,7 @@ int strcmp_I(char *cs, char *ct)
     int q = 0;
     do 
       {
-        q = toupper((byte_t)*cs) - toupper((byte_t)*ct++);
+        q = Toupper(*cs) - Toupper(*ct++);
       }
     while ( *cs++ && !q );
     return q;
@@ -61,7 +61,7 @@ int strncmp_I(char *cs, char *ct, int l)
     int q = 0;
     if ( l ) do 
       {
-        q = toupper((byte_t)*cs) - toupper((byte_t)*ct++);
+        q = Toupper(*cs) - Toupper(*ct++);
       }
     while ( *cs++ && !q && --l );
     return q;
@@ -109,8 +109,8 @@ char *Str_Trim_Copy_Npl(char *S, int L)
     if ( L < 0 ) L = S?strlen(S):0;
     if ( L && S )
       {
-        while ( *S && isspace(*S) ) { ++S; --L; }
-        while ( L && isspace(S[L-1]) ) --L;
+        while ( *S && Isspace(*S) ) { ++S; --L; }
+        while ( L && Isspace(S[L-1]) ) --L;
       }
     return Str_Copy_Npl(S,L);
   }
@@ -132,8 +132,6 @@ wchar_t *Str_Unicode_Copy_Npl(wchar_t *S,int L)
 #endif
   ;
 
-#define Chr_Isspace(C) isspace((byte_t)(C))
-
 char *Str_Split_Once_Into(char *S,char *delims,void *arr)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -152,11 +150,11 @@ char *Str_Split_Once_Into(char *S,char *delims,void *arr)
     else // split by spaces
       {
         char *p = S, *q;
-        while ( *p && Chr_Isspace(*p) ) ++p;
+        while ( *p && Isspace(*p) ) ++p;
         q = p;
-        while ( *q && !Chr_Isspace(*q) ) ++q;
+        while ( *q && !Isspace(*q) ) ++q;
         Array_Push(arr,Str_Copy_Npl(p,q-p));
-        while ( *q && Chr_Isspace(*q) ) ++q;
+        while ( *q && Isspace(*q) ) ++q;
         return *q ? q : 0;
       }
   }
@@ -458,9 +456,6 @@ void *Str_Hex_Decode(char *S,int *len)
 #endif
   ;
 
-#define Chr_Isxdigit(C) isxdigit((byte_t)(C))
-#define Chr_Isdigit(C)  isdigit((byte_t)(C))
-
 int Str_Urldecode_Char(char **S)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -472,7 +467,7 @@ int Str_Urldecode_Char(char **S)
             r = ' ';
             ++*S;
           }
-        else if ( **S == '%' && Chr_Isxdigit((*S)[1]) && Chr_Isxdigit((*S)[2]) )
+        else if ( **S == '%' && Isxdigit((*S)[1]) && Isxdigit((*S)[2]) )
           {
             STR_UNHEX_HALF_OCTET((*S)+1,r,4);
             STR_UNHEX_HALF_OCTET((*S)+2,r,0);
@@ -506,7 +501,7 @@ void Unsigned_To_Hex8(uint_t val,char *out)
 #endif
   ;
 
-void Unsigned_To_Hex2(uint_t val,char *out)
+void Unsigned_To_Hex4(uint_t val,char *out)
 #ifdef _YOYO_STRING_BUILTIN
   {
     int i;
@@ -515,6 +510,8 @@ void Unsigned_To_Hex2(uint_t val,char *out)
   }
 #endif
   ;
+
+#define Unsigned_To_Hex2(Val,Out) Str_Hex_Byte((byte_t)(Val),0,Out)
 
 uquad_t Hex16_To_Quad(char *S)
 #ifdef _YOYO_STRING_BUILTIN
@@ -540,7 +537,7 @@ uint_t Hex8_To_Unsigned(char *S)
 #endif
   ;
 
-uint_t Hex2_To_Unsigned(char *S)
+uint_t Hex4_To_Unsigned(char *S)
 #ifdef _YOYO_STRING_BUILTIN
   {
     uint_t ret = 0;
@@ -551,6 +548,8 @@ uint_t Hex2_To_Unsigned(char *S)
   }
 #endif
   ;
+
+#define Hex2_To_Unsigned(S) ( (uint_t)Str_Unhex_Byte(S,0,0) )
 
 _YOYO_STRING_EXTERN char Utf8_Char_Length[] 
 #ifdef _YOYO_STRING_BUILTIN
@@ -1430,18 +1429,70 @@ wchar_t *Str_Unicode_Transform_Npl(wchar_t *S, int L, wchar_t (*transform)(wchar
     int i;
     wchar_t *ret;
     if ( L < 0 ) L = S?wcslen(S):0;
-    ret = __Malloc_Npl(L*sizeof(wchar_t)+1);
+    ret = __Malloc_Npl((L+1)*sizeof(wchar_t));
     for ( i = 0; i < L; ++i )
       ret[i] = transform(S[i]);
+    ret[i] = 0;
     return ret;
   }
 #endif
   ;
 
 #define Str_Unicode_Upper(S,L) ((wchar_t*)__Pool(Str_Unicode_Upper_Npl(S,L)))
-#define Str_Unicode_Upper_Npl(S,L) Str_Unicode_Transform_Npl(S,L,towupper)
+#define Str_Unicode_Upper_Npl(S,L) Str_Unicode_Transform_Npl(S,L,(void*)towupper)
 #define Str_Unicode_Lower(S,L) ((wchar_t*)__Pool(Str_Unicode_Lower_Npl(S,L)))
-#define Str_Unicode_Lower_Npl(S,L) Str_Unicode_Transform_Npl(S,L,towlower)
+#define Str_Unicode_Lower_Npl(S,L) Str_Unicode_Transform_Npl(S,L,(void*)towlower)
+
+char *Str_Ansi_Transform_Npl(char *S, int L, char (*transform)(char))
+#ifdef _YOYO_STRING_BUILTIN  
+  {
+    int i;
+    char *ret;
+    if ( L < 0 ) L = S?strlen(S):0;
+    ret = __Malloc_Npl(L+1);
+    for ( i = 0; i < L; ++i )
+      ret[i] = transform(S[i]);
+    ret[i] = 0;
+    return ret;
+  }
+#endif
+  ;
+
+#define Str_Ansi_Upper(S,L) ((char*)__Pool(Str_Ansi_Upper_Npl(S,L)))
+#define Str_Ansi_Upper_Npl(S,L) Str_Ansi_Transform_Npl(S,L,(void*)toupper)
+#define Str_Ansi_Lower(S,L) ((char*)__Pool(Str_Ansi_Lower_Npl(S,L)))
+#define Str_Ansi_Lower_Npl(S,L) Str_Ansi_Transform_Npl(S,L,(void*)tolower)
+
+char *Str_Safe_Oneline_Quote(char *S)
+#ifdef _YOYO_STRING_BUILTIN  
+  {
+    int S_len = S? strlen(S):0;
+    int R_count = 0;
+    int R_capacity = S_len+1;
+    char *R = 0;
+
+    if ( S )
+      for ( ; *S; ++S )
+        {
+          if ( 0 ) ;
+          else if ( *S == '\n' ) R_count += __Elm_Append_Npl(&R,R_count,"~n",2,1,&R_capacity);
+          else if ( *S == '\r' ) R_count += __Elm_Append_Npl(&R,R_count,"~r",2,1,&R_capacity);
+          else if ( *S == '|' )  R_count += __Elm_Append_Npl(&R,R_count,"~!",2,1,&R_capacity);
+          else if ( *S == '&' )  R_count += __Elm_Append_Npl(&R,R_count,"~a",2,1,&R_capacity);
+          else if ( *S == ';' )  R_count += __Elm_Append_Npl(&R,R_count,"~:",2,1,&R_capacity);
+          else if ( *S < 30 ) 
+            {
+              char b[2];
+              Unsigned_To_Hex2(*S,b);
+              R_count += __Elm_Append_Npl(&R,R_count,b,2,1,&R_capacity);
+            }
+          else R_count += __Elm_Append_Npl(&R,R_count,S,1,1,&R_capacity);
+        }
+        
+    return __Pool(R);
+  }
+#endif
+  ;
 
 #endif /* C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48 */
 

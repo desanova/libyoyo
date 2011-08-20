@@ -108,10 +108,17 @@ in this Software without prior written authorization of the copyright holder.
 # endif
 #endif
 
+#define Isspace(x)   isspace((unsigned)(x))
+#define Isdigit(x)   isdigit((unsigned)(x))
+#define Isxdigit(x)  isxdigit((unsigned)(x))
+#define Toupper(x)   toupper((unsigned)(x))
+#define Tolower(x)   tolower((unsigned)(x))
+
 #define iszof(x)     ((int)sizeof(x))
 #define iszof_double ((int)sizeof(double))
 #define iszof_long   ((int)sizeof(long))
 #define iszof_wchar  ((int)sizeof(wchar_t))
+#define iszof_arr(x) ((int)(sizeof(x)/sizeof(*x)))
 #define __Offset_Of(T,Memb) ((longptr_t)(&((T*)0)->Memb))
 
 typedef unsigned char  byte_t;
@@ -218,6 +225,7 @@ enum _YOYO_ERRORS
                                 |YOYO_SELFCHECK_ERROR_GROUP,
     
     YOYO_ERROR_BASE             = 0x00008000,
+    YOYO_ERROR_USER             = YOYO_USER_ERROR_GROUP|0,
     
     YOYO_ERROR_OUT_OF_MEMORY    = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+1),
     YOYO_FATAL_ERROR            = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+2),
@@ -248,6 +256,7 @@ enum _YOYO_ERRORS
     YOYO_ERROR_ZERODIVIDE       = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+27),
     YOYO_ERROR_LIMIT_REACHED    = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+28),
     YOYO_ERROR_UNSUPPORTED      = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+29),
+    YOYO_ERROR_IO_EOF           = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+30),
   };
 
 #define YOYO_ERROR_IS_USER_ERROR(err) !(err&YOYO_XXXX_ERROR_GROUP)
@@ -1543,9 +1552,9 @@ char *Yo_Error_Format()
     char *msg = Error_Message();
 
     if ( YOYO_ERROR_IS_USER_ERROR(code) )
-      return Yo_Format(__yoTa("\nerror(%d): %s",0),code,msg);
+      return Yo_Format(__yoTa("error(%d): %s",0),code,msg);
     else
-      return Yo_Format(__yoTa("\nerror(%08x): %s",0),code,msg);
+      return Yo_Format(__yoTa("error(%08x): %s",0),code,msg);
   }
 #endif
   ;

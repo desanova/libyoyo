@@ -1294,6 +1294,20 @@ char *Xnode_Query_Str_Bf(YOYO_BUFFER *bf, YOYO_XNODE *n, char *query)
 #endif
   ;
 
+char *Xnode_Query_Str_Dflt(YOYO_XNODE *n, char *query, char *dflt)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XVALUE *value;
+    
+    value = Xnode_Query_Value(n,query);
+    if ( value )
+      return Xvalue_Get_Str(value,dflt);
+      
+    return dflt;
+  }
+#endif
+  ;
+
 char *Xnode_Query_Str_Copy(YOYO_XNODE *n, char *query)
 #ifdef _YOYO_XDATA_BUILTIN
   {

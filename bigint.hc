@@ -747,7 +747,7 @@ YOYO_BIGINT *Bigint_Decode_10(char *S)
           
           for ( ;*p; ++p )
             {
-              if ( !isdigit(*p) ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid decimal number %s",S));
+              if ( !Isdigit(*p) ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid decimal number %s",S));
               bint = Bigint_Mul_Short(bint,10);
               bint = Bigint_Add_Short(bint,*p-'0');
             }
@@ -769,7 +769,8 @@ YOYO_BIGINT *Bigint_Decode_16(char *S)
         {
           for ( ;*p; ++p )
             {
-              if ( !isxdigit(*p) || !isxdigit(p[1]) ) __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid hexadecimal number %s",S));
+              if ( !Isxdigit(*p) || !Isxdigit(p[1]) ) 
+                __Raise_Format(YOYO_ERROR_ILLFORMED,("invalid hexadecimal number %s",S));
               bint = Bigint_Lshift(bint,8);
               bint->value[0] |= Str_Unhex_Byte(p,0,0);
               ++p;

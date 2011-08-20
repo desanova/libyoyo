@@ -223,11 +223,19 @@ int Prog_Init(int argc, char **argv, char *patt, unsigned flags)
         setlocale(LC_TIME,"C");
         Prog_Parse_Command_Line(argc,argv,patt,flags);
       #ifdef __windoze
+        __Gogo
+          {
+            int L = 256;
+            wchar_t *buf = __Malloc((256+1)*sizeof(wchar_t));
+            GetModuleFileNameW(0,buf,L);
+            Prog_Nam_S = Str_Unicode_To_Utf8_Npl(buf);
+            printf("appname: %d, %s\n",L,Prog_Nam_S);
+          }
       #else
         Prog_Nam_S = __Retain(Path_Fullname(argv[0]));
+      #endif
         Prog_Dir_S = __Retain(Path_Dirname(Prog_Nam_S));
         REQUIRE(Prog_Dir_S != 0);
-      #endif
         rt = 1;
         atexit(Prog_Clear_At_Exit);
       }

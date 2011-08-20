@@ -114,7 +114,7 @@ void Logout(int level, char *text)
           int log_fd = YOYO_Log_Fd >= 0 ? YOYO_Log_Fd : fileno(stderr);
           char mark[80] = {0};
           int len = strlen(text);
-          if ( YOYO_Log_Opt | YOYO_LOG_DATESTAMP )
+          if ( YOYO_Log_Opt & YOYO_LOG_DATESTAMP )
             {
               clock_t t = clock();
               if ( t - YOYO_Log_Clock > CLOCKS_PER_SEC )

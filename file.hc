@@ -54,13 +54,16 @@ char *Path_Basename(char *path)
 #ifdef _YOYO_FILE_BUILTIN
   {
     char *ret = path;
-    char *p = strrchr(path,'/');
-  #ifdef __windoze
-    char *p2 = strrchr(path,'\\');
-    if ( !p || p < p2 ) p = p2;
-  #endif
-    if ( p )
-      ret = Str_Copy(p+1,-1);
+    if ( path )
+      {
+        char *p = strrchr(path,'/');
+      #ifdef __windoze
+        char *p2 = strrchr(path,'\\');
+        if ( !p || p < p2 ) p = p2;
+      #endif
+        if ( p )
+          ret = Str_Copy(p+1,-1);
+      }
     return ret;
   }
 #endif
@@ -70,21 +73,24 @@ char *Path_Dirname(char *path)
 #ifdef _YOYO_FILE_BUILTIN
   {
     char *ret = 0;
-    char *p = strrchr(path,'/');
-  #ifdef __windoze
-    char *p2 = strrchr(path,'\\');
-    if ( !p || p < p2 ) p = p2;
-  #endif
-    if ( p )
+    if ( path )
       {
-        if ( p-path > 0 )
-          ret = Str_Copy(path,p-path);
-        else
-        #ifdef __windoze
-          ret = Str_Copy("\\",1);
-        #else
-          ret = Str_Copy("/",1);
-        #endif
+        char *p = strrchr(path,'/');
+      #ifdef __windoze
+        char *p2 = strrchr(path,'\\');
+        if ( !p || p < p2 ) p = p2;
+      #endif
+        if ( p )
+          {
+            if ( p-path > 0 )
+              ret = Str_Copy(path,p-path);
+            else
+            #ifdef __windoze
+              ret = Str_Copy("\\",1);
+            #else
+              ret = Str_Copy("/",1);
+            #endif
+          }
       }
     return ret;
   }
@@ -182,6 +188,30 @@ char *Path_Suffix(char *path)
 #endif
   ;
 
+char *Path_Unsuffix(char *path)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    char *ret = 0;
+    char *p = strrchr(path,'.');
+    if ( p )
+      {
+        char *p1 = strrchr(path,'/');
+        if ( p1 && p1 > p ) p = p1;
+      #ifdef __windoze
+        __Gogo 
+          {
+            char *p2 = strrchr(path,'\\');
+            if ( p2 && p2 > p ) p = p2;
+          }
+      #endif
+      }
+    if ( p && *p == '.' )
+      ret = Str_Copy(path,p-path);
+    return ret;
+  }
+#endif
+  ;
+  
 char *Path_Fullname(char *path)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -278,21 +308,21 @@ typedef struct _YOYO_FILE_STATS
   typedef struct stat _YOYO_stat;
 #endif        
 
-YOYO_FILE_STATS *File_Translate_Filestats(_YOYO_stat *fst,YOYO_FILE_STATS *st)
+YOYO_FILE_STATS *File_Translate_Filestats(_YOYO_stat *fst,YOYO_FILE_STATS *st,int exists)
 #ifdef _YOYO_FILE_BUILTIN
   {
     if ( !st ) st = Yo_Malloc(sizeof(YOYO_FILE_STATS));
     memset(st,0,sizeof(*st));
 
-    st->f.exists = fst->st_mode?1:0;
+    st->f.exists       = exists;
     st->f.is_regular   = (fst->st_mode&S_IFMT) == S_IFREG;
     st->f.is_directory = (fst->st_mode&S_IFMT) == S_IFDIR;
   #ifndef __windoze  
-    st->f.is_symlink = (fst->st_mode&S_IFMT) == S_IFLNK;    
-    st->f.is_unisok  = (fst->st_mode&S_IFMT) == S_IFSOCK;
+    st->f.is_symlink   = (fst->st_mode&S_IFMT) == S_IFLNK;    
+    st->f.is_unisok    = (fst->st_mode&S_IFMT) == S_IFSOCK;
   #endif  
-    st->f.is_writable = (fst->st_mode&S_IWUSR) != 0;
-    st->f.is_readable = (fst->st_mode&S_IRUSR) != 0;
+    st->f.is_writable  = (fst->st_mode&S_IWUSR) != 0;
+    st->f.is_readable  = (fst->st_mode&S_IRUSR) != 0;
     st->f.is_executable = (fst->st_mode&S_IXUSR) != 0;
     st->length = fst->st_size;
     st->ctime  = fst->st_ctime;
@@ -318,12 +348,15 @@ YOYO_FILE_STATS *File_Get_Stats(char *name,YOYO_FILE_STATS *st,int ignorerr)
     Yo_Release(uni_name);
   #else
     err = stat(name,&fst);
-  #endif        
+  #endif
     if ( !err || ignorerr )
-      File_Translate_Filestats(&fst,st);
+      File_Translate_Filestats(&fst,st,!err);
     if ( err && !ignorerr )              
-      if ( errno != ENOENT && errno != ENOTDIR )
-        File_Check_Error("getting stats",0,name,1); 
+      {
+        if ( st ) memset(st,0,sizeof(*st));
+        if ( errno != ENOENT && errno != ENOTDIR )
+          File_Check_Error("getting stats",0,name,1); 
+      }
     return st;
   }
 #endif
@@ -539,11 +572,11 @@ int Raise_If_Cfile_Is_Not_Opened(YOYO_CFILE *f)
   ;
 
 _YOYO_FILE_EXTERN char Oj_Close_OjMID[] _YOYO_FILE_BUILTIN_CODE( = "close/@"); 
-void Oj_Close(void *f) _YOYO_FILE_BUILTIN_CODE(
-  { ((void(*)(void*))Yo_Find_Method_Of(&f,Oj_Close_OjMID,YO_RAISE_ERROR))
+int Oj_Close(void *f) _YOYO_FILE_BUILTIN_CODE(
+  { return ((int(*)(void*))Yo_Find_Method_Of(&f,Oj_Close_OjMID,YO_RAISE_ERROR))
         (f); });
 
-void Cfile_Close(YOYO_CFILE *f)
+int Cfile_Close(YOYO_CFILE *f)
 #ifdef _YOYO_FILE_BUILTIN
   {
     if ( f->fd )
@@ -551,6 +584,25 @@ void Cfile_Close(YOYO_CFILE *f)
         fclose(f->fd);
         f->fd = 0;
       }
+    return 0;
+  }
+#endif
+  ;
+
+int Pfile_Close(YOYO_CFILE *f)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int ret = 0;
+    if ( f->fd )
+      {
+      #ifdef __windoze
+        ret = _pclose(f->fd);
+      #else
+        ret = pclose(f->fd);
+      #endif
+        f->fd = 0;
+      }
+    return ret;
   }
 #endif
   ;
@@ -577,7 +629,17 @@ void Cfile_Destruct(YOYO_CFILE *f)
   {
     Cfile_Close(f);
     free(f->name);
-    Yo_Object_Destruct(f);
+    __Destruct(f);
+  }
+#endif
+  ;
+
+void Pfile_Destruct(YOYO_CFILE *f)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    Pfile_Close(f);
+    free(f->name);
+    __Destruct(f);
   }
 #endif
   ;
@@ -601,7 +663,7 @@ YOYO_FILE_STATS *Cfile_Stats(YOYO_CFILE *f,YOYO_FILE_STATS *st)
       #endif        
         if ( err )
           File_Check_Error("getting stats",f->fd,f->name,0); 
-        return File_Translate_Filestats(&fst,st);
+        return File_Translate_Filestats(&fst,st,!err);
       }
     return 0;
   };
@@ -833,10 +895,42 @@ quad_t Cfile_Available(YOYO_CFILE *f)
   ;
 
 _YOYO_FILE_EXTERN char Oj_Read_All_OjMID[] _YOYO_FILE_BUILTIN_CODE( = "readall/@"); 
-YOYO_BUFFER *Oj_Read_All(void *f) _YOYO_FILE_BUILTIN_CODE(
-  { return 
-      ((void *(*)(void*))Yo_Find_Method_Of(&f,Oj_Read_All_OjMID,YO_RAISE_ERROR))
-        (f); });
+YOYO_BUFFER *Oj_Read_All(void *f)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    void *(*readall)(void*) = Yo_Find_Method_Of(&f,Oj_Read_All_OjMID,0);
+    if ( readall )
+      return readall(f);
+    else
+      {
+        quad_t (*available)(void*) = Yo_Find_Method_Of(&f,Oj_Available_OjMID,0);
+        int (*read)(void*,void*,int,int) = Yo_Find_Method_Of(&f,Oj_Read_OjMID,YO_RAISE_ERROR);
+        void *L;
+        if ( available )
+          {
+            quad_t len = available(f);
+            if ( len > INT_MAX )
+              __Raise(YOYO_ERROR_IO,"file to big to be read in one pass");
+            L = Buffer_Init((int)len);
+            if ( len )
+              read(f,Buffer_Begin(L),(int)len,(int)len);
+          }
+        else
+          {
+            int (*eof)(void*) = Yo_Find_Method_Of(&f,Oj_Eof_OjMID,YO_RAISE_ERROR);
+            L = Buffer_Init(0);
+            while ( !eof(f) )
+              {
+                byte_t local[1024];
+                int q  = read(f,local,sizeof(local),0);
+                if ( q > 0 ) Buffer_Append(L,local,q);
+              }
+          }
+        return L;
+      }
+  }
+#endif
+  ;
 
 YOYO_BUFFER *Cfile_Read_All(YOYO_CFILE *f)
 #ifdef _YOYO_FILE_BUILTIN
@@ -913,7 +1007,30 @@ YOYO_CFILE *Cfile_Object(FILE *fd, char *name, int share)
     YOYO_CFILE *f = Yo_Object(sizeof(YOYO_CFILE),funcs);
     f->fd = fd;
     f->shared = share;
-    f->name = name?Str_Copy_Npl(name,-1):"<file>";
+    f->name = name?Str_Copy_Npl(name,-1):__yoTa("<file>",0);
+    return f;
+  }
+#endif
+  ;
+
+YOYO_CFILE *Pfile_Object(FILE *fd, char *cmd, int share)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,    Pfile_Destruct},
+        {Oj_Close_OjMID,       Pfile_Close},
+        {Oj_Read_OjMID,        Cfile_Read},
+        {Oj_Write_OjMID,       Cfile_Write},
+        {Oj_Read_Line_OjMID,   Cfile_Read_Line},
+        {Oj_Write_Line_OjMID,  Cfile_Write_Line},
+        {Oj_Eof_OjMID,         Cfile_Eof},
+        {Oj_Flush_OjMID,       Cfile_Flush},
+        {0}};
+    YOYO_CFILE *f = Yo_Object(sizeof(YOYO_CFILE),funcs);
+    f->fd = fd;
+    f->shared = share;
+    f->name = cmd?Str_Copy_Npl(cmd,-1):__yoTa("<command>",0);
     return f;
   }
 #endif
@@ -954,17 +1071,14 @@ void File_Check_Access_Is_Satisfied(char *path, uint_t access)
       
     if ( st.f.exists )
       if (st.f.is_directory )
-        Yo_Raise(YOYO_ERROR_IO,
-          Yo_Format("file '%s' is directory",path),__Yo_FILE__,__LINE__);
+        __Raise_Format(YOYO_ERROR_IO,("file '%s' is directory",path));
       else if ( (access & YOYO_FILE_CREATE_MASK) == YOYO_FILE_CREATENEW  )
-        Yo_Raise(YOYO_ERROR_IO,
-          Yo_Format("file '%s' already exists",path),__Yo_FILE__,__LINE__);
+        __Raise_Format(YOYO_ERROR_IO,("file '%s' already exists",path));
       else if ( (access & YOYO_FILE_CREATE_MASK) == YOYO_FILE_CREATEALWAYS )
         File_Unlink(path,0);
       else;
     else if ( (access & YOYO_FILE_CREATE_MASK) == YOYO_FILE_OPENEXISTS )
-      Yo_Raise(YOYO_ERROR_DOESNT_EXIST,
-        Yo_Format("file '%s' does not exist",path),__Yo_FILE__,__LINE__);
+      __Raise_Format(YOYO_ERROR_DOESNT_EXIST,("file '%s' does not exist",path));
   }
 #endif
   ;
@@ -1051,6 +1165,30 @@ void *Cfile_Open_Raw(char *name, char *access)
 #endif
   ;
 
+void *Pfile_Open(char *command, char *access)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    void *f = 0;
+    #ifdef __windoze
+      int text = 0, i;
+      wchar_t ac[9] = {0};
+      for ( i = 0; access[i] && i < sizeof(ac)-1; ++i )
+        {
+          if ( access[i] == 't' ) text = 1;
+          if ( access[i] == 'b' ) text = 2;
+          ac[i] = access[i];
+        }
+      if ( !text && i < sizeof(ac)-1 ) ac[i] = 'b'; 
+      if ( 0 != (f = _wpopen(Str_Utf8_To_Unicode(command),ac)) )
+    #else
+      if ( 0 != (f = popen(command,access)) )
+    #endif
+        f = Pfile_Object(f,command,0);
+    return f;
+  }
+#endif
+  ;
+
 void *Cfile_Open(char *name, char *access)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -1117,7 +1255,7 @@ void __Pfd_Lock_In(int *pfd)
     STRICT_REQUIRE(pfd);
     
     if ( flock(*pfd,LOCK_EX) )
-      __Raise(YOYO_ERROR_IO,"failed to lock file");
+      __Raise_Format(YOYO_ERROR_IO,("failed to lock fd %d: %s",*pfd,strerror(errno)));
   }
 #endif
   ;
@@ -1291,6 +1429,160 @@ void File_Move(char *old_name, char *new_name)
     else if ( err < 0 )
       {
         File_Check_Error("rename",0,old_name,1); 
+      }
+  }
+#endif
+  ;
+
+typedef struct _YOYO_BUFFER_FILE
+  {
+    YOYO_BUFFER *bf;
+    int offs;
+  } YOYO_BUFFER_FILE;
+
+void YOYO_BUFFER_FILE_Destruct(YOYO_BUFFER_FILE *file)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    __Unrefe(file->bf);
+    __Destruct(file);
+  }
+#endif
+  ;
+
+int Buffer_File_Close(YOYO_BUFFER_FILE *file)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    return 0;
+  }
+#endif
+  ;
+
+int Buffer_File_Read(YOYO_BUFFER_FILE *f, void *buf, int count, int min_count)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    if ( min_count < 0 ) min_count = count;
+    if ( f->offs + min_count > f->bf->count )
+      __Raise(YOYO_ERROR_IO_EOF,"end of file");
+    count = Yo_MIN(f->bf->count-f->offs,count);
+    memcpy(buf,f->bf->at+f->offs,count);
+    f->offs += count;
+    return count;
+  }
+#endif
+  ;
+
+int Buffer_File_Write(YOYO_BUFFER_FILE *f, void *buf, int count, int min_count)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    if (f->bf->count < f->offs + count )
+      Buffer_Resize(f->bf,f->offs + count);
+    memcpy(f->bf->at+f->offs,buf,count);
+    f->offs += count;
+    return count;
+  }
+#endif
+  ;
+
+quad_t Buffer_File_Length(YOYO_BUFFER_FILE *f)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    return f->bf->count;
+  }
+#endif
+  ;
+
+quad_t Buffer_File_Available(YOYO_BUFFER_FILE *f)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    if ( f->offs >= f->bf->count )
+      return 0;
+    return f->bf->count - f->offs;
+  }
+#endif
+  ;
+
+int Buffer_File_Eof(YOYO_BUFFER_FILE *f)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    if ( f->offs >= f->bf->count )
+      return 1;
+    return 0;
+  }
+#endif
+  ;
+
+quad_t Buffer_File_Seek(YOYO_BUFFER_FILE *f, quad_t pos, int whence)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    quad_t old = f->offs;
+    if ( whence == SEEK_SET )
+      f->offs = pos;
+    else if ( whence == SEEK_CUR )
+      f->offs += pos;
+    else if ( whence == SEEK_END )
+      f->offs = f->bf->count + pos;
+    if ( f->offs < 0 ) 
+      {
+        f->offs = 0;
+        __Raise(YOYO_ERROR_IO,"negative file offset");
+      }
+    return old;
+  }
+#endif
+  ;
+  
+quad_t Buffer_File_Tell(YOYO_BUFFER_FILE *f)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    return f->offs;
+  }
+#endif
+  ;
+
+void *Buffer_As_File(YOYO_BUFFER *bf)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,    YOYO_BUFFER_FILE_Destruct},
+        {Oj_Close_OjMID,       Buffer_File_Close},
+        {Oj_Read_OjMID,        Buffer_File_Read},
+        {Oj_Write_OjMID,       Buffer_File_Write},
+        {Oj_Available_OjMID,   Buffer_File_Available},
+        {Oj_Eof_OjMID,         Buffer_File_Eof},
+        {Oj_Length_OjMID,      Buffer_File_Length},
+        {Oj_Seek_OjMID,        Buffer_File_Seek},
+        {Oj_Tell_OjMID,        Buffer_File_Tell},
+        {0}
+      };
+    YOYO_BUFFER_FILE *file = __Object(sizeof(YOYO_BUFFER_FILE),funcs);
+    file->bf = __Refe(bf);
+    return file;
+  }
+#endif
+  ;
+
+void Oj_Print(void *foj, char *S)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int S_len = S?strlen(S):0;
+    if ( S_len )
+      Oj_Write_Full(foj,S,S_len);
+  }
+#endif
+  ;
+
+void Oj_Printf(void *foj, char *fmt, ...)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    __Auto_Release
+      {
+        va_list va;
+        char *text;
+        va_start(va,fmt);
+        text = __Pool(Yo_Format_(fmt,va));
+        va_end(va);
+        Oj_Print(foj,text);
       }
   }
 #endif

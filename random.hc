@@ -173,6 +173,7 @@ ulong_t Random_Bits(int no)
 #endif
   ;
 
+#if 0
 ulong_t Get_Random(unsigned min, unsigned max)
 #ifdef _YOYO_RANDOM_BUILTIN
   {
@@ -185,6 +186,20 @@ ulong_t Get_Random(unsigned min, unsigned max)
   }
 #endif
   ;
-  
+#endif
+
+uint_t Get_Random(uint_t min, uint_t max)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    uint_t r;
+    uint_t dif = max - min;
+    STRICT_REQUIRE(max > min);
+    r = (uint_t)(((uquad_t)Random_Bits(32)*dif) >> 32) + min;
+    STRICT_REQUIRE(r >= min && r < max);
+    return r;
+  }
+#endif
+  ;
+
 #endif /* C_once_FF657866_8205_4CAE_9D01_65B8583E9D19 */
 
