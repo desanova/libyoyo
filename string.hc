@@ -1475,11 +1475,12 @@ char *Str_Safe_Oneline_Quote(char *S)
       for ( ; *S; ++S )
         {
           if ( 0 ) ;
-          else if ( *S == '\n' ) R_count += __Elm_Append_Npl(&R,R_count,"~n",2,1,&R_capacity);
-          else if ( *S == '\r' ) R_count += __Elm_Append_Npl(&R,R_count,"~r",2,1,&R_capacity);
-          else if ( *S == '|' )  R_count += __Elm_Append_Npl(&R,R_count,"~!",2,1,&R_capacity);
-          else if ( *S == '&' )  R_count += __Elm_Append_Npl(&R,R_count,"~a",2,1,&R_capacity);
-          else if ( *S == ';' )  R_count += __Elm_Append_Npl(&R,R_count,"~:",2,1,&R_capacity);
+          else if ( *S == '\n' || *S == '\r' 
+            || *S == '|' || *S == '&' || *S == ';' 
+            || *S == '<' || *S == '>' || *S =='[' 
+            || *S ==']'  || *S == '{' || *S =='}'
+            || *S == '"' || *S == '\'' || *S == '\\' )  
+            R_count += __Elm_Append_Npl(&R,R_count,"~",1,1,&R_capacity);
           else if ( *S < 30 ) 
             {
               char b[2];
