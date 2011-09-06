@@ -781,6 +781,38 @@ char *Str_Concat_Npl(char *a, char *b)
 #endif
   ;
 
+#define Str_Join_Q(Sep,Sx) ((char*)__Pool(Str_Join_Q_Npl(Sep,Sx)))
+char *Str_Join_Q_Npl(char sep, char **Sx)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i;
+    int len = 0;
+    char *q = 0, *out = 0;
+    for ( i = 0; !!(q = Sx[i]); ++i )
+      len += strlen(q)+(sep?1:0);
+    if ( len )
+      {
+        char *Q = out = Yo_Malloc_Npl(len+(sep?0:1));
+        for ( i = 0; !!(q = Sx[i]); ++i )
+          {
+            int l = strlen(q);
+            if ( sep && Q != out )
+              *Q++ = sep;
+            memcpy(Q,q,l);
+            Q += l;
+          }
+        *Q = 0;
+      }
+    else
+      {
+        out = Yo_Malloc_Npl(1);
+        *out = 0;
+      }
+    return out;
+  }
+#endif
+  ;
+
 char *Str_Join_Va_Npl(char sep, va_list va)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -855,7 +887,7 @@ char *Str_Join_(char sep, ...)
 #define Str_Join_5(Sep,S1,S2,S3,S4,S5) Str_Join_(Sep,S1,S2,S3,S4,S5,(char*)0)
 #define Str_Join_6(Sep,S1,S2,S3,S4,S5,S6) Str_Join_(Sep,S1,S2,S3,S4,S5,S6,(char*)0)
 
-#define Str_Unicode_Concat(A,B) Yo_Pool(Str_Unicode_Concat_Npl(A,B))
+#define Str_Unicode_Concat(A,B) ((wchar_t*)__Pool(Str_Unicode_Concat_Npl(A,B)))
 wchar_t *Str_Unicode_Concat_Npl(wchar_t *a, wchar_t *b)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -933,7 +965,7 @@ wchar_t *Str_Unicode_Join_(int sep, ...)
     wchar_t *out;
     va_list va;
     va_start(va,sep);
-    out = Yo_Pool(Str_Unicode_Join_Va_Npl(sep,va));
+    out = __Pool(Str_Unicode_Join_Va_Npl(sep,va));
     va_end(va);
     return out;
   }

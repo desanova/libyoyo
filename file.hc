@@ -1267,7 +1267,7 @@ void __Pfd_Lock_Out(int *pfd)
     
     if ( flock(*pfd,LOCK_UN) )
       if ( errno != EBADF )
-        __Fatal(YOYO_FATAL_ERROR,"failed to unlock file");
+        __Fatal("failed to unlock file");
   }
 #endif
   ;

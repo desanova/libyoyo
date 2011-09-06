@@ -44,9 +44,11 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_DEV_RANDOM "/dev/urandom"
 
 #ifdef _YOYO_RANDOM_BUILTIN
-#define _YOYO_RANDOM_EXTERN
+# define _YOYO_RANDOM_EXTERN
+# define _YOYO_RANDOM_BUILTIN_CODE(Code) Code
 #else
-#define _YOYO_RANDOM_EXTERN extern
+# define _YOYO_RANDOM_EXTERN extern
+# define _YOYO_RANDOM_BUILTIN_CODE(Code)
 #endif
 
 void Soft_Random(byte_t *bits, int count)
@@ -197,6 +199,169 @@ uint_t Get_Random(uint_t min, uint_t max)
     r = (uint_t)(((uquad_t)Random_Bits(32)*dif) >> 32) + min;
     STRICT_REQUIRE(r >= min && r < max);
     return r;
+  }
+#endif
+  ;
+
+/*
+Tiny Mersenne Twister only 127 bit internal state
+Mutsuo Saito (Hiroshima University)
+Makoto Matsumoto (University of Tokyo)
+Copyright (C) 2011 Mutsuo Saito, Makoto Matsumoto,
+Hiroshima University and The University of Tokyo.
+All rights reserved.
+The 3-clause BSD License is applied to this software
+*/
+
+enum
+  {
+    YOYO_FASTRND_TINYMT32_MEXP = 127,
+    YOYO_FASTRND_TINYMT32_SH0  = 1,
+    YOYO_FASTRND_TINYMT32_SH1  = 10,
+    YOYO_FASTRND_TINYMT32_SH8  = 8,
+    YOYO_FASTRND_TINYMT32_MASK = 0x7fffffff,
+  };
+  
+typedef struct _YOYO_FASTRND
+  {
+    uint_t status[4];
+    uint_t mat1;
+    uint_t mat2;
+    uint_t tmat;
+  } YOYO_FASTRND;
+
+void Fast_Random_Next_State(YOYO_FASTRND *random)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    uint_t x;
+    uint_t y;
+    
+    y = random->status[3];
+    x = (random->status[0] & YOYO_FASTRND_TINYMT32_MASK)
+        ^ random->status[1]
+        ^ random->status[2];
+    x ^= (x << YOYO_FASTRND_TINYMT32_SH0);
+    y ^= (y >> YOYO_FASTRND_TINYMT32_SH0) ^ x;
+    random->status[0] = random->status[1];
+    random->status[1] = random->status[2];
+    random->status[2] = x ^ (y << YOYO_FASTRND_TINYMT32_SH1);
+    random->status[3] = y;
+    random->status[1] ^= -((int)(y & 1)) & random->mat1;
+    random->status[2] ^= -((int)(y & 1)) & random->mat2;
+  }
+#endif
+  ;
+
+uint_t Fast_Random_Temper(YOYO_FASTRND *random)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    uint_t t0, t1;
+    t0 = random->status[3];
+    t1 = random->status[0] + (random->status[2] >> YOYO_FASTRND_TINYMT32_SH8);
+    t0 ^= t1;
+    t0 ^= -((int)(t1 & 1)) & random->tmat;
+    return t0;
+  }
+#endif
+  ;
+
+_YOYO_RANDOM_EXTERN char Oj_Random_32_OjMID[] _YOYO_RANDOM_BUILTIN_CODE( = "random_32/@"); 
+uint_t Oj_Random_32(void *random) _YOYO_RANDOM_BUILTIN_CODE(
+  { return 
+      ((uint_t(*)(void*))Yo_Find_Method_Of(&random,Oj_Random_32_OjMID,YO_RAISE_ERROR))
+        (random); });
+
+_YOYO_RANDOM_EXTERN char Oj_Random_Flt_OjMID[] _YOYO_RANDOM_BUILTIN_CODE( = "random_flt/@"); 
+float Oj_Random_Flt(void *random) _YOYO_RANDOM_BUILTIN_CODE(
+  { return 
+      ((float(*)(void*))Yo_Find_Method_Of(&random,Oj_Random_Flt_OjMID,YO_RAISE_ERROR))
+        (random); });
+
+_YOYO_RANDOM_EXTERN char Oj_Random_OjMID[] _YOYO_RANDOM_BUILTIN_CODE( = "random/@ii"); 
+int Oj_Random(void *random,int min_val,int max_val) _YOYO_RANDOM_BUILTIN_CODE(
+  { return 
+      ((int(*)(void*,int,int))Yo_Find_Method_Of(&random,Oj_Random_OjMID,YO_RAISE_ERROR))
+        (random,min_val,max_val); });
+
+uint_t Fast_Random_Next_32(YOYO_FASTRND *random)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    Fast_Random_Next_State(random);
+    return Fast_Random_Temper(random);
+  }
+#endif
+  ;
+
+float Fast_Random_Next_Flt(YOYO_FASTRND *random)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    Fast_Random_Next_State(random);
+    return Fast_Random_Temper(random) * (1.0f / 4294967296.0f);
+  }
+#endif
+  ;
+
+int Fast_Random(YOYO_FASTRND *random,int min_val, int max_val)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    quad_t q;
+    Fast_Random_Next_State(random);
+    q = Fast_Random_Temper(random);
+    return (int)((q * max_val)>>32) + min_val;
+  }
+#endif
+  ;
+
+void Fast_Random_Period_Certification(YOYO_FASTRND *random) 
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    if ( !(random->status[0] & YOYO_FASTRND_TINYMT32_MASK)
+      && !random->status[1] 
+      && !random->status[2]
+      && !random->status[3]) 
+      {
+        random->status[0] = 'T';
+        random->status[1] = 'I';
+        random->status[2] = 'N';
+        random->status[3] = 'Y';
+      }
+  }
+#endif
+  ;
+  
+YOYO_FASTRND *Fast_Random_Init_Static(YOYO_FASTRND *random,uint_t seed)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    int i;
+    random->status[0] = seed;
+    random->status[1] = random->mat1;
+    random->status[2] = random->mat2;
+    random->status[3] = random->tmat;
+    for (i = 1; i < 8; i++) 
+      {
+        random->status[i & 3] ^= i + 1812433253U
+          * (random->status[(i - 1) & 3]
+          ^ (random->status[(i - 1) & 3] >> 30));
+      }
+    Fast_Random_Period_Certification(random);
+    for (i = 0; i < 8; i++)
+      Fast_Random_Next_State(random);
+    return random;
+  }
+#endif
+  ;
+
+YOYO_FASTRND *Fast_Random_Init(uint_t seed)
+#ifdef _YOYO_RANDOM_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Random_32_OjMID,  Fast_Random_Next_32},
+        {Oj_Random_Flt_OjMID, Fast_Random_Next_Flt},
+        {Oj_Random_OjMID,     Fast_Random},
+        {0}};
+    YOYO_FASTRND *random = __Object(sizeof(YOYO_FASTRND),funcs);
+    return Fast_Random_Init_Static(random,seed);
   }
 #endif
   ;

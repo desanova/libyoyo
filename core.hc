@@ -94,11 +94,7 @@ in this Software without prior written authorization of the copyright holder.
 # endif
 # if defined __APPLE__
 #   include <malloc/malloc.h> /* malloc_size */
-# elif defined __NetBSD__ && !defined _NBSDHACK
-/*
-  NetBSD has malloc_usable_size commented
-  you need to manually modify & rebuild libc
-*/
+# elif defined __NetBSD__
 #   ifndef _NBSDMUTE
 #     warning {! NetBSD has malloc_usable_size commented !}
 #   endif
@@ -121,6 +117,7 @@ in this Software without prior written authorization of the copyright holder.
 #define iszof_arr(x) ((int)(sizeof(x)/sizeof(*x)))
 #define __Offset_Of(T,Memb) ((longptr_t)(&((T*)0)->Memb))
 
+typedef signed char    ioct_t;
 typedef unsigned char  byte_t;
 typedef unsigned short ushort_t;
 typedef unsigned int   uint_t;
@@ -180,6 +177,8 @@ typedef unsigned long  ulong_t;
 #define YOYO_REPN_32(Val)  YOYO_REPN_16(Val),YOYO_REPN_16(Val)
 #define YOYO_REPN_64(Val)  YOYO_REPN_32(Val),YOYO_REPN_32(Val)
 #define YOYO_REPN_128(Val) YOYO_REPN_64(Val),YOYO_REPN_64(Val)
+#define C32_BIT(No)        (1U<<No)
+#define C64_BIT(No)        (1ULL<<No)
 
 _YOYO_CORE_EXTERN char Oj_Destruct_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = "~/@" );
 _YOYO_CORE_EXTERN char Oj_Destruct_Element_OjMID[] _YOYO_CORE_BUILTIN_CODE ( = "~1/@" );
@@ -370,31 +369,28 @@ void Unsigned_To_Two(uint_t q, void *b)
 #endif
   ;
 
-uint_t Bitcount_8(uint_t q)
+_YOYO_CORE_EXTERN byte_t Bitcount_8_Q[]
 #ifdef _YOYO_CORE_BUILTIN
-  {
-    static byte_t Q[256]= {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
-                           5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-                           6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                           6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                           7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 
-                           7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                           7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 
-                           7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
-                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                          };
-    return Q[q&0x0ff];
-  }
+= {0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+   5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+   6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+   6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 
+   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 
+   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
 #endif
-  ;
-  
+ ;
+
+#define Bitcount_8(q) (Bitcount_8_Q[(q)&0x0ff])  
 uint_t Bitcount_Of( uint_t u )
 #ifdef _YOYO_CORE_BUILTIN
     {
@@ -463,6 +459,16 @@ void *Yo_Realloc_Npl(void *p,int size)
 #endif
   ;
 
+void *Yo_Zero_Malloc_Npl(int size)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    void *p = Yo_Malloc_Npl(size);
+    memset(p,0,size);
+    return p;
+  }
+#endif
+  ;
+  
 void *Yo_Resize_Npl(void *p,int size,int granularity)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -1005,8 +1011,7 @@ void *Yo_Object_Clone(int size, void *orign)
 void *Yo_Object(int size,YOYO_FUNCTABLE *tbl)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    YOYO_OBJECT *o = Yo_Malloc_Npl(sizeof(YOYO_OBJECT)+size);
-    memset(o,0,sizeof(YOYO_OBJECT)+size);
+    YOYO_OBJECT *o = Yo_Zero_Malloc_Npl(sizeof(YOYO_OBJECT)+size);
     o->signature = YOYO_OBJECT_SIGNATURE;
     o->rc = 1;
     o->dynamic = (YOYO_DYNAMIC*)tbl;
@@ -1321,7 +1326,7 @@ void Yo_JmpBuf_Push_Cs(void *cs,Yo_JMPBUF_Unlock unlock)
                   locks[i].unlock = unlock;
                   return;
                 }
-            Yo_Fatal(YOYO_FATAL_ERROR,__yoTa("no enough lock space",0),__FILE__,__LINE__);
+            Yo_Fatal(YOYO_FATAL_ERROR,__yoTa("no enough lock space",0),__Yo_FILE__,__LINE__);
           }
       }
   }
@@ -1347,7 +1352,7 @@ void Yo_JmpBuf_Pop_Cs(void *cs)
                   memset(&locks[i],0,sizeof(locks[i]));
                   return;
                 }
-            Yo_Fatal(YOYO_FATAL_ERROR,__yoTa("trying to pop unexistent lock",0),__FILE__,__LINE__);
+            Yo_Fatal(YOYO_FATAL_ERROR,__yoTa("trying to pop unexistent lock",0),__Yo_FILE__,__LINE__);
           }
       }
   }
@@ -1592,13 +1597,16 @@ void Error_Exit(char *pfx)
 #define __Raise(Err,Msg)                Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
 #define __Raise_Format(Err,Fmt)         Yo_Raise(Err,(Yo_Format Fmt),__Yo_FILE__,__LINE__)
 #define __Raise_If_Occured()            Yo_Raise_If_Occured()
-#define __Fatal(Err,Ctx)                Yo_Fatal(Err,Ctx,__Yo_FILE__,__LINE__)
+#define __Fatal(Ctx)                    Yo_Fatal(YOYO_FATAL_ERROR,Ctx,__Yo_FILE__,__LINE__)
+#define __Fatal_Format(x)               Yo_Fatal(YOYO_FATAL_ERROR,Yo_Format_Npl x,__Yo_FILE__,__LINE__)
 #define __Format                        Yo_Format
 #define __Format_Npl                    Yo_Format_Npl
 #define __Format_Error()                Yo_Error_Format()
 
 #define __Malloc(Size)                  Yo_Malloc(Size)
 #define __Malloc_Npl(Size)              Yo_Malloc_Npl(Size)
+#define __Zero_Malloc(Size)             __Pool(Yo_Zero_Malloc_Npl(Size))
+#define __Zero_Malloc_Npl(Size)         Yo_Zero_Malloc_Npl(Size)
 #define __Memcopy(Ptr,Size)             Yo_Memcopy(Ptr,Size)
 #define __Memcopy_Npl(Ptr,Size)         Yo_Memcopy_Npl(Ptr,Size)
 #define __Realloc(Ptr,Size)             Yo_Realloc(Ptr,Size)

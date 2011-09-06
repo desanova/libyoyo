@@ -113,6 +113,7 @@ quad_t Get_Curr_Datetime()
     }
 # endif
     ;
+  #define Timet_To_Largetime(T,Li) Timet_To_Filetime(T,(FILETIME*)(Li))
 #endif /*__windoze*/
 
 #endif /* C_once_A998DD5F_3579_4977_B115_DCCE42423C49 */

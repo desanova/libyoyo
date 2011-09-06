@@ -564,6 +564,7 @@ void Array_Clear(YOYO_ARRAY *a)
 #endif
   ;
 
+#define Array_Init() Array_Void()
 void *Array_Void(void)
 #ifdef _YOYO_ARRAY_BUILTIN
   {

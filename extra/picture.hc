@@ -34,11 +34,18 @@ in this Software without prior written authorization of the copyright holder.
 
 enum
   {
-    YOYO_RGB8_PICTURE  = __FOUR_CHARS('R',3,'8',0),
-    YOYO_RGBA8_PICTURE = __FOUR_CHARS('R',4,'8','A'),
-    YOYO_BGR8_PICTURE  = __FOUR_CHARS('B',3,'8',0),
-    YOYO_BGRA8_PICTURE = __FOUR_CHARS('B',4,'8','A'),
+    YOYO_PAL8_PICTURE  = __FOUR_CHARS('P',1,'8',0),
     YOYO_RGBAf_PICTURE = __FOUR_CHARS('R',16,'f','A'),
+    YOYO_RGB8_PICTURE  = __FOUR_CHARS('R',3,'8',0),
+    YOYO_RGB5_PICTURE  = __FOUR_CHARS('R',2,'5',0),
+    YOYO_RGB6_PICTURE  = __FOUR_CHARS('R',2,'6',0),
+    YOYO_RGBA8_PICTURE = __FOUR_CHARS('R',4,'8','A'),
+    YOYO_RGB5A1_PICTURE= __FOUR_CHARS('R',2,'5','A'),
+    YOYO_BGR8_PICTURE  = __FOUR_CHARS('B',3,'8',0),
+    YOYO_BGR5_PICTURE  = __FOUR_CHARS('B',2,'5',0),
+    YOYO_BGR6_PICTURE  = __FOUR_CHARS('B',2,'6',0),
+    YOYO_BGRA8_PICTURE = __FOUR_CHARS('B',4,'8','A'),
+    YOYO_BGB5A1_PICTURE= __FOUR_CHARS('B',2,'5','A'),
   };
 
 typedef struct _YOYO_PICTURE
