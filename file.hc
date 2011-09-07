@@ -311,7 +311,7 @@ typedef struct _YOYO_FILE_STATS
 YOYO_FILE_STATS *File_Translate_Filestats(_YOYO_stat *fst,YOYO_FILE_STATS *st,int exists)
 #ifdef _YOYO_FILE_BUILTIN
   {
-    if ( !st ) st = Yo_Malloc(sizeof(YOYO_FILE_STATS));
+    if ( !st ) st = __Malloc(sizeof(YOYO_FILE_STATS));
     memset(st,0,sizeof(*st));
 
     st->f.exists       = exists;
@@ -350,12 +350,16 @@ YOYO_FILE_STATS *File_Get_Stats(char *name,YOYO_FILE_STATS *st,int ignorerr)
     err = stat(name,&fst);
   #endif
     if ( !err || ignorerr )
-      File_Translate_Filestats(&fst,st,!err);
-    if ( err && !ignorerr )              
       {
+        st = File_Translate_Filestats(&fst,st,!err);
+      }
+    else if ( err && !ignorerr )              
+      {
+        int eno = errno;
         if ( st ) memset(st,0,sizeof(*st));
-        if ( errno != ENOENT && errno != ENOTDIR )
-          File_Check_Error("getting stats",0,name,1); 
+        if ( eno == ENOENT || eno == ENOTDIR )
+          __Raise_Format(YOYO_ERROR_DOESNT_EXIST,("file '%s' does not exist",name));
+        File_Check_Error("getting stats",0,name,1); 
       }
     return st;
   }
@@ -447,7 +451,7 @@ enum _YOYO_DIRLIST_FLAGS
     FILE_LIST_FILES = 2,
   };
 
-void *File_List_Directory(char *dirname, unsigned flags)
+YOYO_ARRAY *File_List_Directory(char *dirname, unsigned flags)
 #ifdef _YOYO_FILE_BUILTIN
   {
   #ifdef __windoze
@@ -472,7 +476,10 @@ void *File_List_Directory(char *dirname, unsigned flags)
                   int m = fdtw.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY ?
                     FILE_LIST_DIRECTORIES : FILE_LIST_FILES;
                   if ( m & flags )
-                    Array_Push(L,Str_Unicode_To_Utf8_Npl(fdtw.cFileName));
+                    {
+                      char *name = Str_Unicode_To_Utf8_Npl(fdtw.cFileName);
+                      Array_Push(L,name);
+                    }
                 }
             while( FindNextFileW(hfnd,&fdtw) );
             FindClose(hfnd);
@@ -1064,11 +1071,11 @@ void File_Check_Access_Is_Satisfied(char *path, uint_t access)
 #ifdef _YOYO_FILE_BUILTIN
   {
     YOYO_FILE_STATS st = {0};
-    File_Get_Stats(path,&st,0);
-
+    File_Get_Stats(path,&st,1);
+    
     if ( (access & YOYO_FILE_CREATE_PATH) && !st.f.exists )
       Create_Required_Dirs(path);
-      
+    
     if ( st.f.exists )
       if (st.f.is_directory )
         __Raise_Format(YOYO_ERROR_IO,("file '%s' is directory",path));

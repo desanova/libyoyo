@@ -40,6 +40,7 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 /* caseinsensitive strcmp, returns 0 if equal */
+#define Str_Ansi_Equal_Nocase(Cs,Ct) (!strcmp_I(Cs,Ct))
 int strcmp_I(char *cs, char *ct)
 #ifdef _YOYO_STRING_BUILTIN
   {
@@ -47,6 +48,21 @@ int strcmp_I(char *cs, char *ct)
     do 
       {
         q = Toupper(*cs) - Toupper(*ct++);
+      }
+    while ( *cs++ && !q );
+    return q;
+  }
+#endif
+  ;
+
+#define Str_Unicode_Compare_Nocase(Cs,Ct) wcscmp_I(Cs,Ct)
+int wcscmp_I(wchar_t *cs, wchar_t *ct)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int q = 0;
+    do 
+      {
+        q = towupper(*cs) - towupper(*ct++);
       }
     while ( *cs++ && !q );
     return q;
@@ -69,6 +85,19 @@ int strncmp_I(char *cs, char *ct, int l)
 #endif
   ;
 
+int wcsncmp_I(wchar_t *cs, wchar_t *ct, int l)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int q = 0;
+    if ( l ) do 
+      {
+        q = towupper(*cs) - towupper(*ct++);
+      }
+    while ( *cs++ && !q && --l );
+    return q;
+  }    
+#endif
+  ;
 
 int Str_Length(char *S)
 #ifdef _YOYO_STRING_BUILTIN

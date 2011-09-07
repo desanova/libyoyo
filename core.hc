@@ -1575,7 +1575,9 @@ void Error_Exit(char *pfx)
   #endif
       StdErr_Print_Nl(Yo_Error_Format_Btrace());
     
-    if ( YOYO_ERROR_IS_USER_ERROR(code) )
+    if ( code == YOYO_ERROR_USER )
+      StdErr_Print_Nl(Yo_Format(__yoTa("\n%s: %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
+    else if ( YOYO_ERROR_IS_USER_ERROR(code) )
       StdErr_Print_Nl(Yo_Format(__yoTa("\n%s(%d): %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
     else
       StdErr_Print_Nl(Yo_Format(__yoTa("\n%s(%08x): %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
@@ -1595,6 +1597,7 @@ void Error_Exit(char *pfx)
 #define __Refe(Ptr)                     Yo_Refe(Ptr)
 #define __Unrefe(Ptr)                   Yo_Unrefe(Ptr)
 #define __Raise(Err,Msg)                Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
+#define __Raise_User_Error(Msg)         Yo_Raise(YOYO_ERROR_USER,Msg,__Yo_FILE__,__LINE__)
 #define __Raise_Format(Err,Fmt)         Yo_Raise(Err,(Yo_Format Fmt),__Yo_FILE__,__LINE__)
 #define __Raise_If_Occured()            Yo_Raise_If_Occured()
 #define __Fatal(Ctx)                    Yo_Fatal(YOYO_FATAL_ERROR,Ctx,__Yo_FILE__,__LINE__)
