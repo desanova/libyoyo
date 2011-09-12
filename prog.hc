@@ -229,7 +229,6 @@ int Prog_Init(int argc, char **argv, char *patt, unsigned flags)
             wchar_t *buf = __Malloc((256+1)*sizeof(wchar_t));
             GetModuleFileNameW(0,buf,L);
             Prog_Nam_S = Str_Unicode_To_Utf8_Npl(buf);
-            printf("appname: %d, %s\n",L,Prog_Nam_S);
           }
       #else
         Prog_Nam_S = __Retain(Path_Fullname(argv[0]));

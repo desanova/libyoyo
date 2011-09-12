@@ -202,7 +202,7 @@ char *Format_Cpu_Info(YOYO_CPUINFO *cpui)
 #endif
   ;
   
-char *Get_Target_OS()
+char *Get_OS_Target()
 #ifdef _YOYO_UNAME_BUILTIN
   {
   #ifdef __windoze 
@@ -246,7 +246,7 @@ char *Get_OS_Name()
           if ( osinfo.wProductType == VER_NT_WORKSTATION ) osname = "Windows 7";
           else osname = "Windows Server 2008 R2";
         else
-          osname = __Format("Unknwon Windows %d.%d",Maj,Min);
+          osname = __Format("Unknown Windows %d.%d",Maj,Min);
         osname = __Format("%s build %d",osname,osinfo.dwBuildNumber);
         if ( osinfo.szCSDVersion[0] )
           osname = __Format("%s (%s)",osname,osinfo.szCSDVersion);

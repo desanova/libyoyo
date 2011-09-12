@@ -43,10 +43,10 @@ enum
   };
 #endif
 
-int LZSS_Search_Index(char **table_L, char**iE, char* val, int strong, int *p_l, int maxl)
+int LZSS_Search_Index(char **table_S, char**iE, char* val, int strong, int *p_l, int maxl)
 #ifdef _YOYO_LZSS_BUILTIN
   {
-    char **iS = table_L;
+    char **iS = table_S;
     int len = iE - iS;
     int half;
     char ** middle;
@@ -73,7 +73,7 @@ int LZSS_Search_Index(char **table_L, char**iE, char* val, int strong, int *p_l,
       {
         char **p = iS-1;
         for ( l = 0; l < maxl && (*iS)[l] == val[l]; ) ++l;
-        if ( p >= table_L && strong == 2 )
+        if ( p >= table_S && strong == 2 )
           {
             for ( ll = 0; ll < maxl && (*p)[ll] == val[ll]; ) ++ll;
             if ( ll > l ) iS = p, l = ll;
@@ -88,7 +88,7 @@ int LZSS_Search_Index(char **table_L, char**iE, char* val, int strong, int *p_l,
         STRICT_REQUIRE ( iS != iE );
 
         if ( *k != val )
-          for ( ; k >= table_L ; --k ) if (*k == val || **k != *val) break;
+          for ( ; k > table_S ; --k ) if (*k == val || **k != *val) break;
         if ( *k != val )
           for ( k = iS ; k != iE ; ++k ) if (*k == val || **k != *val) break;
         if ( *k == val )
@@ -98,7 +98,7 @@ int LZSS_Search_Index(char **table_L, char**iE, char* val, int strong, int *p_l,
     STRICT_REQUIRE ( strong!=1 || *iS == val );
     STRICT_REQUIRE ( !l || memcmp(val,*iS,l) == 0 );
     if ( p_l ) *p_l = l;
-    return iS-table_L;
+    return iS-table_S;
   }
 #endif
   ;

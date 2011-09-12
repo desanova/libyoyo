@@ -481,6 +481,17 @@ quad_t Pe_Get_ImageBase(void *pe)
 #endif
   ;
 
+quad_t Pe_Get_SizeOfImage(void *pe)
+#ifdef _YOYO_PEFILE_BUILTIN
+  {
+    if ( Is_PE_32(pe) )
+      return Pe_GET_NTH_32(pe)->OptionalHeader.SizeOfImage;
+    else
+      return Pe_GET_NTH_64(pe)->OptionalHeader.SizeOfImage;
+  }
+#endif
+  ;
+  
 PE_DATA_DIRECTORY *Pe_Get_Dir(void *pe, int idx)
 #ifdef _YOYO_PEFILE_BUILTIN
   {

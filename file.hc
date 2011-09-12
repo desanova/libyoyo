@@ -1569,6 +1569,53 @@ void *Buffer_As_File(YOYO_BUFFER *bf)
 #endif
   ;
 
+void YOYO_MEMORY_FILE_Destruct(YOYO_BUFFER_FILE *file)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    free(file->bf);
+    __Destruct(file);
+  }
+#endif
+  ;
+
+int Memory_File_Write(YOYO_BUFFER_FILE *f, void *buf, int count, int min_count)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    if (f->bf->count < f->offs + count )
+      __Raise(YOYO_ERROR_OUT_OF_RANGE,"out of memory range");
+    memcpy(f->bf->at+f->offs,buf,count);
+    f->offs += count;
+    return count;
+  }
+#endif
+  ;
+
+void *Memory_As_File(void *mem, int mem_len)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,    YOYO_MEMORY_FILE_Destruct},
+        {Oj_Close_OjMID,       Buffer_File_Close},
+        {Oj_Read_OjMID,        Buffer_File_Read},
+        {Oj_Write_OjMID,       Memory_File_Write},
+        {Oj_Available_OjMID,   Buffer_File_Available},
+        {Oj_Eof_OjMID,         Buffer_File_Eof},
+        {Oj_Length_OjMID,      Buffer_File_Length},
+        {Oj_Seek_OjMID,        Buffer_File_Seek},
+        {Oj_Tell_OjMID,        Buffer_File_Tell},
+        {0}
+      };
+      
+    YOYO_BUFFER_FILE *file = __Object(sizeof(YOYO_BUFFER_FILE),funcs);
+    file->bf = __Zero_Malloc_Npl(sizeof(YOYO_BUFFER));
+    file->bf->at = mem;
+    file->bf->count = mem_len;
+    return file;
+  }
+#endif
+  ;
+
 void Oj_Print(void *foj, char *S)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -1590,6 +1637,23 @@ void Oj_Printf(void *foj, char *fmt, ...)
         text = __Pool(Yo_Format_(fmt,va));
         va_end(va);
         Oj_Print(foj,text);
+      }
+  }
+#endif
+  ;
+
+void Oj_Fill(void *fobj, byte_t val, int count)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    byte_t bf[512];
+    
+    REQUIRE(count >= 0);
+    memset(bf,val,sizeof(bf));
+    while ( count > 0 )
+      {
+        int L = Yo_MIN(count,sizeof(bf));
+        Oj_Write_Full(fobj,bf,L);
+        count -= L;
       }
   }
 #endif

@@ -39,7 +39,7 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 /* markers */
-#define __Acquire /* a function acquire the ownership of argument */
+#define __Acquire /* a function acquires the ownership of argument */
 
 #ifndef __yoTa
 # define __yoTa(Text,NumId) Text
@@ -65,13 +65,20 @@ in this Software without prior written authorization of the copyright holder.
 #include <math.h>
 #include <locale.h>
 
-#if defined __WIN32 || defined _MSC_VER || defined __MINGW32_VERSION
+#if defined _WIN32 || defined _MSC_VER || defined __MINGW32_VERSION
 # define __windoze
+# if !defined __i386 && !defined __x86_64
+#  ifdef _M_IX86
+#   define __i386
+#  elif defined _M_AMD64
+#   define __x86_64
+#  else
+#   error "unknown processor"
+#  endif
+# endif
 # if !defined _WINDOWS_
-#  if !defined _X86_ 
-#   if !defined __x86_64 && !defined __i386__
-#     define _X86_ 1
-#   endif
+#  if !defined _X86_ && defined __i386
+#   define _X86_ 1
 #  endif
 # endif
 # if !defined WINVER

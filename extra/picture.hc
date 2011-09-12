@@ -105,10 +105,6 @@ typedef struct _YOYO_BGR8
     byte_t r;
   } YOYO_BGR8;
 
-//YOYO_PICTURE *Pict_Convert(YOYO_PICTURE *pict, int format)
-//  {
-//  }
-
 #ifdef __windoze
 HBITMAP Pict_Create_HBITMAP(YOYO_PICTURE *pict)
 #ifdef _YOYO_PICTURE_BUILTIN
