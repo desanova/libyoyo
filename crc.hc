@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_A1549AAE_F443_4982_AFD4_F5BE02C14DE6
 #define C_once_A1549AAE_F443_4982_AFD4_F5BE02C14DE6
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_CRC_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 uint_t    Crc_32(uint_t crc, void *, int len);
 ushort_t  Crc_16(ushort_t crc, void *, int len);

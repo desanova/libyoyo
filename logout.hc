@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_9629B105_86D6_4BF5_BAA2_62AB1ACE54EC
 #define C_once_9629B105_86D6_4BF5_BAA2_62AB1ACE54EC
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_LOGOUT_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "file.hc"
 
 enum 
@@ -44,10 +48,12 @@ enum
 #ifdef _YOYO_LOGOUT_BUILTIN
 static clock_t YOYO_Log_Clock = 0;
 static int YOYO_Log_Line_No = 0;
-static int YOYO_Log_Level = YOYO_LOG_ERROR;
 static int YOYO_Log_Fd = -1;
 static int YOYO_Log_Opt = 0;
+int YOYO_Log_Level = YOYO_LOG_ERROR;
 /* static int YOYO_Log_Pid = 0; */
+#else
+int YOYO_Log_Level;
 #endif
 
 enum
@@ -56,6 +62,7 @@ enum
     YOYO_LOG_PID       = 1 << 17,
     YOYO_LOG_DATEMARK  = 1 << 18,
     YOYO_LOG_LINENO    = 1 << 19,
+    YOYO_LOG_LEVEL     = 1 << 20,
   };
   
 void Close_Log()
@@ -102,9 +109,6 @@ void Set_Logout_Opt(int opt)
 #endif
   ;
 
-#define Logerr(Text)  Logout(YOYO_LOG_ERROR,Text)
-#define Logwarn(Text) Logout(YOYO_LOG_WARN,Text)
-#define Loginfo(Text) Logout(YOYO_LOG_INFO,Text)
 void Logout(int level, char *text)
 #ifdef _YOYO_LOGOUT_BUILTIN  
   {
@@ -121,8 +125,19 @@ void Logout(int level, char *text)
                 {
                   YOYO_Log_Clock = t;
                   sprintf(mark, "%%clocks%% %.3f\n",(double)YOYO_Log_Clock/CLOCKS_PER_SEC);
-                  Write_Out(YOYO_Log_Fd,mark,strlen(mark));
+                  Write_Out(log_fd,mark,strlen(mark));
                 }
+            }
+          if ( YOYO_Log_Opt & (YOYO_LOG_LEVEL) )
+            {
+              if ( level == YOYO_LOG_ERROR )
+                Write_Out(log_fd,"{error} ",8);
+              else if ( level == YOYO_LOG_WARN )
+                Write_Out(log_fd,"{warn!} ",8);
+              else if ( level == YOYO_LOG_INFO )
+                Write_Out(log_fd,"{info!} ",8);
+              else
+                Write_Out(log_fd,"{debug} ",8);
             }
           if ( YOYO_Log_Opt & (YOYO_LOG_DATEMARK|YOYO_LOG_PID|YOYO_LOG_LINENO) )
             {
@@ -141,8 +156,8 @@ void Logout(int level, char *text)
                   time_t t = time(0);
                   struct tm *tm = localtime(&t);
                   if ( i > 1 ) mark[i++] = ':';
-                  i += sprintf(mark+i,"%02d%02d%04d/%02d:%02d",
-                          tm->tm_mday,tm->tm_mon+1,tm->tm_year+1900,
+                  i += sprintf(mark+i,"%02d%02d%02d/%02d:%02d",
+                          tm->tm_mday,tm->tm_mon+1,(tm->tm_year+1900)%100,
                           tm->tm_hour,tm->tm_min);
                 }
               mark[i++] = ']';
@@ -175,6 +190,51 @@ void Logoutf(int level, char *fmt, ...)
   }
 #endif
   ;
-  
+
+#define Log_Info if (YOYO_Log_Level<YOYO_LOG_INFO); else Log_Info_
+void Log_Info_(char *fmt, ...)
+#ifdef _YOYO_LOGOUT_BUILTIN  
+  {
+    va_list va;
+    char *text;
+    va_start(va,fmt);
+    text = Yo_Format_(fmt,va);
+    Logout(YOYO_LOG_INFO,text);
+    free(text);
+    va_end(va);
+  }
+#endif
+  ;
+
+#define Log_Warning if (YOYO_Log_Level<YOYO_LOG_ERROR); else Log_Warning_
+void Log_Warning_(char *fmt, ...)
+#ifdef _YOYO_LOGOUT_BUILTIN  
+  {
+    va_list va;
+    char *text;
+    va_start(va,fmt);
+    text = Yo_Format_(fmt,va);
+    Logout(YOYO_LOG_WARN,text);
+    free(text);
+    va_end(va);
+  }
+#endif
+  ;
+
+/*#define Log_Error if (YOYO_Log_Level<YOYO_LOG_ERROR); else Log_Error_*/
+void Log_Error(char *fmt, ...)
+#ifdef _YOYO_LOGOUT_BUILTIN  
+  {
+    va_list va;
+    char *text;
+    va_start(va,fmt);
+    text = Yo_Format_(fmt,va);
+    Logout(YOYO_LOG_ERROR,text);
+    free(text);
+    va_end(va);
+  }
+#endif
+  ;
+
 #endif /* C_once_9629B105_86D6_4BF5_BAA2_62AB1ACE54EC */
 

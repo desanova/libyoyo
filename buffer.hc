@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_29A1C0D6_2792_4035_8D0E_9DB1797A4120
 #define C_once_29A1C0D6_2792_4035_8D0E_9DB1797A4120
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_BUFFER_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 /* string.hc */
 char *Str_Hex_Byte(byte_t val,char pfx,void *out);

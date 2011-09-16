@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_44A7F9A5_269A_48D5_AABB_F08291F9087B
 #define C_once_44A7F9A5_269A_48D5_AABB_F08291F9087B
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_ARRAY_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 #ifdef _YOYO_ARRAY_BUILTIN
 # define _YOYO_ARRAY_BUILTIN_CODE(Code) Code

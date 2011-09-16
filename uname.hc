@@ -30,6 +30,13 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_B6590472_37D1_4589_84F6_BFC339C3E407
 #define C_once_B6590472_37D1_4589_84F6_BFC339C3E407
 
+#ifdef _LIBYOYO
+#define _YOYO_UNAME_BUILTIN
+#endif
+
+#include "yoyo.hc"
+#include "string.hc"
+
 typedef struct _YOYO_CPUINFO
   {
     char id[16];
@@ -39,6 +46,7 @@ typedef struct _YOYO_CPUINFO
     unsigned stepping;
     unsigned revision;
     unsigned number;
+    unsigned L2k;
     unsigned FPU:1;
     unsigned MMX:1;
     unsigned MMX2:1;
@@ -135,7 +143,7 @@ int Get_Cpu_Info(YOYO_CPUINFO *cpui)
     if ( r[3] & C32_BIT(25) ) cpui->SSE = 1;
     if ( r[3] & C32_BIT(26) ) cpui->SSE2 = 1;
     if ( r[3] & C32_BIT(28) ) cpui->HTT = 1;
-    if ( r[3] & C32_BIT(30) ) cpui->X64 = 1;
+    if ( r[3] & C32_BIT(29) ) cpui->X64 = 1;
     if ( r[3] & C32_BIT(8) )  cpui->CX8 = 1;
     if ( r[3] & C32_BIT(7) )  cpui->MSR = 1;
 
@@ -149,6 +157,9 @@ int Get_Cpu_Info(YOYO_CPUINFO *cpui)
     cpuid(0x80000002,(void*)cpui->tag);
     cpuid(0x80000003,(void*)(cpui->tag+16));
     cpuid(0x80000004,(void*)(cpui->tag+32));
+    
+    cpuid(0x80000006,r);
+    cpui->L2k = r[2] >> 16;
     
     for ( i = 1; i < 64 && cpui->tag[i] ; ) {
       if ( cpui->tag[i] == cpui->tag[i-1] && cpui->tag[i] == ' ')
@@ -179,13 +190,15 @@ char *Format_Cpu_Info(YOYO_CPUINFO *cpui)
         int i = 0;
         char *Q[32] = {0};
         
-        if ( cpui->FPU )   Q[i++] = "fpu";
-        if ( cpui->MMX )   Q[i++] = "mmx";
-        if ( cpui->MMX2 )  Q[i++] = "mmx2";
-        if ( cpui->SSE )   Q[i++] = "sse";
-        if ( cpui->SSE2 )  Q[i++] = "sse2";
-        if ( cpui->SSE3 )  Q[i++] = "sse3";
-        if ( cpui->SSSE3 ) Q[i++] = "ssse3";
+        if (0);
+        else if ( cpui->SSSE3 ) Q[i++] = "ssse3";
+        else if ( cpui->SSE3 )  Q[i++] = "sse3";
+        else if ( cpui->SSE2 )  Q[i++] = "sse2";
+        else if ( cpui->SSE )   Q[i++] = "sse";
+        else if ( cpui->MMX2 )  Q[i++] = "mmx2";
+        else if ( cpui->MMX )   Q[i++] = "mmx";
+        else if ( cpui->FPU )   Q[i++] = "fpu";
+        
         if ( cpui->HTT )   Q[i++] = "htt";
         if ( cpui->EST )   Q[i++] = "est";
         if ( cpui->PAE )   Q[i++] = "pae";
@@ -194,7 +207,9 @@ char *Format_Cpu_Info(YOYO_CPUINFO *cpui)
         if ( cpui->MSR )   Q[i++] = "msr";
         if ( cpui->RDRND ) Q[i++] = "rdrnd";
 
-        ret = __Format("%s {%s} %s",cpui->id,Str_Join_Q(' ',Q),cpui->tag);
+        ret = __Format("%s /%d {%s} L2/%dk",
+          (cpui->tag[0]?cpui->tag:cpui->id),
+          cpui->number,Str_Join_Q(' ',Q),cpui->L2k);
       }
       
     return ret;

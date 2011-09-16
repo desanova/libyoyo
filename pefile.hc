@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_EA617668_2E48_4AC6_9079_699B387A0662
 #define C_once_EA617668_2E48_4AC6_9079_699B387A0662
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_PEFILE_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 // The Machine field has one of the following values that specifies its CPU type. 
 // An image file can be run only on the specified machine or on a system that emulates the specified machine.

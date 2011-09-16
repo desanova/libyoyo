@@ -36,7 +36,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_88F44E4C_C507_47B8_A162_CBEC13D572DA
 #define C_once_88F44E4C_C507_47B8_A162_CBEC13D572DA
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_AES_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "cipher.hc"
 #include "md5.hc"
 #include "sha2.hc"

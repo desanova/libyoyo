@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_1F19AF84_9BBE_46CC_87A4_8252243D7219
 #define C_once_1F19AF84_9BBE_46CC_87A4_8252243D7219
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_CIPHER_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 #ifdef _YOYO_CIPHER_BUILTIN
 # define _YOYO_CIPHER_BUILTIN_CODE(Code) Code

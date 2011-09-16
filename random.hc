@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_FF657866_8205_4CAE_9D01_65B8583E9D19
 #define C_once_FF657866_8205_4CAE_9D01_65B8583E9D19
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_RANDOM_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "sha1.hc"
 
 #ifdef __windoze
@@ -75,12 +79,9 @@ void Soft_Random(byte_t *bits, int count)
               {
                 rnd_ct[1] = clock();
                 rnd_ct[2] = (rnd_ct[2] + ((quad_t)count ^ (longptr_t)bits)) >> 1;
-              #ifdef _SOFTRND_ADDENTRPY  
-                rnd_ct[2] ^= (*(quad_t*)((byte_t*)&count - 256) ^  *(quad_t*)((byte_t*)&count + 256)) + 1;
-              #endif
                 Sha1_Digest(rnd_ct,sizeof(rnd_ct),rnd_bits);
                 ++rnd_ct[3];
-                rnd_bcont = 20;
+                rnd_bcont = sizeof(rnd_bits);
               }
             *bits++ = rnd_bits[--rnd_bcont];
             --count;

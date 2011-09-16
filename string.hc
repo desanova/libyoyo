@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48
 #define C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_STRING_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "array.hc"
 
 #ifdef _YOYO_STRING_BUILTIN
@@ -718,6 +722,20 @@ char *Utf8_Skip(char *S,int l)
 #endif
   ;
 
+wchar_t *Str_Utf8_To_Unicode_Convert(char *S, wchar_t *out, int maxL)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i = 0;
+    if ( S )
+      {
+        for(; *S && i < maxL; ) { out[i++] = Utf8_Get_Wide(&S); }
+      }
+    if ( i < maxL ) out[i] = 0;
+    return out;
+  }
+#endif
+  ;
+  
 #define Str_Utf8_To_Unicode(S) Yo_Pool(Str_Utf8_To_Unicode_Npl(S))
 wchar_t *Str_Utf8_To_Unicode_Npl(char *S)
 #ifdef _YOYO_STRING_BUILTIN

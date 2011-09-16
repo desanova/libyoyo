@@ -35,7 +35,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_18F7EAA7_0DBC_4720_BA4A_7E0B1A9A5B1E
 #define C_once_18F7EAA7_0DBC_4720_BA4A_7E0B1A9A5B1E
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_SHA2_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 typedef struct _YOYO_SHA2
   {

@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_9570D5A2_F57C_4879_851D_6EC6959C9420
 #define C_once_9570D5A2_F57C_4879_851D_6EC6959C9420
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_LZSS_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "buffer.hc"
 
 #ifdef _YOYO_LZSS_BUILTIN

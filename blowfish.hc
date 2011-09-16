@@ -35,7 +35,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_A87E119A_8C55_442C_94CE_F1B2DF0121AD
 #define C_once_A87E119A_8C55_442C_94CE_F1B2DF0121AD
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_BLOWFISH_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "cipher.hc"
 #include "md5.hc"
 

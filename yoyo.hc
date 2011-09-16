@@ -31,6 +31,10 @@ in this Software without prior written authorization of the copyright holder.
 #define C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C
 #define YOYO_CORE_VERSION 1000
 
+#ifdef _LIBYOYO
+#define _YOYO_CORE_BUILTIN
+#endif
+
 #if defined _MSC_VER && _MSC_VER > 1400
 #pragma warning(disable:4996) /*The POSIX name for this item is deprecated*/
 # ifndef _CRT_SECURE_NO_WARNINGS

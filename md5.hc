@@ -42,7 +42,11 @@ or this function.
 #ifndef C_once_C5021104_5DB9_4FCC_BAFC_AFB22BD458D3
 #define C_once_C5021104_5DB9_4FCC_BAFC_AFB22BD458D3
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_MD5_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 typedef struct _YOYO_MD5
   {

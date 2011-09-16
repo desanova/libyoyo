@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_A998DD5F_3579_4977_B115_DCCE42423C49
 #define C_once_A998DD5F_3579_4977_B115_DCCE42423C49
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_DATETIME_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 typedef quad_t datetime_t;
 

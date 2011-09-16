@@ -27,22 +27,16 @@ in this Software without prior written authorization of the copyright holder.
 
 */
 
-#ifndef C_once_9C09BC1E_F80E_4C2D_8EF5_8B6E388D7975
-#define C_once_9C09BC1E_F80E_4C2D_8EF5_8B6E388D7975
+#ifndef C_once_3A7D4289_5FF7_457F_8D0E_024E0C80AEF2
+#define C_once_3A7D4289_5FF7_457F_8D0E_024E0C80AEF2
 
-#include "yoyo.hc"
-#include "logout.hc"
-#include "crc.hc"
-#include "dicto.hc"
-#include "array.hc"
-#include "buffer.hc"
-#include "string.hc"
-#include "prog.hc"
-#include "file.hc"
-#include "random.hc"
-#include "xdata.hc"
-#include "defpars.hc"
-#include "datetime.hc"
+#include "cipher.hc"
+#include "md5.hc"
+#include "sha1.hc"
+#include "sha2.hc"
+#include "blowfish.hc"
+#include "aes.hc"
+#include "newdes96.hc"
 
-#endif /* C_once_9C09BC1E_F80E_4C2D_8EF5_8B6E388D7975 */
+#endif /* C_once_3A7D4289_5FF7_457F_8D0E_024E0C80AEF2 */
 

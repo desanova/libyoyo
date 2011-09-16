@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_750A77B2_260B_4E33_B9EA_15F01DDD61FF
 #define C_once_750A77B2_260B_4E33_B9EA_15F01DDD61FF
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_DEFPARS_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "string.hc"
 #include "buffer.hc"
 #include "xdata.hc"
@@ -99,8 +103,11 @@ char *Def_Parse_Get_Literal(YOYO_DEFPARSE_STATE *st)
     else
       {
         char *q = st->text;
-        while ( *st->text && !Isspace(*st->text) && *st->text != ')' 
-              && *st->text != '}' && *st->text != ',' && *st->text != ']' && *st->text != '=' )
+        while ( *st->text && !Isspace(*st->text) 
+              && *st->text != '(' && *st->text != ')' 
+              && *st->text != '{' && *st->text != '}'
+              && *st->text != '[' && *st->text != ']'  
+              && *st->text != ',' && *st->text != '=' )
           ++st->text;
         __Vector_Append(&out,&len,&capacity,q,st->text-q);
       }

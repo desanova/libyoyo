@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_EC2E6B0C_F482_4C6B_8955_074DA127943C
 #define C_once_EC2E6B0C_F482_4C6B_8955_074DA127943C
 
-#include "../libyoyo.hc"
+#ifdef _LIBYOYO
+#define _YOYO_X86DIS_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 typedef struct _YOYO_X86_INST
   {

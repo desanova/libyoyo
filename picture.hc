@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_E194EBE7_E43F_4305_A75C_3872532B12DB
 #define C_once_E194EBE7_E43F_4305_A75C_3872532B12DB
 
-#include "../libyoyo.hc"
+#ifdef _LIBYOYO
+#define _YOYO_PICTURE_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 enum
   {

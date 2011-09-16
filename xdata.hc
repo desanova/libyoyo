@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_E46D6A8A_889E_4AE9_9F89_5B0AB5263C95
 #define C_once_E46D6A8A_889E_4AE9_9F89_5B0AB5263C95
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_XDATA_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "string.hc"
 #include "dicto.hc"
 
@@ -252,6 +256,8 @@ int Xvalue_Get_Bool(YOYO_XVALUE *val, int dfltval)
         {
           case XVALUE_OPT_VALTYPE_INT:
             return val->dec?1:0;
+          case XVALUE_OPT_VALTYPE_BOOL:
+            return val->bval;
           case XVALUE_OPT_VALTYPE_FLT:          
             return val->flt?1:0;
           case XVALUE_OPT_VALTYPE_STR:
@@ -903,7 +909,7 @@ YOYO_XVALUE *Xnode_Match_Value(YOYO_XNODE *node, char *patt)
 #endif
   ;
 
-int Xnode_Opt_Of_Value(void *node, char *valtag)
+int Xnode_Opt_Of_Value(YOYO_XNODE *node, char *valtag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -915,7 +921,7 @@ int Xnode_Opt_Of_Value(void *node, char *valtag)
   ;
   
 
-long Xnode_Value_Get_Int(void *node, char *valtag, long dfltval)
+long Xnode_Value_Get_Int(YOYO_XNODE *node, char *valtag, long dfltval)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -924,7 +930,7 @@ long Xnode_Value_Get_Int(void *node, char *valtag, long dfltval)
 #endif
   ;
   
-void Xnode_Value_Set_Int(void *node, char *valtag, long i)
+void Xnode_Value_Set_Int(YOYO_XNODE *node, char *valtag, long i)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,1);
@@ -933,7 +939,25 @@ void Xnode_Value_Set_Int(void *node, char *valtag, long i)
 #endif
   ;
   
-double Xnode_Value_Get_Flt(void *node, char *valtag, double dfltval)
+int Xnode_Value_Get_Bool(YOYO_XNODE *node, char *valtag, int dfltval)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
+    return Xvalue_Get_Bool(val,dfltval);
+  }
+#endif
+  ;
+  
+void Xnode_Value_Set_Bool(YOYO_XNODE *node, char *valtag, int i)
+#ifdef _YOYO_XDATA_BUILTIN
+  {
+    YOYO_XVALUE *val = Xnode_Value(node,valtag,1);
+    Xvalue_Set_Bool(val,i);
+  }
+#endif
+  ;
+
+double Xnode_Value_Get_Flt(YOYO_XNODE *node, char *valtag, double dfltval)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -942,7 +966,7 @@ double Xnode_Value_Get_Flt(void *node, char *valtag, double dfltval)
 #endif
   ;
   
-void Xnode_Value_Set_Flt(void *node, char *valtag, double d)
+void Xnode_Value_Set_Flt(YOYO_XNODE *node, char *valtag, double d)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,1);
@@ -951,7 +975,7 @@ void Xnode_Value_Set_Flt(void *node, char *valtag, double d)
 #endif
   ;
   
-char *Xnode_Value_Get_Str(void *node, char *valtag, char *dfltval)
+char *Xnode_Value_Get_Str(YOYO_XNODE *node, char *valtag, char *dfltval)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -960,7 +984,7 @@ char *Xnode_Value_Get_Str(void *node, char *valtag, char *dfltval)
 #endif
   ;
   
-char *Xnode_Value_Copy_Str(void *node, char *valtag, char *dfltval)
+char *Xnode_Value_Copy_Str(YOYO_XNODE *node, char *valtag, char *dfltval)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -969,7 +993,7 @@ char *Xnode_Value_Copy_Str(void *node, char *valtag, char *dfltval)
 #endif
   ;
   
-void Xnode_Value_Set_Str(void *node, char *valtag, char *S)
+void Xnode_Value_Set_Str(YOYO_XNODE *node, char *valtag, char *S)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val;
@@ -979,7 +1003,7 @@ void Xnode_Value_Set_Str(void *node, char *valtag, char *S)
 #endif
   ;
   
-void Xnode_Value_Put_Str(void *node, char *valtag, __Acquire char *S)
+void Xnode_Value_Put_Str(YOYO_XNODE *node, char *valtag, __Acquire char *S)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val;
@@ -990,7 +1014,7 @@ void Xnode_Value_Put_Str(void *node, char *valtag, __Acquire char *S)
 #endif
   ;
   
-void Xnode_Value_Put_Binary(void *node,char *valtag, YOYO_BUFFER *bf)
+void Xnode_Value_Put_Binary(YOYO_XNODE *node,char *valtag, YOYO_BUFFER *bf)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -999,7 +1023,7 @@ void Xnode_Value_Put_Binary(void *node,char *valtag, YOYO_BUFFER *bf)
 #endif
   ;
 
-void Xnode_Value_Set_Binary(void *node,char *valtag, void *data, int len)
+void Xnode_Value_Set_Binary(YOYO_XNODE *node,char *valtag, void *data, int len)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -1008,7 +1032,7 @@ void Xnode_Value_Set_Binary(void *node,char *valtag, void *data, int len)
 #endif
   ;
   
-YOYO_BUFFER *Xnode_Value_Get_Binary(void *node,char *valtag)
+YOYO_BUFFER *Xnode_Value_Get_Binary(YOYO_XNODE *node,char *valtag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);
@@ -1017,7 +1041,7 @@ YOYO_BUFFER *Xnode_Value_Get_Binary(void *node,char *valtag)
 #endif
   ;
   
-YOYO_BUFFER *Xnode_Value_Copy_Binary(void *node,char *valtag)
+YOYO_BUFFER *Xnode_Value_Copy_Binary(YOYO_XNODE *node,char *valtag)
 #ifdef _YOYO_XDATA_BUILTIN
   {
     YOYO_XVALUE *val = Xnode_Value(node,valtag,0);

@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_AF69CAD4_02C8_492E_9C13_B69483693E5F
 #define C_once_AF69CAD4_02C8_492E_9C13_B69483693E5F
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_PROG_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "dicto.hc"
 #include "array.hc"
 #include "string.hc"

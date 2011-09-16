@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_C5685DBF_3A67_41C0_895B_A26B0D757AE7
 #define C_once_C5685DBF_3A67_41C0_895B_A26B0D757AE7
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_WINREG_BUILTIN
+#endif
+
+#include "yoyo.hc"
 
 #ifdef __windoze
 #include "string.hc"

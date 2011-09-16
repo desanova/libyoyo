@@ -30,6 +30,10 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_324CA35F_3399_4699_91FD_FC523999882D
 #define C_once_324CA35F_3399_4699_91FD_FC523999882D
 
+#ifdef _LIBYOYO
+#define _YOYO_PICTPNG_BUILTIN
+#endif
+
 #include "picture.hc"
 
 #ifdef _YOYO_PICTPNG_BUILTIN

@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_E9479D04_5D69_4A1A_944F_0C99A852DC0B
 #define C_once_E9479D04_5D69_4A1A_944F_0C99A852DC0B
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_FILE_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "string.hc"
 #include "buffer.hc"
 #include "random.hc"
@@ -391,7 +395,7 @@ int File_Exists(char *name)
   _YOYO_FILE_BUILTIN_CODE({YOYO_FILE_STATS st={0}; return File_Get_Stats(name,&st,1)->f.exists;});
 int File_Is_Regular(char *name)
   _YOYO_FILE_BUILTIN_CODE({YOYO_FILE_STATS st={0}; return File_Get_Stats(name,&st,0)->f.is_regular;});
-int File_Is_Direcory(char *name)
+int File_Is_Directory(char *name)
   _YOYO_FILE_BUILTIN_CODE({YOYO_FILE_STATS st={0}; return File_Get_Stats(name,&st,0)->f.is_directory;});
 int File_Is_Writable(char *name)
   _YOYO_FILE_BUILTIN_CODE({YOYO_FILE_STATS st={0}; return File_Get_Stats(name,&st,0)->f.is_writable;});

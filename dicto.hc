@@ -30,7 +30,11 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_38B1FFE7_1462_42EB_BABE_AA8E0BE62203
 #define C_once_38B1FFE7_1462_42EB_BABE_AA8E0BE62203
 
-#include "core.hc"
+#ifdef _LIBYOYO
+#define _YOYO_DICTO_BUILTIN
+#endif
+
+#include "yoyo.hc"
 #include "crc.hc"
 
 typedef struct _YOYO_DICTO_REC
