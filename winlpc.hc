@@ -41,27 +41,9 @@ It was very helpfull!
 #endif
 
 #include "string.hc"
+#include "xntdef.hc"
 #include "winlpc.inc"
 
-int Is_WOW64()
-#ifdef _YOYO_WINLPC_BUILTIN
-  {
-    static int system_is = 0;
-    if ( !system_is )
-      {
-        int (__stdcall *f_IsWow64Process)(HANDLE, int*) = 0;
-        int is_wow64 = 0;
-        f_IsWow64Process = (void *)GetProcAddress(GetModuleHandleA("kernel32.dll"),"IsWow64Process");
-        if ( f_IsWow64Process && f_IsWow64Process( GetCurrentProcess(), &is_wow64 ) && is_wow64 ) 
-          system_is = 64;
-        else
-          system_is = 32;
-      }
-    return system_is == 64;
-  }
-#endif
-  ;
-  
 typedef struct _YOYO_LPCPORT
   {
     HANDLE handle;
@@ -69,6 +51,8 @@ typedef struct _YOYO_LPCPORT
     int    waitable;
   } YOYO_LPCPORT;
 
+#define Lpc_Is_Connected(Port) ((Port)->handle != 0)
+  
 long Lpc_Create_Port(YOYO_LPCPORT *port, char *name, int waitable, int maxsize)
 #ifdef _YOYO_WINLPC_BUILTIN
   {
@@ -128,7 +112,7 @@ long Lpc_Accept_Port_(
   {
     long ntst;
     memset(port,0,sizeof(*port));
-    
+  #ifndef __x86_64
     if ( Is_WOW64() )
       {
         struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rpl64  = {0};
@@ -142,6 +126,7 @@ long Lpc_Accept_Port_(
         ntst = NtAcceptConnectPort(&port->handle, tag, (void*)&rpl64, accept, servmem, clntmem);
       }
     else
+  #endif 
       ntst = NtAcceptConnectPort(&port->handle, tag, rpl, accept, servmem, clntmem);
     if ( !NT_SUCCESS(ntst) ) 
       return ntst;
@@ -182,6 +167,7 @@ long Lpc_Replay_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rpl)
   {
     long ntst;
     REQUIRE( port->handle != 0 );
+  #ifndef __x86_64
     if ( Is_WOW64() )
       {
         struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rpl64  = {0};
@@ -195,6 +181,7 @@ long Lpc_Replay_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rpl)
         ntst = NtReplyPort(port->handle,(void*)&rpl64);
       }
     else
+  #endif
       ntst = NtReplyPort(port->handle,rpl);
     return ntst;
   }
@@ -206,6 +193,7 @@ long Lpc_Request_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst)
   {
     long ntst;
     REQUIRE( port->handle != 0 );
+  #ifndef __x86_64
     if ( Is_WOW64() )
       {
         struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rqst64 = {0};
@@ -215,6 +203,7 @@ long Lpc_Request_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst)
         ntst = NtRequestPort(port->handle,(void*)&rqst64);
       }
     else
+  #endif
       ntst = NtRequestPort(port->handle,rqst);
     return ntst;
   }
@@ -225,6 +214,7 @@ long Lpc_Reply_Wait_Receive_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst, v
 #ifdef _YOYO_WINLPC_BUILTIN
   {
     long ntst;
+  #ifndef __x86_64
     if ( Is_WOW64() )
       {
         struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rqst64 = {0};
@@ -240,6 +230,7 @@ long Lpc_Reply_Wait_Receive_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst, v
         memcpy(rqst+1,rqst64.Data,rqst64.Hdr.DataLength);
       }
     else
+  #endif
       ntst = NtReplyWaitReceivePort(port->handle, ctx, 0, rqst);
     return ntst;
   }
@@ -265,6 +256,7 @@ long Lpc_Request_Wait_Reply_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst, L
 #ifdef _YOYO_WINLPC_BUILTIN
   {
     long ntst;
+  #ifndef __x86_64
     if ( Is_WOW64() )
       {
         struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rqst64 = {0};
@@ -278,6 +270,7 @@ long Lpc_Request_Wait_Reply_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst, L
         memcpy(rpl+1,rpl64.Data,rpl64.Hdr.DataLength);
       }
     else
+  #endif
       ntst = NtRequestWaitReplyPort(port->handle, rqst, rpl);
     return ntst;
   }

@@ -714,5 +714,23 @@ YOYO_BUFFER *Pe_Copy_Rsrc(void *pe)
 #endif
   ;
 
+longptr_t Pe_Get_Executable_Size(void *pe)
+#ifdef _YOYO_PEFILE_BUILTIN
+  {
+    PE_SECTION_HEADER *S = Pe_Get_First_Section(pe);
+    PE_SECTION_HEADER *E = S + Pe_Get_File_Header(pe)->NumberOfSections;
+    
+    --E;
+    for ( ; E >= S; --E )
+      {
+        if ( E->SizeOfRawData && E->PointerToRawData )
+          return Pe_Align_To_File(pe,E->PointerToRawData + E->SizeOfRawData);
+      }
+      
+    return 0;
+  }
+#endif
+  ;
+
 #endif /* C_once_EA617668_2E48_4AC6_9079_699B387A0662 */
 

@@ -322,15 +322,19 @@ _YOYO_STRING_EXTERN char Str_6bit_Encoding_Table[] /* 64 */
 #endif
   ;
 
-char *Str_5bit_Encode(void *data,int len)
+#define Str_5bit_Encode(S,L) Str_Qbit_Encode(S,L,Str_5bit_Encoding_Table,5)
+#define Str_5bit_Encode_Upper(S,L) Str_Qbit_Encode(S,L,Str_5bit_Encoding_Table_Upper,5)
+#define Str_6bit_Encode(S,L) Str_Qbit_Encode(S,L,Str_6bit_Encoding_Table,6)
+
+char *Str_Qbit_Encode(void *data,int len, char *tbl, int btl)
 #ifdef _YOYO_STRING_BUILTIN
   {
     if ( data && len )
       {
-        int rq_len = (len*8+4)/5;
+        int rq_len = (len*8+btl-1)/btl;
         char *out = Yo_Malloc(rq_len+1);
         memset(out,0,rq_len+1);
-        return Str_Xbit_Encode(data,len*8,5,Str_5bit_Encoding_Table,out);
+        return Str_Xbit_Encode(data,len*8,btl,tbl,out);
       }
     return 0;
   }
@@ -378,17 +382,43 @@ _YOYO_STRING_EXTERN byte_t Str_5bit_Decoding_Table[] /* 32 */
 #endif
   ;
 
-void *Str_5bit_Decode(char *S,int *len)
+_YOYO_STRING_EXTERN byte_t Str_6bit_Decoding_Table[] /* 64 */ 
+#ifdef _YOYO_STRING_BUILTIN
+= {
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    0  ,1  ,2  ,3  ,4  ,5  ,6  ,7  ,8  ,9  ,255,255,255,255,255,255,
+    63 ,36 ,37 ,38 ,39 ,40 ,41 ,42 ,43 ,44 ,45 ,46 ,47 ,48 ,49 ,50 ,
+    51 ,52 ,53 ,54 ,55 ,56 ,57 ,58 ,59 ,60 ,61 ,255,255,255,255,62 ,
+    255,10 ,11 ,12 ,13 ,14 ,15 ,16 ,17 ,18 ,19 ,20 ,21 ,22 ,23 ,24 ,
+    25 ,26 ,27 ,28 ,29 ,30 ,31 ,32 ,33 ,34 ,35 ,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+  }
+#endif
+  ;
+
+#define Str_5bit_Decode(S,L) Str_Qbit_Decode(S,L,Str_5bit_Decoding_Table,5)
+#define Str_6bit_Decode(S,L) Str_Qbit_Decode(S,L,Str_6bit_Decoding_Table,6)
+
+void *Str_Qbit_Decode(char *S,int *len,byte_t *tbl,int btl)
 #ifdef _YOYO_STRING_BUILTIN
   {
     int S_len = S ? strlen(S): 0;
-    int rq_len = S_len ? (S_len*5+7)/8 : 0;
+    int rq_len = S_len ? (S_len*btl+7)/8 : 0;
     
     if ( rq_len )
       {
         void *out = Yo_Malloc(rq_len);
         memset(out,0,rq_len);
-        Str_Xbit_Decode(S,S_len,5,Str_5bit_Decoding_Table,out);
+        Str_Xbit_Decode(S,S_len,btl,tbl,out);
         if ( len ) *len = rq_len;
         return out;
       }

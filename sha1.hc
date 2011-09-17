@@ -404,5 +404,16 @@ void Hmac_Sha1_Reset(YOYO_HMAC_SHA1 *hmac)
 #endif
   ;
 
+void *Hmac_Sha1_Digest(void *data, int len, void *key, int key_len, void *digest)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    YOYO_HMAC_SHA1 hmac1;
+    Hmac_Sha1_Start(&hmac1,key,key_len);
+    Sha1_Update(&hmac1.sha1,data,len);
+    return Hmac_Sha1_Finish(&hmac1,digest);
+  }
+#endif
+  ;
+
 #endif /* C_once_1B3E01E2_7457_494E_A17C_3A12388FC4AF */
 

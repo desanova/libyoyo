@@ -30,8 +30,6 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_8EC340EB_8D45_4EA4_A54E_50B89260408C
 #define C_once_8EC340EB_8D45_4EA4_A54E_50B89260408C
 
-#include "xntdef.inc"
-
 enum
   {
     LPC_REQUEST                 = 1,
@@ -71,8 +69,13 @@ typedef struct _LPC_MESSAGE_HEADER64
     ULONGLONG               CallbackId;
   } LPC_MESSAGE_HEADER64, *PLPC_MESSAGE_HEADER64;
 
+#ifdef __x86_64
+typedef LPC_MESSAGE_HEADER64 LPC_MESSAGE_HEADER;
+typedef LPC_MESSAGE_HEADER64 *PLPC_MESSAGE_HEADER;
+#else
 typedef LPC_MESSAGE_HEADER32 LPC_MESSAGE_HEADER;
 typedef LPC_MESSAGE_HEADER32 *PLPC_MESSAGE_HEADER;
+#endif
 
 typedef struct _LPC_TERMINATION_MESSAGE
   {
