@@ -87,7 +87,7 @@ YOYO_BUFFER *Buffer_Grow_Reserve(YOYO_BUFFER *bf,int capacity)
 
     if ( bf->capacity < capacity )
       {
-        capacity = Min_Pow2(capacity+1)-1;
+        capacity = Min_Pow2(capacity);
         bf->at = __Realloc_Npl(bf->at,capacity+1);
         bf->capacity = capacity;
       }

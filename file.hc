@@ -948,14 +948,21 @@ YOYO_BUFFER *Cfile_Read_All(YOYO_CFILE *f)
   {
     if ( Raise_If_Cfile_Is_Not_Opened(f) )
       {
-        void *L;
+        YOYO_BUFFER *L;
         quad_t len = Cfile_Available(f);
+        int i = 0;
         if ( len > INT_MAX )
           Yo_Raise(YOYO_ERROR_IO,
             "file to big to be read in one pass",__Yo_FILE__,__LINE__);
-        L = Buffer_Init((int)len);
-        if ( len )
-          Cfile_Read(f,Buffer_Begin(L),(int)len,(int)len);
+        L = Buffer_Init(0);
+        while ( len ) 
+          /* windoze text mode reads less then available, so we need to read carefully*/
+          {
+            Buffer_Grow_Reserve(L,L->count+(int)len);
+            L->count += Cfile_Read(f,L->at+L->count,(int)len,0);
+            L->at[L->count] = 0;
+            len = Cfile_Available(f);
+          }
         return L;
       }
     return 0;

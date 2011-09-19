@@ -38,6 +38,7 @@ in this Software without prior written authorization of the copyright holder.
 
 #ifdef _YOYO_PICTPNG_BUILTIN
 #include <png.h>
+#include <pngstruct.h>
 
 static void Pict_From_PNG_Read_Data(png_structp png_ptr, void *dest, png_size_t count)
   {

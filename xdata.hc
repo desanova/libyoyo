@@ -808,9 +808,30 @@ YOYO_XNODE *Xnode_Down_If(YOYO_XNODE *node, char *tag_name)
 #endif
   ;
 
-YOYO_XNODE *Xnode_Next_If(YOYO_XNODE *node, char *tag)
+YOYO_XNODE *Xnode_Next_If(YOYO_XNODE *node, char *tag_name)
 #ifdef _YOYO_XDATA_BUILTIN
   {
+    ushort_t tag;
+    YOYO_XNODE *n;
+      
+    n = Xnode_Refacc(node);
+    
+    STRICT_REQUIRE( n );
+    STRICT_REQUIRE( tag_name );
+    STRICT_REQUIRE( (n->opt&XVALUE_OPT_IS_VALUE) == 0 );
+    
+    tag = (ushort_t)(longptr_t)Xdata_Resolve_Name(n->xdata,tag_name,0);
+    
+    if ( tag )
+      {
+        do
+          n = Xnode_Next(n);
+        while ( n && n->tag != tag );
+      
+        if ( n && n->tag == tag )
+          return n;
+      }
+    
     return 0;
   }
 #endif

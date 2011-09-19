@@ -109,39 +109,6 @@ typedef struct _YOYO_BGR8
     byte_t r;
   } YOYO_BGR8;
 
-#ifdef __windoze
-HBITMAP Pict_Create_HBITMAP(YOYO_PICTURE *pict)
-#ifdef _YOYO_PICTURE_BUILTIN
-  {
-    struct BI
-      {
-        BITMAPINFOHEADER ihdr;
-        RGBQUAD quad[4];
-      } bi = { {0}, {{0xff,0,0,0},{0,0xff,0,0}, {0,0,0xff,0}, {0,0,0,0xff}} };
-    HDC dc;
-    HBITMAP bmp;
-    bi.ihdr.biSize = sizeof(BITMAPINFOHEADER);
-    bi.ihdr.biWidth  = pict->width;
-    bi.ihdr.biHeight = -pict->height;
-    bi.ihdr.biPlanes = 1;
-    bi.ihdr.biBitCount = pict->weight*8;
-    bi.ihdr.biCompression = BI_BITFIELDS;
-    bi.ihdr.biSizeImage = 0;
-    if ( (pict->format & 0xff) == 'B' ) 
-      {
-        RGBQUAD quad[3] = {{0,0,0xff,0},{0,0xff,0,0},{0xff,0,0,0}};
-        memcpy(bi.quad,quad,sizeof(quad));
-      }
-    dc  = GetDC(0);
-    bmp = CreateCompatibleBitmap(dc,pict->width,pict->height);
-    SetDIBits(dc,bmp,0,pict->height,pict->pixels,(BITMAPINFO*)&bi,DIB_RGB_COLORS);
-    ReleaseDC(0,dc);
-    return bmp;
-  }
-#endif
-  ;
-#endif
-
 YOYO_RGBA8 Pict_Get_RGBA8_Pixel(byte_t *ptr, int format)
 #ifdef _YOYO_PICTURE_BUILTIN
   {
@@ -153,7 +120,7 @@ YOYO_RGBA8 Pict_Get_RGBA8_Pixel(byte_t *ptr, int format)
         rgba.r = ((YOYO_RGB8*)ptr)->r;
         rgba.g = ((YOYO_RGB8*)ptr)->g;
         rgba.b = ((YOYO_RGB8*)ptr)->b;
-        rgba.a = 0;
+        rgba.a = 0xff;
         return rgba;
       }
     else if ( format == YOYO_BGR8_PICTURE )
@@ -162,7 +129,7 @@ YOYO_RGBA8 Pict_Get_RGBA8_Pixel(byte_t *ptr, int format)
         rgba.r = ((YOYO_BGR8*)ptr)->r;
         rgba.g = ((YOYO_BGR8*)ptr)->g;
         rgba.b = ((YOYO_BGR8*)ptr)->b;
-        rgba.a = 0;
+        rgba.a = 0xff;
         return rgba;
       }
     else if ( format == YOYO_BGRA8_PICTURE )
@@ -323,6 +290,25 @@ void Pict_Allocate_Buffer(YOYO_PICTURE *pict)
 #endif
   ;
   
+void Pict_Nullify_Transpoarent_Pixels(YOYO_PICTURE *pict, byte_t threshold)
+#ifdef _YOYO_PICTURE_BUILTIN
+  {
+    if ( pict->format == YOYO_RGBA8_PICTURE || pict->format == YOYO_BGRA8_PICTURE )
+      {
+        int i;
+        for ( i = 0; i < pict->height; ++i )
+          {
+            YOYO_RGBA8 *pixel = (YOYO_RGBA8 *)(pict->pixels+i*pict->pitch);
+            YOYO_RGBA8 *pixelE = pixel+pict->width;
+            for ( ; pixel < pixelE; ++pixel  )
+              if ( pixel->a < threshold ) 
+                memset(pixel,0,sizeof(*pixel));
+          }
+      }
+  }
+#endif
+  ;
+  
 void Pict_Convert_Pixels_Row(byte_t *src, int src_format, byte_t *dst, int dst_format, int count )
 #ifdef _YOYO_PICTURE_BUILTIN
   {
@@ -361,5 +347,42 @@ void Pict_Convert_Pixels_Row(byte_t *src, int src_format, byte_t *dst, int dst_f
 #endif
   ;
   
+#ifdef __windoze
+HBITMAP Pict_Create_HBITMAP(YOYO_PICTURE *pict)
+#ifdef _YOYO_PICTURE_BUILTIN
+  {
+    BITMAPINFOHEADER bi;
+    HDC dc;
+    HBITMAP bmp;
+    byte_t *bits = 0;
+    bi.biSize = sizeof(BITMAPINFOHEADER);
+    bi.biWidth  = pict->width;
+    bi.biHeight = -pict->height;
+    bi.biPlanes = 1;
+    bi.biBitCount = 32;
+    bi.biCompression = BI_RGB;
+    bi.biSizeImage = pict->width * pict->height * 4;
+    dc  = GetDC(0);
+    //bmp = CreateCompatibleBitmap(dc,pict->width,pict->height);
+    //SetDIBits(dc,bmp,0,pict->height,pict->pixels,(BITMAPINFO*)&bi,DIB_RGB_COLORS);
+    bmp = CreateDIBSection(dc, (BITMAPINFO*)&bi, DIB_RGB_COLORS, &bits, 0, 0);
+    if ( pict->format == YOYO_BGRA8_PICTURE )
+      memcpy(bits,pict->pixels,bi.biSizeImage);
+    else
+      {
+        int i;
+        for ( i = 0; i < pict->height; ++i )
+          Pict_Convert_Pixels_Row(
+              pict->pixels+i*pict->pitch,pict->format,
+              bits+pict->width*4*i,YOYO_BGRA8_PICTURE,
+              pict->width);          
+      }
+    ReleaseDC(0,dc);
+    return bmp;
+  }
+#endif
+  ;
+#endif
+
 #endif /* C_once_E194EBE7_E43F_4305_A75C_3872532B12DB */
 

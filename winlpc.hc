@@ -44,6 +44,8 @@ It was very helpfull!
 #include "xntdef.hc"
 #include "winlpc.inc"
 
+enum { WINLPC_MAX_DATA_LENGTH = 256 };
+
 typedef struct _YOYO_LPCPORT
   {
     HANDLE handle;
@@ -115,7 +117,7 @@ long Lpc_Accept_Port_(
   #ifndef __x86_64
     if ( Is_WOW64() )
       {
-        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rpl64  = {0};
+        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[WINLPC_MAX_DATA_LENGTH]; } rpl64  = {0};
         rpl64.Hdr.DataLength  = rpl->DataLength;
         rpl64.Hdr.TotalLength = sizeof(rpl64.Hdr) + rpl->DataLength;
         rpl64.Hdr.ProcessId   = rpl->ProcessId;
@@ -170,7 +172,7 @@ long Lpc_Replay_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rpl)
   #ifndef __x86_64
     if ( Is_WOW64() )
       {
-        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rpl64  = {0};
+        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[WINLPC_MAX_DATA_LENGTH]; } rpl64  = {0};
         rpl64.Hdr.DataLength  = rpl->DataLength;
         rpl64.Hdr.TotalLength = sizeof(rpl64.Hdr) + rpl->DataLength;
         rpl64.Hdr.ProcessId   = rpl->ProcessId;
@@ -196,7 +198,7 @@ long Lpc_Request_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst)
   #ifndef __x86_64
     if ( Is_WOW64() )
       {
-        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rqst64 = {0};
+        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[WINLPC_MAX_DATA_LENGTH]; } rqst64 = {0};
         rqst64.Hdr.DataLength  = rqst->DataLength;
         rqst64.Hdr.TotalLength = sizeof(rqst64.Hdr) + rqst->DataLength;
         memcpy(rqst64.Data,rqst+1,rqst->DataLength);
@@ -217,7 +219,7 @@ long Lpc_Reply_Wait_Receive_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst, v
   #ifndef __x86_64
     if ( Is_WOW64() )
       {
-        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rqst64 = {0};
+        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[WINLPC_MAX_DATA_LENGTH]; } rqst64 = {0};
         ntst = NtReplyWaitReceivePort(port->handle, ctx, 0, (void*)&rqst64);
         rqst->DataLength     = rqst64.Hdr.DataLength;
         rqst->TotalLength    = sizeof(*rqst) + rqst->DataLength;
@@ -259,8 +261,8 @@ long Lpc_Request_Wait_Reply_Port(YOYO_LPCPORT *port, LPC_MESSAGE_HEADER *rqst, L
   #ifndef __x86_64
     if ( Is_WOW64() )
       {
-        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rqst64 = {0};
-        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[256]; } rpl64  = {0};
+        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[WINLPC_MAX_DATA_LENGTH]; } rqst64 = {0};
+        struct { LPC_MESSAGE_HEADER64 Hdr; byte_t Data[WINLPC_MAX_DATA_LENGTH]; } rpl64  = {0};
         rqst64.Hdr.DataLength  = rqst->DataLength;
         rqst64.Hdr.TotalLength = sizeof(rqst64.Hdr) + rqst->DataLength;
         memcpy(rqst64.Data,rqst+1,rqst->DataLength);
