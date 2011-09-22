@@ -1173,7 +1173,7 @@ void Bigint_Generate_Rsa_PQ(
     nMax = Bigint_Sub_Short(Bigint_Lshift(nMax,bits),1);
     nMin = Bigint_Lshift(nMin,bits-1);
 
-    REQUIRE(bits >= 64);
+    REQUIRE(bits >= 33);
     STRICT_REQUIRE(pBits > 0);
     STRICT_REQUIRE(qBits > 0);
     STRICT_REQUIRE(Bigint_Less(nMin,nMax));
@@ -1185,7 +1185,7 @@ void Bigint_Generate_Rsa_PQ(
         p = Bigint_Prime(pBits,0,0,pr);
         q = Bigint_Prime(qBits,0,0,qr);
         n = Bigint_Mul(Bigint_Copy_To(p,nr),q);
-        if ( Bigint_Less(n,nMax) || Bigint_Less(nMin,n) )
+        if ( Bigint_Less(n,nMax) && Bigint_Less(nMin,n) )
           break;
       }
   
@@ -1252,7 +1252,7 @@ void Bigint_Generate_Rsa_Key_Pair(
         int pBits = Get_Random(bits/5,bits/2);
         int qBits = (bits+1)-pBits;
 
-        STRICT_REQUIRE(pBits < bits/2);
+        STRICT_REQUIRE(pBits < bits/2 && pBist > 0 );
         STRICT_REQUIRE(pBits+qBits == bits+1);
 
         n = 0;

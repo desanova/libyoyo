@@ -38,6 +38,15 @@ in this Software without prior written authorization of the copyright holder.
 
 typedef quad_t datetime_t;
 
+uint_t Get_Mclocks()
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+    double c = clock();
+    return (uint_t)((c/CLOCKS_PER_SEC)*1000);
+  }
+#endif
+  ;
+
 uint_t Get_Curr_Date()
 #ifdef _YOYO_DATETIME_BUILTIN
   {
@@ -46,15 +55,6 @@ uint_t Get_Curr_Date()
     time(&t);
     tm = gmtime(&t);
     return (((uint_t)tm->tm_year+1900)<<16)|((uint_t)(tm->tm_mon+1)<<8)|tm->tm_mday;
-  }
-#endif
-  ;
-
-uint_t Get_Mclocks()
-#ifdef _YOYO_DATETIME_BUILTIN
-  {
-    double c = clock();
-    return (uint_t)((c/CLOCKS_PER_SEC)*1000);
   }
 #endif
   ;
@@ -82,11 +82,10 @@ double Get_Sclocks()
 #endif
   ;
 
-quad_t Get_Curr_Datetime()
+quad_t Get_Gmtime_Datetime(time_t t)
 #ifdef _YOYO_DATETIME_BUILTIN
   {
     uint_t msec,dt,mt;
-    time_t t;
     struct tm *tm;
     time(&t);
     tm = gmtime(&t);
@@ -98,6 +97,16 @@ quad_t Get_Curr_Datetime()
 #endif
   ;
 
+quad_t Get_Curr_Datetime()
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+    time_t t;
+    time(&t);
+    return Get_Gmtime_Datetime(t);
+  }
+#endif
+  ;
+
 #define Dt_Hour(Dt) ((int)((Dt)>>24)&0x0ff)
 #define Dt_Min(Dt)  ((int)((Dt)>>16)&0x0ff)
 #define Dt_Sec(Dt)  ((int)((Dt)>> 8)&0x0ff)
@@ -105,6 +114,32 @@ quad_t Get_Curr_Datetime()
 #define Dt_Year(Dt) ((int)((Dt)>>(32+16))&0x0ffff)
 #define Dt_Mon(Dt)  ((int)((Dt)>>(32+ 8))&0x0ff)
 #define Dt_Mday(Dt) ((int)((Dt)>>(32+ 0))&0x0ff)
+
+quad_t Get_Datetime(uint_t year, uint_t month, uint_t day, uint_t hour, uint_t minute, uint_t segundo )
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+    uint_t dt = ((year%0x0ffff)<<16)|((month%13)<<8)|(day%32);
+    uint_t mt = ((hour%24)<<24)|((minute%60)<<16)|((segundo%60)<<8);
+    return ((quad_t)dt << 32)|(quad_t)mt;
+  }
+#endif
+  ;
+  
+time_t Get_Posix_Datetime(quad_t dtime)
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+    struct tm tm;
+    memset(&tm,0,sizeof(tm));
+    tm.tm_year = Dt_Year(dtime)-1900;
+    tm.tm_mon  = Dt_Mon(dtime)-1;
+    tm.tm_mday = Dt_Mday(dtime);
+    tm.tm_hour = Dt_Hour(dtime);
+    tm.tm_min  = Dt_Min(dtime);
+    return mktime(&tm);
+  }
+#endif
+  ;
+
 
 #ifdef __windoze
   void Timet_To_Filetime(time_t t, FILETIME *pft)

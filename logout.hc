@@ -42,6 +42,7 @@ enum
     YOYO_LOG_ERROR   = 0,
     YOYO_LOG_WARN    = 10,
     YOYO_LOG_INFO    = 20,
+    YOYO_LOG_DEBUG   = 50,
     YOYO_LOG_ALL     = 100,
   };
 
@@ -191,6 +192,22 @@ void Logoutf(int level, char *fmt, ...)
 #endif
   ;
 
+#define Log_Debug if (YOYO_Log_Level<YOYO_LOG_DEBUG); else Log_Debug_
+void Log_Debug_(char *fmt, ...)
+#ifdef _YOYO_LOGOUT_BUILTIN  
+  {
+    va_list va;
+    char *text;
+    va_start(va,fmt);
+    text = Yo_Format_(fmt,va);
+    Logout(YOYO_LOG_DEBUG,text);
+    free(text);
+    va_end(va);
+  }
+#endif
+  ;
+
+
 #define Log_Info if (YOYO_Log_Level<YOYO_LOG_INFO); else Log_Info_
 void Log_Info_(char *fmt, ...)
 #ifdef _YOYO_LOGOUT_BUILTIN  
@@ -206,7 +223,7 @@ void Log_Info_(char *fmt, ...)
 #endif
   ;
 
-#define Log_Warning if (YOYO_Log_Level<YOYO_LOG_ERROR); else Log_Warning_
+#define Log_Warning if (YOYO_Log_Level<YOYO_LOG_WARN); else Log_Warning_
 void Log_Warning_(char *fmt, ...)
 #ifdef _YOYO_LOGOUT_BUILTIN  
   {

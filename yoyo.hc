@@ -1693,6 +1693,7 @@ void Error_Exit(char *pfx)
   if ( 1 ) goto YOYO_LOCAL_ID(__gogo); \
   else YOYO_LOCAL_ID(__gogo):
 
+#define __Elm_Resize_Npl(MemPptr,L,Width,CpsPtr) Yo_Elm_Resize_Npl((void**)MemPptr,L,Width,CpsPtr)
 void Yo_Elm_Resize_Npl(void **inout, int L, int type_width, int *capacity_ptr)
 #ifdef _YOYO_CORE_BUILTIN
   {

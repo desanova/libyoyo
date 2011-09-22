@@ -785,6 +785,21 @@ wchar_t *Str_Utf8_To_Unicode_Npl(char *S)
 #endif
   ;
 
+char *Str_Unicode_To_Utf8_Convert(wchar_t *S, char *out, int maxL)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i = 0;
+    if ( S )
+      {
+        for(; *S && i + Utf8_Wide_Length(*S) < maxL; ) 
+          { Utf8_Wide_Encode(out+i,*S++,&i); }
+      }
+    if ( i < maxL ) out[i] = 0;
+    return out;
+  }
+#endif
+  ;
+
 #define Str_Unicode_To_Utf8(S) Yo_Pool(Str_Unicode_To_Utf8_Npl(S))  
 char *Str_Unicode_To_Utf8_Npl(wchar_t *S)
 #ifdef _YOYO_STRING_BUILTIN
@@ -1360,6 +1375,7 @@ int Str_Unicode_Search_( wchar_t *S, int L, wchar_t *patt, int pattL, int nocase
 #endif
   ;
   
+/* #define Str_Search_Nocase(S,Patt) Str_Search_Nocase_(S,-1,Patt,-1,1) */
 #define Str_Search(S,Patt) Str_Search_(S,-1,Patt,-1)
 int Str_Search_( char *S, int L, char *patt, int pattL )
 #ifdef _YOYO_STRING_BUILTIN
@@ -1386,7 +1402,38 @@ int Str_Search_( char *S, int L, char *patt, int pattL )
 #endif
   ;
 
-#define Str_Search_Nocase(S,Patt) Str_Search_Nocase_(S,-1,Patt,-1,1)
+#define Str_Replace_Npl(S,Patt,Val) Str_Replace_Npl_(S,-1,Patt,-1,Val,-1)
+#define Str_Replace(S,Patt,Val) __Pool(Str_Replace_Npl_(S,-1,Patt,-1,Val,-1))
+char *Str_Replace_Npl_(char *S, int L, char *patt, int pattL, char *val, int valL)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    int i;
+    char *R = 0;
+    int R_count = 0;
+    int R_capacity = 0;
+    
+    if ( pattL < 0 ) pattL = patt?strlen(patt):0;
+    if ( valL < 0 ) valL = val?strlen(val):0;
+    
+    __Elm_Resize_Npl(&R, 32, 1, &R_capacity);
+    
+    if ( pattL )
+      while ( 0 <= (i = Str_Search_(S,L,patt,pattL)) )
+        {
+          if ( i )
+            R_count += __Elm_Append_Npl(&R,R_count,S,i,1,&R_capacity);
+          if ( valL )
+            R_count += __Elm_Append_Npl(&R,R_count,val,valL,1,&R_capacity);
+          L -= i+pattL; S += i+pattL;
+        }
+    
+    if ( L )
+      __Elm_Append_Npl(&R,R_count,S,L,1,&R_capacity);
+    
+    return R;
+  }
+#endif
+  ;
 
 #define Str_Unicode_Replace_Npl(S,Patt,Val) Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,0)
 #define Str_Unicode_Replace_Nocase_Npl(S,Patt,Val) __Pool(Str_Unicode_Replace_Npl_(S,-1,Patt,-1,Val,-1,1))
@@ -1400,14 +1447,18 @@ wchar_t *Str_Unicode_Replace_Npl_(wchar_t *S, int L, wchar_t *patt, int pattL, w
     int R_count = 0;
     int R_capacity = 0;
     
-    while ( 0 <= (i = Str_Unicode_Search_(S,L,patt,pattL,nocase)) )
-      {
-        if ( i )
-          R_count += __Elm_Append_Npl(&R,R_count,S,i,sizeof(wchar_t),&R_capacity);
-        if ( valL )
-          R_count += __Elm_Append_Npl(&R,R_count,val,valL,sizeof(wchar_t),&R_capacity);
-        S += i+pattL; L -= i+pattL;
-      }
+    if ( pattL < 0 ) pattL = patt?wcslen(patt):0;
+    if ( valL < 0 ) valL = val?wcslen(val):0;
+    
+    if ( pattL )
+      while ( 0 <= (i = Str_Unicode_Search_(S,L,patt,pattL,nocase)) )
+        {
+          if ( i )
+            R_count += __Elm_Append_Npl(&R,R_count,S,i,sizeof(wchar_t),&R_capacity);
+          if ( valL )
+            R_count += __Elm_Append_Npl(&R,R_count,val,valL,sizeof(wchar_t),&R_capacity);
+          S += i+pattL; L -= i+pattL;
+        }
     
     if ( L )
       __Elm_Append_Npl(&R,R_count,S,L,sizeof(wchar_t),&R_capacity);
