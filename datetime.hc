@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -87,7 +87,6 @@ quad_t Get_Gmtime_Datetime(time_t t)
   {
     uint_t msec,dt,mt;
     struct tm *tm;
-    time(&t);
     tm = gmtime(&t);
     msec = Get_Mclocks();
     dt = (((uint_t)tm->tm_year+1900)<<16)|(((uint_t)tm->tm_mon+1)<<8)|tm->tm_mday;
@@ -140,15 +139,34 @@ time_t Get_Posix_Datetime(quad_t dtime)
 #endif
   ;
 
-
+#define Get_System_Millis() (Get_System_Useconds()/1000)
+quad_t Get_System_Useconds()
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+  #ifdef __windoze
+    SYSTEMTIME systime = {0};
+    FILETIME   ftime;
+    quad_t Q;
+    GetSystemTime(&systime);
+    SystemTimeToFileTime(&systime,&ftime);
+    Q = ((quad_t)ftime.dwHighDateTime << 32) + (quad_t)ftime.dwLowDateTime;
+    return Q/10;
+  #else
+    struct timeval tv = {0};
+    gettimeofday(&tv,0);
+    return  ( (quad_t)tv.tv_sec * 1000*1000 + (quad_t)tv.tv_usec );
+  #endif
+  }
+#endif
+  ;
+  
 #ifdef __windoze
   void Timet_To_Filetime(time_t t, FILETIME *pft)
 # ifdef _YOYO_DATETIME_BUILTIN
     {
-      LONGLONG ll;
-      ll = Int32x32To64(t, 10000000) + 116444736000000000;
+      quad_t ll = (quad_t)t * 10000000 + 116444736000000000LL;
       pft->dwLowDateTime = (DWORD)ll;
-      pft->dwHighDateTime = ll >> 32;
+      pft->dwHighDateTime = (DWORD)(ll >> 32);
     }
 # endif
     ;

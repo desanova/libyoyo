@@ -5,7 +5,7 @@
 // http://www.ietf.org/rfc/rfc1321.txt
 
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,7 @@ typedef struct _YOYO_MD5
     uint_t state[4];   /* state (ABCD) */
     uint_t count[2];   /* number of bits, modulo 2^64 (lsb first) */
     int    finished;
-    byte_t buffer[64]; /* input buffer */
+    byte_t buffer[64];
   } YOYO_MD5;
 
 typedef YOYO_MD5 YOYO_MD5_SIGNER;

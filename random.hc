@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person ornd_bcontaining a copy
 of this software and associated documentation files (the "Software"), to deal

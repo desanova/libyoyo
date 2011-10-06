@@ -66,7 +66,7 @@ enum
     X86DIS_A16_PREFIX  = -9,
   };
 
-static ioct_t X86dis_Opcodes_Info[256] =
+static short X86dis_Opcodes_Info[256] =
   {
     // 00
     /*ADD*/ X86DIS_HAS_MODRM, X86DIS_HAS_MODRM, X86DIS_HAS_MODRM, X86DIS_HAS_MODRM, 1, 4,
@@ -345,7 +345,7 @@ static short X86dis_Opcodes_0f[256] =
 int X86_Inst_Length(void *inst_ptr,YOYO_X86_INST *out_info)
 #ifdef _YOYO_X86DIS_BUILTIN
   {
-    ioct_t code_info;
+    short code_info;
     int o_16 = 0, a_16 = 0;
     byte_t *op = inst_ptr;
     YOYO_X86_INST info;
@@ -463,7 +463,7 @@ int X86_Steal_Five_Bytes(byte_t *code, byte_t *f)
           f += ifn.rOffs_rel;
         else
           {
-            memcopy(code+orign_len,f+orign_len,l);
+            memcpy(code+orign_len,f+orign_len,l);
 
             if ( ifn.is_rjmp )
               {

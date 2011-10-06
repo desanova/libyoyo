@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -144,7 +144,7 @@ char *Path_Unique_Name(char *dirname,char *pfx, char *sfx)
   }
 #endif
   ;
-  
+
 char *Path_Join(char *dir, char *name)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -272,7 +272,6 @@ void File_Check_Error(char *op, FILE *f, char *fname, int look_to_errno)
   ;
 
 #define Raise_If_File_Error(Op,Fname) File_Check_Error(Op,0,Fname,1)
-  
 
 typedef struct _YOYO_FILE_STATS
   {
@@ -950,7 +949,6 @@ YOYO_BUFFER *Cfile_Read_All(YOYO_CFILE *f)
       {
         YOYO_BUFFER *L;
         quad_t len = Cfile_Available(f);
-        int i = 0;
         if ( len > INT_MAX )
           Yo_Raise(YOYO_ERROR_IO,
             "file to big to be read in one pass",__Yo_FILE__,__LINE__);

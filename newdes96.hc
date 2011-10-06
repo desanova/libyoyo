@@ -7,7 +7,7 @@
 // -  Originally published in Cryptologia, Jan. 1985
 //
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -186,6 +186,15 @@ void NEWDES96_Decrypt8(YOYO_NEWDES96 *self, void *d)
 #endif
   ;
 
+YOYO_NEWDES96 *NEWDES96_Init_Static(YOYO_NEWDES96 *self, void *key, int key_len)
+#ifdef _YOYO_NEWDES96_BUILTIN
+  {
+    memcpy(self->key,key,Yo_MIN(key_len,sizeof(self->key)));
+    return self;
+  }
+#endif
+  ;
+
 void *NEWDES96_Init(void *key, int key_len)
 #ifdef _YOYO_NEWDES96_BUILTIN
   {
@@ -195,13 +204,11 @@ void *NEWDES96_Init(void *key, int key_len)
         {Oj_Encrypt8_OjMID, NEWDES96_Encrypt8},
         {Oj_Decrypt8_OjMID, NEWDES96_Decrypt8},
         {0}};
-    YOYO_NEWDES96 *cipher = Yo_Object(sizeof(YOYO_NEWDES96),funcs);
-    memcpy(cipher->key,key,Yo_MIN(key_len,sizeof(cipher->key)));
-    return cipher;
+    YOYO_NEWDES96 *self = Yo_Object(sizeof(YOYO_NEWDES96),funcs);
+    return NEWDES96_Init_Static(self, key, key_len);
   }
 #endif
   ;
-
 void *NEWDES96_Object_Init_With_Text_Key(char *Skey)
 #ifdef _YOYO_NEWDES96_BUILTIN
   {

@@ -1,5 +1,6 @@
 
 #include "../libyoyo.hc"
+#include "../bigint.hc"
 
 enum { MAX_ITER_COUNT = 3 };
 
@@ -15,6 +16,8 @@ int main(int argc, char **argv)
     Bigint_Rshift_1(data);
     //data = Bigint_Random(bits-1);
     puts(Bigint_Encode_16(data));
+    
+    __Raise_User_Error("test");
     
     for ( i = 0; i < MAX_ITER_COUNT; ++i ) __Auto_Release
       {

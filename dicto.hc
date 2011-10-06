@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -53,8 +53,10 @@ typedef struct _YOYO_DICTO
   } YOYO_DICTO;
 
 
+#define Dicto_Hash_1(Key) Crc_8_Of_Cstr(Key)
 #define Dicto_Count(Dicto) ((int)((YOYO_DICTO*)(Dicto))->count+0)
-  void Dicto_Rehash(YOYO_DICTO *o);
+
+void Dicto_Rehash(YOYO_DICTO *o);
 
 #ifdef _YOYO_DICTO_BUILTIN  
 int Dicto_Width_Values[] = {5,11,23,47,97,181,256};
@@ -92,7 +94,7 @@ YOYO_DICTO_REC *Dicto_Allocate(char *key)
     int keylen = strlen(key);
     YOYO_DICTO_REC *Q = Yo_Malloc_Npl(sizeof(YOYO_DICTO_REC) + keylen);
     memcpy(Q->key,key,keylen+1);
-    Q->hashcode = Crc_8_Of_Cstr(key);
+    Q->hashcode = Dicto_Hash_1(key);
     Q->next = 0;
     Q->ptr = 0;
     return Q;
@@ -105,7 +107,7 @@ void *Dicto_Get(YOYO_DICTO *o, char *key, void *dflt)
   {
     if ( key )
       {
-        byte_t hashcode = Crc_8_Of_Cstr(key);
+        byte_t hashcode = Dicto_Hash_1(key);
         YOYO_DICTO_REC *Q = *Dicto_Backet(o,hashcode,key);
         if ( Q )
           return Q->ptr;
@@ -120,7 +122,7 @@ void *Dicto_Get_Key_Ptr(YOYO_DICTO *o, char *key)
   {
     if ( key )
       {
-        byte_t hashcode = Crc_8_Of_Cstr(key);
+        byte_t hashcode = Dicto_Hash_1(key);
         YOYO_DICTO_REC *Q = *Dicto_Backet(o,hashcode,key);
         if ( Q )
           return Q->key;
@@ -135,7 +137,7 @@ int Dicto_Has(YOYO_DICTO *o, char *key)
   {
     if ( key )
       {
-        byte_t hashcode = Crc_8_Of_Cstr(key);
+        byte_t hashcode = Dicto_Hash_1(key);
         if ( *Dicto_Backet(o,hashcode,key) )
           return 1;
       }
@@ -149,7 +151,7 @@ void *Dicto_Put(YOYO_DICTO *o, char *key, void *val)
   {
     if ( key )
       {
-        byte_t hashcode = Crc_8_Of_Cstr(key);
+        byte_t hashcode = Dicto_Hash_1(key);
         YOYO_DICTO_REC **Q = Dicto_Backet(o,hashcode,key);
         if ( *Q )
           {
@@ -183,7 +185,7 @@ void Dicto_Del(YOYO_DICTO *o, char *key)
   {
     if ( key )
       {
-        byte_t hashcode = Crc_8_Of_Cstr(key);
+        byte_t hashcode = Dicto_Hash_1(key);
         YOYO_DICTO_REC **Q = Dicto_Backet(o,hashcode,key);
         if ( *Q )
           {
@@ -208,7 +210,7 @@ void *Dicto_Take_Npl(YOYO_DICTO *o, char *key)
   {
     if ( key )
       {
-        byte_t hashcode = Crc_8_Of_Cstr(key);
+        byte_t hashcode = Dicto_Hash_1(key);
         YOYO_DICTO_REC **Q = Dicto_Backet(o,hashcode,key);
         if ( *Q )
           {

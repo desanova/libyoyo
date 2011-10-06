@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -107,7 +107,24 @@ typedef struct _OBJECT_ATTRIBUTES {
 } OBJECT_ATTRIBUTES;
 typedef OBJECT_ATTRIBUTES *POBJECT_ATTRIBUTES;
 
+long __stdcall NtAllocateVirtualMemory(
+  HANDLE process,
+  VOID **baseaddr,
+  ULONG zerobits,
+  ULONG *size,
+  ULONG alloc_type,
+  ULONG page_attributes);
+
 void __stdcall NtClose(HANDLE);
+
+long __stdcall NtCreateSection(
+  HANDLE *handle,
+  ULONG access,
+  OBJECT_ATTRIBUTES *oa,
+  LARGE_INTEGER *maxsize,
+  ULONG page_attributes,
+  ULONG sect_attributes,
+  HANDLE FileHandle);
 
 long __stdcall NtUnmapViewOfSection( 
   HANDLE ProcessHandle,
@@ -127,6 +144,23 @@ long __stdcall NtMapViewOfSection(
   ULONG AllocationType,
   ULONG Win32Protect);
 
+long __stdcall NtCreateKey(
+  HANDLE *KeyHandle,
+  ACCESS_MASK DesiredAccess,
+  OBJECT_ATTRIBUTES *ObjectAttributes,
+  ULONG TitleIndex,
+  UNICODE_STRING *Class,
+  ULONG CreateOptions,
+  ULONG *Disposition);
+
+long __stdcall NtOpenKey(
+  HANDLE *KeyHandle,
+  ACCESS_MASK DesiredAccess,
+  OBJECT_ATTRIBUTES *ObjectAttributes);
+  
+long __stdcall NtDeleteKey(
+  HANDLE *KeyHandle);
+  
 typedef struct _PEB_LDR_DATA 
   {
     ULONG                   Length;
@@ -362,10 +396,12 @@ XPEB *Query_PEB()
 #endif
   ;
 
-IMAGE_NT_HEADERS *GET_NT_HEADERS(void *p)
+#define GET_NT_HEADERS(p) ((IMAGE_NT_HEADERS *)((byte_t*)p + ((IMAGE_DOS_HEADER*)p)->e_lfanew))
+
+IMAGE_NT_HEADERS *Get_Nt_Headers(void *p)
 #ifdef _YOYO_XNTDEF_BUILTIN
   {
-    return (IMAGE_NT_HEADERS *)((byte_t*)p + ((IMAGE_DOS_HEADER*)p)->e_lfanew);
+    return GET_NT_HEADERS(p);
   }
 #endif
   ;

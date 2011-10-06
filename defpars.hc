@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -397,8 +397,10 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
 
                 nn = Xnode_Append(n,name);
                 Xnode_Value_Set_Str(nn,"@",dflt);
+                name = 0;
               }
-              
+            
+            
             if ( *st->text == '=' )
               {
                 ++st->text;
@@ -418,7 +420,10 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
               }
             else if ( value.type )
               {
-                Def_Parse_In_Node_Set_Value(n,name,&value);
+                if ( name || !nn )
+                  Def_Parse_In_Node_Set_Value(n,name,&value);
+                else
+                  Def_Parse_In_Node_Set_Value(nn,"$",&value);
               }
               
           }

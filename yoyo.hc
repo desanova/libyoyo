@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,14 @@ THE SOFTWARE.
 Except as contained in this notice, the name of a copyright holder shall not
 be used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization of the copyright holder.
+
+*/
+
+/*
+
+  If using GNU bintools:
+    
+    Don't foget to use -rdynamic to see symbols in backtrace!
 
 */
 
@@ -50,7 +58,18 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 #define __FOUR_CHARS(C1,C2,C3,C4) ((uint_t)(C4)<<24)|((uint_t)(C3)<<16)|((uint_t)(C2)<<8)|((uint_t)(C1))
-#define __USE_GNU
+
+#if defined __linux__
+#define _GNU_SOURCE
+#elif defined __NetBSD__
+#define _NETBSD_SOURCE
+#elif defined __FreeBSD__
+/* __BSD_VISIBLE defined by default! */
+#endif
+
+#ifdef _TREADS
+#define _REENTRANT
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -94,14 +113,12 @@ in this Software without prior written authorization of the copyright holder.
 # include <objbase.h>
 # include <io.h>
 # include <malloc.h> /* alloca */
-# define backtrace(Ptrs,Lim) (0)
 #else
+# include <sys/time.h>
 # include <unistd.h>
 # include <dlfcn.h>
-# if defined __APPLE__
-#   include <execinfo.h> /* backtrace */
-# else
-#   define backtrace(Ptrs,Lim) (0)
+# ifdef _THREADS
+#   include <pthreads.h>
 # endif
 # if defined __APPLE__
 #   include <malloc/malloc.h> /* malloc_size */
@@ -113,6 +130,19 @@ in this Software without prior written authorization of the copyright holder.
 # else 
 #   define malloc_size(Ptr) malloc_usable_size(Ptr)
 # endif
+#endif
+
+#if defined __APPLE__ || defined __linux__
+# include <execinfo.h> /* backtrace */
+#elif defined __windoze
+# include <imagehlp.h>
+# define snprintf _snprintf
+  int backtrace( void **cbk, int count );
+#elif defined __GNUC__
+# include <unwind.h>
+  int backtrace( void **cbk, int count );
+#else
+# define backtrace(Cbk,Count) (0)
 #endif
 
 #define Isspace(x)   isspace((unsigned)(x))
@@ -287,17 +317,31 @@ void _Yo_Raise(int err,char *msg,char *filename,int lineno);
 # define Yo_Atomic_Decrement(Ptr) (--*(Ptr))
 # define Yo_Atomic_CmpXchg(Ptr,Val,Comp) ( *(Ptr) == (Comp) ? (*(Ptr) = (Val), 1) : 0 )
 # define Yo_Atomic_CmpXchg_Ptr(Ptr,Val,Comp) ( *(Ptr) == (Comp) ? (*(Ptr) = (Val), 1) : 0 )
-# define Yo_Wait_Xchg_Lock(Ptr)
-# define Yo_Xchg_Unlock(Ptr)  
+
 # define YO_TLS_DEFINE(Name)  void * volatile Name = 0
 # define YO_TLS_DECLARE(Name) extern void * volatile Name
 # define Yo_Tls_Set(Name,Val) ((Name) = (Val))
 # define Yo_Tls_Get(Name)     (Name)
+
 # define YO_MULTITHREADED(Expr)
+
 # define __Xchg_Interlock if (0) {;} else
 # define __Xchg_Sync(Lx)  if (0) {;} else
+# define Yo_Wait_Xchg_Lock(Ptr)
+# define Yo_Xchg_Unlock(Ptr)  
 
+# define __Mtx_Sync(Mtx)  if (0) {;} else
+
+#else /* -D _THREADS */
+
+#ifdef __windoze
 #else
+# ifdef __GNUC__
+# else
+# endif
+#endif
+
+# define YO_MULTITHREADED(Expr) Expr
 
 # define _xchg_YOYO_LOCAL_LX static int volatile YOYO_LOCAL_ID(lx)
 # define _xchg_YOYO_LOCAL_ID_REF &YOYO_LOCAL_ID(lx)
@@ -314,6 +358,10 @@ void _Yo_Raise(int err,char *msg,char *filename,int lineno);
 
 void Yo_Xchg_Unlock_Proc(int volatile *p) _YOYO_CORE_BUILTIN_CODE({Yo_Atomic_CmpXchg(p,0,1);});
 
+# define __Mtx_Sync(Mtx) \
+              __Interlock_Opt(((void)0),Mtx, \
+                  Yo_Wait_Mtx_Lock,Yo_Mtx_Unlock,Yo_Mtx_Unlock_Proc)
+
 #endif
 
 #define REQUIRE(Expr) \
@@ -328,7 +376,7 @@ void Yo_Xchg_Unlock_Proc(int volatile *p) _YOYO_CORE_BUILTIN_CODE({Yo_Atomic_Cmp
 # define STRICT_CHECK(Expr) (1)
 #endif /* _STRICT */
 
-#if defined _X86 || defined __i386 || defined __x86_64
+#if defined __i386 || defined __x86_64
 #define Four_To_Unsigned(Four)  (*(uint_t*)(Four))
 #else
 uint_t Four_To_Unsigned(void *b)
@@ -344,7 +392,7 @@ uint_t Four_To_Unsigned(void *b)
   ;
 #endif
 
-#if defined _X86 || defined __i386 || defined __x86_64
+#if defined __i386 || defined __x86_64
 #define Unsigned_To_Four(Uval,Four) ((*(uint_t*)(Four)) = (Uval))
 #else
 void Unsigned_To_Four(uint_t q, void *b)
@@ -1445,9 +1493,6 @@ char *Yo__basename(char *S)
 char *Yo_Btrace_Format(int frames, void **cbk)
 #ifdef _YOYO_CORE_BUILTIN
   {
-  #ifdef __windoze
-    return __yoTa("--backtrace--",0);
-  #elif !defined __linux__
     int  max_bt = 4096;
     char *bt = Yo_Malloc(max_bt);
     char *bt_p = bt;
@@ -1460,6 +1505,24 @@ char *Yo_Btrace_Format(int frames, void **cbk)
     
     for ( i = 0; i < frames; ++i )
       {
+      #ifdef __windoze
+        int dif = 0;
+        char c = '+';
+        int l = snprintf(bt_p,max_bt,__yoTa("\n %-2d=> %s %c%x (%p at %s)",0),
+           i,
+           "", 
+           c, 
+           dif>0?dif:-dif,
+           cbk[i],
+           Yo__basename("basename"));
+
+        if ( l > 0 )
+          {
+            max_bt -= l;
+            bt_p += l;
+          }
+
+      #else
         Dl_info dlinfo = {0};
         if ( dladdr(cbk[i], &dlinfo) )
           {
@@ -1478,12 +1541,10 @@ char *Yo_Btrace_Format(int frames, void **cbk)
                 bt_p += l;
               }
           }
+      #endif
       }
     
     return bt;
-  #else
-    return __yoTa("--backtrace--",0);
-  #endif
   }
 #endif
   ;
@@ -1491,16 +1552,52 @@ char *Yo_Btrace_Format(int frames, void **cbk)
 char *Yo_Btrace(void)
 #ifdef _YOYO_CORE_BUILTIN
   {
-  #ifdef __windoze
-    return __yoTa("--backtrace--",0);
-  #else
     void *cbk[128] = {0};
     int frames = backtrace(cbk,127);
     return Yo_Btrace_Format(frames,cbk);
-  #endif
   }
 #endif
   ;
+
+#if defined __windoze  && defined _YOYO_CORE_BUILTIN
+
+int backtrace( void **cbk, int count )
+  {
+    return 0;
+  }
+  
+#elif defined __GNUC__ && defined _YOYO_CORE_BUILTIN \
+    && !(defined __APPLE__ || defined __linux__) 
+
+typedef struct _YOYO_BACKTRACE
+  {
+    void **cbk;
+    int count;
+  } YOYO_BACKTRACE;
+  
+_Unwind_Reason_Code backtrace_Helper(struct _Unwind_Context* ctx, YOYO_BACKTRACE *bt)
+  {
+    if ( bt->count ) 
+      {
+        void *eip = (void*)_Unwind_GetIP(ctx);
+        if ( eip ) 
+          {
+            *bt->cbk++ = eip;
+            --bt->count;
+            return _URC_NO_REASON;
+          }
+      }
+    return _URC_NORMAL_STOP;
+  }
+  
+int backtrace( void **cbk, int count )
+  {
+    YOYO_BACKTRACE T = { cbk, count };
+    _Unwind_Backtrace((_Unwind_Trace_Fn)&backtrace_Helper, &T);
+    return count-T.count;
+  }
+
+#endif /* __GNUC__  && _YOYO_CORE_BUILTIN */
 
 char *Yo_Error_Format_Btrace(void)
 #ifdef _YOYO_CORE_BUILTIN
@@ -1585,9 +1682,9 @@ void Error_Exit(char *pfx)
     if ( (code & YOYO_TRACED_ERROR_GROUP) || !Error_Info()->msg )
   #endif
       StdErr_Print_Nl(Yo_Error_Format_Btrace());
-    
+        
     if ( code == YOYO_ERROR_USER )
-      StdErr_Print_Nl(Yo_Format(__yoTa("\n%s: %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
+      StdErr_Print_Nl(Yo_Format(__yoTa("\n%s: %s",0),(pfx?pfx:__yoTa("error",0)),msg));
     else if ( YOYO_ERROR_IS_USER_ERROR(code) )
       StdErr_Print_Nl(Yo_Format(__yoTa("\n%s(%d): %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
     else

@@ -1,7 +1,7 @@
 
 /*
 
-(C)2010-2011, Alexéy Sudáchen, alexey@sudachen.name
+(C)2011, Alexéy Sudáchen, alexey@sudachen.name
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -160,7 +160,7 @@ void WinReg_Set_Dword(YOYO_WINREG *o,char *opt,ulong_t val)
 #endif
   ;
 
-void *WinReg_Query_Binary(YOYO_WINREG *o,char *opt)
+YOYO_BUFFER *WinReg_Query_Binary(YOYO_WINREG *o,char *opt)
 #ifdef _YOYO_WINREG_BUILTIN
   {
     void *ret = 0;
@@ -216,6 +216,19 @@ void WinReg_Delete_Value(YOYO_WINREG *o,char *opt)
 #endif
   ;
 
+YOYO_WINREG *WinReg_Object_Init()
+#ifdef _YOYO_WINREG_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Destruct_OjMID,  WinReg_Destruct},
+        {Oj_Close_OjMID,     WinReg_Close},
+        {0}};
+    return __Object(sizeof(YOYO_WINREG),funcs);
+  }
+#endif
+  ;
+  
 void *WinReg_Open_Or_Create_Hkey(HKEY master, char *subkey, int create_if_need, char *parent_name)
 #ifdef _YOYO_WINREG_BUILTIN
   {
@@ -224,13 +237,8 @@ void *WinReg_Open_Or_Create_Hkey(HKEY master, char *subkey, int create_if_need, 
       {
         int err;
         wchar_t *name;
-        static YOYO_FUNCTABLE funcs[] = 
-          { {0},
-            {Oj_Destruct_OjMID,  WinReg_Destruct},
-            {Oj_Close_OjMID,     WinReg_Close},
-            {0}};
         
-        ret = __Object(sizeof(YOYO_WINREG),funcs);
+        ret = WinReg_Object_Init();
         name = Str_Utf8_To_Unicode(subkey);
         if ( parent_name )
           ret->name = Str_Join_Npl_2('\\',parent_name,subkey);
@@ -292,6 +300,17 @@ void *WinReg_Open_Or_Create(char *subkey, int create_if_need)
 #endif
   ;
 
+YOYO_WINREG *WinReg_Assign(HKEY key, char *name)
+#ifdef _YOYO_WINREG_BUILTIN
+  {
+    YOYO_WINREG *rkey = WinReg_Object_Init();
+    rkey->hkey = key;
+    rkey->name = Str_Copy_Npl(name,-1);
+    return rkey;
+  }
+#endif
+  ;
+
 #define WinReg_Open_Subkey(Obj,Subkey) \
   WinReg_Open_Or_Create_Hkey_Obj(Obj,Subkey,0)
 #define WinReg_Create_Subkey(Obj,Subkey) \
@@ -314,6 +333,8 @@ void *WinReg_Open_Or_Create(char *subkey, int create_if_need)
 #define Create_Classes_Root_Subkey(Subkey) \
   WinReg_Open_Or_Create_Hkey(HKEY_CLASSES_ROOT,Subkey,1,"\\CLASSES_ROOT")
 
+
+  
 #endif /* __windoze */
 #endif /* C_once_C5685DBF_3A67_41C0_895B_A26B0D757AE7 */
 
