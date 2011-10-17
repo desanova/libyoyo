@@ -55,7 +55,7 @@ typedef struct _YOYO_LPCPORT
 
 #define Lpc_Is_Connected(Port) ((Port)->handle != 0)
   
-long Lpc_Create_Port(YOYO_LPCPORT *port, char *name, int waitable, int maxsize)
+long Lpc_Create_Port(YOYO_LPCPORT *port, char *name, int waitable)
 #ifdef _YOYO_WINLPC_BUILTIN
   {
     long ntst;
@@ -72,9 +72,9 @@ long Lpc_Create_Port(YOYO_LPCPORT *port, char *name, int waitable, int maxsize)
     port->waitable = waitable;
     
     if ( waitable )
-      ntst = NtCreateWaitablePort(&port->handle, &oa, 100, maxsize, 0);
+      ntst = NtCreateWaitablePort(&port->handle, &oa, WINLPC_MAX_DATA_LENGTH, WINLPC_MAX_DATA_LENGTH, 0);
     else
-      ntst = NtCreatePort(&port->handle, &oa, 100, maxsize, 0);
+      ntst = NtCreatePort(&port->handle, &oa, WINLPC_MAX_DATA_LENGTH, WINLPC_MAX_DATA_LENGTH, 0);
 
     return ntst;
   }

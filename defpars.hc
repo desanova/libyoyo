@@ -117,6 +117,27 @@ char *Def_Parse_Get_Literal(YOYO_DEFPARSE_STATE *st)
 #endif
   ;
 
+
+char *Def_Parse_Get_Node_Literal(YOYO_DEFPARSE_STATE *st)
+#ifdef _YOYO_DEFPARS_BUILTIN
+  {
+    if ( *st->text == '"' || *st->text == '\'' )
+      return Def_Parse_Get_Literal(st);
+    else
+      {
+        int capacity = 127;
+        int len = 0;
+        char *out = 0;
+        char *q = st->text;
+        while ( *st->text && *st->text != ')' )
+          ++st->text;
+        __Vector_Append(&out,&len,&capacity,q,st->text-q);
+        return out;
+      }
+  }
+#endif
+  ;
+
 typedef struct
   {
     int type;
@@ -388,7 +409,7 @@ void Def_Parse_In_Node( YOYO_DEFPARSE_STATE *st, YOYO_XNODE *n )
                 char *dflt;
                 ++st->text;
                 Def_Parse_Skip_Spaces(st);
-                dflt = Def_Parse_Get_Literal(st);
+                dflt = Def_Parse_Get_Node_Literal(st);
                 Def_Parse_Skip_Spaces(st);
                 if ( *st->text != ')' )
                   __Raise(YOYO_ERROR_ILLFORMED,__Format("expected ')' at line %d",st->lineno));

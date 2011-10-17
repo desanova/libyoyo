@@ -252,6 +252,98 @@ int Prog_Init(int argc, char **argv, char *patt, unsigned flags)
 #endif
   ;
 
+YOYO_ARRAY *Prog_Argc_Argv(char *input)
+#ifdef _YOYO_PROG_BUILTIN
+  {
+    YOYO_ARRAY *argv = Array_Pchars();
+    
+    __Auto_Release
+      {
+        int   argc;
+        char *arg;
+        char *copybuf;
+        int   dquote = 0;
+        int   lquote = 0;
+    
+        if ( input )
+          {
+            copybuf = __Malloc(strlen(input) + 1);
+            for ( ; *input ; )
+              {
+                while ( ' ' == *input || '\t' == *input ) ++input;
+            
+                arg = copybuf;
+                while ( *input )
+                  {
+                    if ( (*input == ' ' || *input == '\t' ) && !dquote && !lquote )
+                      break;
+                    else
+                      {
+                        if (0) ;
+                        else if (dquote)
+                          {
+                            if (*input == '"') 
+                              {
+                                if ( input[1] == '"' )
+                                  *arg++ = *input++;
+                                dquote = 0;
+                              }
+                            else *arg++ = *input;
+                          }
+                        else if (lquote)
+                          {
+                            if (*input == '>') lquote = 0;
+                            *arg++ = *input;
+                          }
+                        else // !dquote && !lquote
+                          {
+                            if (0) ;
+                            else if (*input == '"') dquote = 1;
+                            else 
+                              {
+                                if (*input == '<') lquote = 1;
+                                *arg++ = *input;
+                              }
+                          }
+                        input++;
+                      }
+                  }
+                *arg = 0;
+            
+                Array_Push(argv,Str_Copy_Npl(copybuf,-1));
+            
+                while ( *input && (' ' == *input || '\t' == *input) ) ++input;
+              }
+          }
+      
+        argc = argv->count;
+        Array_Push(argv,0);
+        argv->count = argc;
+      }
+      
+    return argv;
+  }
+#endif
+  ;
+  
+#ifdef __windoze
+int Prog_Init_Windoze(char *patt, unsigned flags)
+#ifdef _YOYO_PROG_BUILTIN
+  {
+    int rt;
+    
+    __Auto_Release
+      {
+        YOYO_ARRAY *argv = Prog_Argc_Argv(Str_Unicode_To_Utf8(GetCommandLineW()));
+        rt = Prog_Init(argv->count,(char**)argv->at,patt,flags);
+      }
+      
+    return rt;
+  }
+#endif
+  ;
+#endif
+
 int Prog_Arguments_Count()
 #ifdef _YOYO_PROG_BUILTIN
   {

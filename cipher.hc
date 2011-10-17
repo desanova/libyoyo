@@ -35,6 +35,8 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 #include "yoyo.hc"
+#include "md5.hc"
+#include "sha2.hc"
 
 #ifdef _YOYO_CIPHER_BUILTIN
 # define _YOYO_CIPHER_BUILTIN_CODE(Code) Code
@@ -69,10 +71,54 @@ void _Oj_Check_Buffer_Size_N_Alignment_8(int S_len)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
     if ( S_len < 8 ) 
-      Yo_Raise(YOYO_ERROR_NO_ENOUGH,"data buffer to small",__Yo_FILE__,__LINE__);
+      __Raise(YOYO_ERROR_NO_ENOUGH,__yoTa("data buffer to small",0));
     
     if ( S_len % 8 )
-      Yo_Raise(YOYO_ERROR_UNALIGNED,"data buffer should be aligned to 8 bytes",__Yo_FILE__,__LINE__);
+      __Raise(YOYO_ERROR_UNALIGNED,__yoTa("size of data buffer should be aligned to 8 bytes",0));
+  }
+#endif
+  ;
+
+void _Oj_Check_Buffer_Size_N_Alignment_16(int S_len)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    if ( S_len < 16 ) 
+      __Raise(YOYO_ERROR_NO_ENOUGH,__yoTa("data buffer to small",0));
+    
+    if ( S_len % 16 )
+      __Raise(YOYO_ERROR_UNALIGNED,__yoTa("size of data buffer should be aligned to 16 bytes",0));
+  }
+#endif
+  ;
+
+void _Oj_Encrypt_Decrypt_ECB_8(void *cipher, void (*f8)(void*,void*), void *S, int S_len)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    int i;
+    
+    _Oj_Check_Buffer_Size_N_Alignment_8(S_len);
+    
+    for ( i = 0; i < S_len/8; ++i )
+      {
+        byte_t *p = (byte_t*)S+i*8;
+        f8(cipher,p);
+      }
+  }
+#endif
+  ;
+
+void _Oj_Encrypt_Decrypt_ECB_16(void *cipher, void (*f16)(void*,void*), void *S, int S_len)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    int i;
+    
+    _Oj_Check_Buffer_Size_N_Alignment_16(S_len);
+    
+    for ( i = 0; i < S_len/16; ++i )
+      {
+        byte_t *p = (byte_t*)S+i*16;
+        f16(cipher,p);
+      }
   }
 #endif
   ;
@@ -81,40 +127,15 @@ void Oj_Encrypt_ECB(void *cipher, void *S, int S_len)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
     int i;
-    void (*encrypt8)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,YO_RAISE_ERROR);
+    void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
     
-    _Oj_Check_Buffer_Size_N_Alignment_8(S_len);
-    
-    for ( i = 0; i < S_len/8; ++i )
-      {
-        byte_t *p = (byte_t*)S+i*8;
-        encrypt8(cipher,p);
-      }
-  }
-#endif
-  ;
-
-void Oj_Encrypt_CBC(void *cipher, void *S, int S_len, void *old8_)
-#ifdef _YOYO_CIPHER_BUILTIN
-  {
-    int i,j;
-    byte_t *old8 = old8_;
-    void (*encrypt8)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,YO_RAISE_ERROR);
-    
-    _Oj_Check_Buffer_Size_N_Alignment_8(S_len);
-    
-    for ( i = 0; i < S_len/8; ++i )
-      {
-        byte_t *p = (byte_t*)S+i*8;
-        if ( old8 )
-          for ( j = 0; j < 8; ++j )
-            p[j] ^= old8[j];
-        encrypt8(cipher,p);
-        old8 = p;
-      }
-      
-    if ( old8_ )
-      memcpy(old8_,old8,8);
+    if ( f )
+      _Oj_Encrypt_Decrypt_ECB_8(cipher,f,S,S_len);
+    else if ( 0 != (f = Yo_Find_Method_Of(&cipher,Oj_Encrypt16_OjMID,0)) )
+      _Oj_Encrypt_Decrypt_ECB_16(cipher,f,S,S_len);
+    else
+      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
+              __yoTa("cipher does not contain Oj_Encrypt8_OjMID or Oj_Encrypt16_OjMID mothod",0));
   }
 #endif
   ;
@@ -123,39 +144,150 @@ void Oj_Decrypt_ECB(void *cipher, void *S, int S_len)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
     int i;
-    void (*decrypt8)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,YO_RAISE_ERROR);
+    void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,0);
     
-    _Oj_Check_Buffer_Size_N_Alignment_8(S_len);
-
-    for ( i = 0; i < S_len/8; ++i )
-      {
-        byte_t *p = (byte_t*)S+i*8;
-        decrypt8(cipher,p);
-      }
+    if ( f )
+      _Oj_Encrypt_Decrypt_ECB_8(cipher,f,S,S_len);
+    else if ( 0 != (f = Yo_Find_Method_Of(&cipher,Oj_Decrypt16_OjMID,0)) )
+      _Oj_Encrypt_Decrypt_ECB_16(cipher,f,S,S_len);
+    else
+      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
+              __yoTa("cipher does not contain Oj_Decrypt8_OjMID or Oj_Decrypt16_OjMID mothod",0));
   }
 #endif
   ;
 
-void Oj_Decrypt_CBC(void *cipher, void *S, int S_len, void *old8)
+quad_t _Oj_Encrypt_Decrypt_XEX_8(void *cipher, void (*f8)(void*,void*), void (*xex)(void*,void*), void *S, int S_len, quad_t st)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
-    int i,j;
-    void (*decrypt8)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,YO_RAISE_ERROR);
-
+    int i,j, n = xex?8:16;
+    byte_t q16[16] = {0};
+    
     _Oj_Check_Buffer_Size_N_Alignment_8(S_len);
     
-    if ( !old8 ) old8 = alloca(8);
-
     for ( i = 0; i < S_len/8; ++i )
       {
-        byte_t bf[8];
         byte_t *p = (byte_t*)S+i*8;
-        memcpy(bf,p,8);
-        decrypt8(cipher,p);
-        for ( j = 0; j < 8; ++j )
-          p[j] ^= ((byte_t*)old8)[j];
-        memcpy(old8,bf,8);
+        ++st;
+        Quad_To_Eight(st,q16);
+        
+        if ( xex )
+          xex(cipher,q16);
+        else
+          Md5_Digest(q16,8,q16);
+        
+        for ( j = 0; j < n; ++j )
+          p[j%8] ^= q16[j];
+        f8(cipher,p);
+        for ( j = 0; j < n; ++j )
+          p[j%8] ^= q16[j];
       }
+    
+    return st;
+  }
+#endif
+  ;
+
+quad_t _Oj_Encrypt_Decrypt_XEX_16(void *cipher, void (*f16)(void*,void*), void (*xex)(void*,void*), void *S, int S_len, quad_t st)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    int i,j, n = xex?16:32;
+    byte_t q32[32] = {0};
+    
+    _Oj_Check_Buffer_Size_N_Alignment_16(S_len);
+    
+    for ( i = 0; i < S_len/16; ++i )
+      {
+        byte_t *p = (byte_t*)S+i*16;
+        ++st;
+        Quad_To_Eight(st,q32);
+        ++st;
+        Quad_To_Eight(st,q32+8);
+        
+        if ( xex )
+          xex(cipher,q32);
+        else
+          Sha2_Digest(q32,16,q32);
+          
+        for ( j = 0; j < n; ++j )
+          p[j%16] ^= q32[j];
+        f16(cipher,p);
+        for ( j = 0; j < n; ++j )
+          p[j%16] ^= q32[j];
+      }
+    
+    return st;
+  }
+#endif
+  ;
+
+quad_t Oj_Encrypt_XEX(void *cipher, void *S, int S_len, quad_t st)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    void (*encrypt)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
+    if ( encrypt ) 
+      return _Oj_Encrypt_Decrypt_XEX_8(cipher,encrypt,encrypt,S,S_len,st);
+    else if ( 0 != (encrypt = Yo_Find_Method_Of(&cipher,Oj_Encrypt16_OjMID,0)) ) 
+      return _Oj_Encrypt_Decrypt_XEX_16(cipher,encrypt,encrypt,S,S_len,st);
+    else
+      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
+              __yoTa("cipher does not contain Oj_Encrypt8_OjMID or Oj_Encrypt16_OjMID mothod",0));
+    return 0;
+  }
+#endif
+  ;
+
+quad_t Oj_Decrypt_XEX(void *cipher, void *S, int S_len, quad_t st)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    void (*encrypt)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
+    void (*decrypt)(void*,void*);
+    if ( encrypt )
+      {
+        decrypt = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,YO_RAISE_ERROR);
+        return _Oj_Encrypt_Decrypt_XEX_8(cipher,decrypt,encrypt,S,S_len,st);
+      }
+    else if ( 0 != (encrypt = Yo_Find_Method_Of(&cipher,Oj_Encrypt16_OjMID,0)) )
+      {
+        decrypt = Yo_Find_Method_Of(&cipher,Oj_Decrypt16_OjMID,YO_RAISE_ERROR);
+        return _Oj_Encrypt_Decrypt_XEX_16(cipher,decrypt,encrypt,S,S_len,st);
+      }
+    else
+      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
+              __yoTa("cipher does not contain Oj_Encrypt8_OjMID or Oj_Encrypt16_OjMID mothod",0));
+    return 0;
+  }
+#endif
+  ;
+
+quad_t Oj_Encrypt_XEX_MDSH(void *cipher, void *S, int S_len, quad_t st)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
+    if ( f ) 
+      return _Oj_Encrypt_Decrypt_XEX_8(cipher,f,0,S,S_len,st);
+    else if ( 0 != (f = Yo_Find_Method_Of(&cipher,Oj_Encrypt16_OjMID,0)) ) 
+      return _Oj_Encrypt_Decrypt_XEX_16(cipher,f,0,S,S_len,st);
+    else
+      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
+              __yoTa("cipher does not contain Oj_Encrypt8_OjMID or Oj_Encrypt16_OjMID mothod",0));
+    return 0;
+  }
+#endif
+  ;
+
+quad_t Oj_Decrypt_XEX_MDSH(void *cipher, void *S, int S_len, quad_t st)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,0);
+    if ( f ) 
+      return _Oj_Encrypt_Decrypt_XEX_8(cipher,f,0,S,S_len,st);
+    else if ( 0 != (f = Yo_Find_Method_Of(&cipher,Oj_Decrypt16_OjMID,0)) ) 
+      return _Oj_Encrypt_Decrypt_XEX_16(cipher,f,0,S,S_len,st);
+    else
+      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
+              __yoTa("cipher does not contain Oj_Decrypt8_OjMID or Oj_Decrypt16_OjMID mothod",0));
+    return 0;
   }
 #endif
   ;

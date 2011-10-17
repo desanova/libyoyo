@@ -377,6 +377,48 @@ void Yo_Xchg_Unlock_Proc(int volatile *p) _YOYO_CORE_BUILTIN_CODE({Yo_Atomic_Cmp
 #endif /* _STRICT */
 
 #if defined __i386 || defined __x86_64
+#define Eight_To_Quad(Eight)  (*(quad_t*)(Eight))
+#else
+quad_t Eight_To_Quad(void *b)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    uint_t q0,q1;    
+    q0 =   (unsigned int)((unsigned char*)b)[0]
+              | ((unsigned int)((unsigned char*)b)[1] << 8)
+              | ((unsigned int)((unsigned char*)b)[2] << 16)
+              | ((unsigned int)((unsigned char*)b)[3] << 24);
+    b = (char*b)+4;
+    q1 =   (unsigned int)((unsigned char*)b)[0]
+              | ((unsigned int)((unsigned char*)b)[1] << 8)
+              | ((unsigned int)((unsigned char*)b)[2] << 16)
+              | ((unsigned int)((unsigned char*)b)[3] << 24);
+    return (quad_t)q0 | ((quad_t)q1 << 32);
+  }
+#endif
+  ;
+#endif
+
+#if defined __i386 || defined __x86_64
+#define Quad_To_Eight(Q,Eight) ((*(quad_t*)(Eight)) = (Q))
+#else
+void Quad_To_Eight(quad_t q, void *b)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    byte_t *p = b;
+    p[0] = (byte_t)q;
+    p[1] = (byte_t)(q>>8);
+    p[2] = (byte_t)(q>>16);
+    p[3] = (byte_t)(q>>24);
+    p[4] = (byte_t)(q>>32);
+    p[5] = (byte_t)(q>>40);
+    p[6] = (byte_t)(q>>48);
+    p[7] = (byte_t)(q>>56);
+  }
+#endif
+  ;
+#endif
+
+#if defined __i386 || defined __x86_64
 #define Four_To_Unsigned(Four)  (*(uint_t*)(Four))
 #else
 uint_t Four_To_Unsigned(void *b)
@@ -1418,6 +1460,8 @@ void Yo_JmpBuf_Pop_Cs(void *cs)
 #endif
   ;
   
+char *Yo_Btrace(void);
+
 #ifdef _YOYO_CORE_BUILTIN
 void _Yo_Raise(int err,char *msg,char *filename,int lineno)
   {
@@ -1452,6 +1496,9 @@ void _Yo_Raise(int err,char *msg,char *filename,int lineno)
         --nfo->jb_top;
         STRICT_REQUIRE(nfo->jb_top >= -1);
         
+      #ifdef _TRACEXPT
+        StdErr_Print_Nl(Yo_Btrace());
+      #endif  
         longjmp(nfo->jb[nfo->jb_top+1].b,err?err:-1);
       }
     else

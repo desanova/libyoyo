@@ -49,7 +49,7 @@ int strcmp_I(char *cs, char *ct)
 #ifdef _YOYO_STRING_BUILTIN
   {
     int q = 0;
-    do 
+    if ( cs && ct ) do 
       {
         q = Toupper(*cs) - Toupper(*ct++);
       }
@@ -64,7 +64,7 @@ int wcscmp_I(wchar_t *cs, wchar_t *ct)
 #ifdef _YOYO_STRING_BUILTIN
   {
     int q = 0;
-    do 
+    if ( cs && ct ) do 
       {
         q = towupper(*cs) - towupper(*ct++);
       }
@@ -79,7 +79,7 @@ int strncmp_I(char *cs, char *ct, int l)
 #ifdef _YOYO_STRING_BUILTIN
   {
     int q = 0;
-    if ( l ) do 
+    if ( l && cs && ct ) do 
       {
         q = Toupper(*cs) - Toupper(*ct++);
       }
@@ -93,7 +93,7 @@ int wcsncmp_I(wchar_t *cs, wchar_t *ct, int l)
 #ifdef _YOYO_STRING_BUILTIN
   {
     int q = 0;
-    if ( l ) do 
+    if ( l && cs && ct ) do 
       {
         q = towupper(*cs) - towupper(*ct++);
       }
@@ -387,9 +387,9 @@ _YOYO_STRING_EXTERN byte_t Str_6bit_Decoding_Table[] /* 64 */
 = {
     255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
     255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
-    255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+    255,255,255,255,255,255,255,255,255,255,255,255,255,63, 255,255,
     0  ,1  ,2  ,3  ,4  ,5  ,6  ,7  ,8  ,9  ,255,255,255,255,255,255,
-    63 ,36 ,37 ,38 ,39 ,40 ,41 ,42 ,43 ,44 ,45 ,46 ,47 ,48 ,49 ,50 ,
+    255,36 ,37 ,38 ,39 ,40 ,41 ,42 ,43 ,44 ,45 ,46 ,47 ,48 ,49 ,50 ,
     51 ,52 ,53 ,54 ,55 ,56 ,57 ,58 ,59 ,60 ,61 ,255,255,255,255,62 ,
     255,10 ,11 ,12 ,13 ,14 ,15 ,16 ,17 ,18 ,19 ,20 ,21 ,22 ,23 ,24 ,
     25 ,26 ,27 ,28 ,29 ,30 ,31 ,32 ,33 ,34 ,35 ,255,255,255,255,255,

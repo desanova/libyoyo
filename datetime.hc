@@ -38,37 +38,39 @@ in this Software without prior written authorization of the copyright holder.
 
 typedef quad_t datetime_t;
 
+#define Get_Curr_Datetime()    Current_Gmt_Datetime()
+#define Get_Posix_Datetime(Dt) Timet_Of_Datetime(Dt)
+#define Get_Gmtime_Datetime(T) Gmtime_Datetime(T)
+#define Get_System_Useconds()  System_Useconds()
+#define Get_System_Millis()    (Get_System_Useconds()/1000)
+
+#define System_Millis() (System_Useconds()/1000)
+quad_t System_Useconds()
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+  #ifdef __windoze
+    SYSTEMTIME systime = {0};
+    FILETIME   ftime;
+    quad_t Q;
+    GetSystemTime(&systime);
+    SystemTimeToFileTime(&systime,&ftime);
+    Q = ((quad_t)ftime.dwHighDateTime << 32) + (quad_t)ftime.dwLowDateTime;
+    Q -= 116444736000000000LL; /* posix epoche */
+    return Q/10;
+  #else
+    struct timeval tv = {0};
+    gettimeofday(&tv,0);
+    return  ( (quad_t)tv.tv_sec * 1000*1000 + (quad_t)tv.tv_usec );
+  #endif
+  }
+#endif
+  ;
+  
 uint_t Get_Mclocks()
 #ifdef _YOYO_DATETIME_BUILTIN
   {
     double c = clock();
     return (uint_t)((c/CLOCKS_PER_SEC)*1000);
-  }
-#endif
-  ;
-
-uint_t Get_Curr_Date()
-#ifdef _YOYO_DATETIME_BUILTIN
-  {
-    time_t t;
-    struct tm *tm;
-    time(&t);
-    tm = gmtime(&t);
-    return (((uint_t)tm->tm_year+1900)<<16)|((uint_t)(tm->tm_mon+1)<<8)|tm->tm_mday;
-  }
-#endif
-  ;
-
-uint_t Get_Curr_Time()
-#ifdef _YOYO_DATETIME_BUILTIN
-  {
-    uint_t msec;
-    time_t t;
-    struct tm *tm;
-    time(&t);
-    msec = Get_Mclocks();
-    tm = gmtime(&t);
-    return ((uint_t)tm->tm_hour<<24)|((uint_t)tm->tm_min<<16)|((uint_t)tm->tm_sec<<8)|((msec/10)%100);
   }
 #endif
   ;
@@ -82,26 +84,52 @@ double Get_Sclocks()
 #endif
   ;
 
-quad_t Get_Gmtime_Datetime(time_t t)
+quad_t Tm_To_Datetime(struct tm *tm,int msec)
 #ifdef _YOYO_DATETIME_BUILTIN
   {
-    uint_t msec,dt,mt;
-    struct tm *tm;
-    tm = gmtime(&t);
-    msec = Get_Mclocks();
-    dt = (((uint_t)tm->tm_year+1900)<<16)|(((uint_t)tm->tm_mon+1)<<8)|tm->tm_mday;
-    mt = ((uint_t)tm->tm_hour<<24)|(uint_t)(tm->tm_min<<16)|((uint_t)tm->tm_sec<<8)|((msec/10)%100);
+    uint_t dt = (((uint_t)tm->tm_year+1900)<<16)|(((uint_t)tm->tm_mon+1)<<8)|tm->tm_mday;
+    uint_t mt = ((uint_t)tm->tm_hour<<24)|(uint_t)(tm->tm_min<<16)|((uint_t)tm->tm_sec<<8)|((msec/10)%100);
     return ((quad_t)dt << 32)|(quad_t)mt;
   }
 #endif
   ;
 
-quad_t Get_Curr_Datetime()
+#define Gmtime_Datetime(T) _Gmtime_Datetime(T,0)
+quad_t _Gmtime_Datetime(time_t t, int ms)
 #ifdef _YOYO_DATETIME_BUILTIN
   {
-    time_t t;
-    time(&t);
-    return Get_Gmtime_Datetime(t);
+    struct tm *tm;
+    tm = gmtime(&t);
+    return Tm_To_Datetime(tm,ms);
+  }
+#endif
+  ;
+
+#define Local_Datetime(T) _Local_Datetime(T,0)
+quad_t _Local_Datetime(time_t t, int ms)
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+    struct tm *tm;
+    tm = localtime(&t);
+    return Tm_To_Datetime(tm,ms);
+  }
+#endif
+  ;
+
+quad_t Current_Gmt_Datetime()
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+    quad_t usec = Get_System_Useconds();
+    return _Gmtime_Datetime((time_t)(usec/1000000),(int)((usec/1000)%1000));
+  }
+#endif
+  ;
+
+quad_t Current_Local_Datetime()
+#ifdef _YOYO_DATETIME_BUILTIN
+  {
+    quad_t usec = Get_System_Useconds();
+    return _Local_Datetime((time_t)(usec/1000000),(int)((usec/1000)%1000));
   }
 #endif
   ;
@@ -123,8 +151,8 @@ quad_t Get_Datetime(uint_t year, uint_t month, uint_t day, uint_t hour, uint_t m
   }
 #endif
   ;
-  
-time_t Get_Posix_Datetime(quad_t dtime)
+
+time_t Timet_Of_Datetime(quad_t dtime)
 #ifdef _YOYO_DATETIME_BUILTIN
   {
     struct tm tm;
@@ -139,27 +167,6 @@ time_t Get_Posix_Datetime(quad_t dtime)
 #endif
   ;
 
-#define Get_System_Millis() (Get_System_Useconds()/1000)
-quad_t Get_System_Useconds()
-#ifdef _YOYO_DATETIME_BUILTIN
-  {
-  #ifdef __windoze
-    SYSTEMTIME systime = {0};
-    FILETIME   ftime;
-    quad_t Q;
-    GetSystemTime(&systime);
-    SystemTimeToFileTime(&systime,&ftime);
-    Q = ((quad_t)ftime.dwHighDateTime << 32) + (quad_t)ftime.dwLowDateTime;
-    return Q/10;
-  #else
-    struct timeval tv = {0};
-    gettimeofday(&tv,0);
-    return  ( (quad_t)tv.tv_sec * 1000*1000 + (quad_t)tv.tv_usec );
-  #endif
-  }
-#endif
-  ;
-  
 #ifdef __windoze
   void Timet_To_Filetime(time_t t, FILETIME *pft)
 # ifdef _YOYO_DATETIME_BUILTIN

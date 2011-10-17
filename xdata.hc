@@ -209,9 +209,9 @@ long Xvalue_Get_Int(YOYO_XVALUE *val, long dfltval)
           case XVALUE_OPT_VALTYPE_FLT:          
             return (long)val->flt;
           case XVALUE_OPT_VALTYPE_STR:
-            return Str_To_Int(val->txt);
+            return Str_To_Int_Dflt(val->txt,dfltval);
           case XVALUE_OPT_VALTYPE_LIT:
-            return Str_To_Int((char*)&val->down);
+            return Str_To_Int_Dflt((char*)&val->down,dfltval);
           case XVALUE_OPT_VALTYPE_NONE:
             return 0;
           case XVALUE_OPT_VALTYPE_BOOL:
@@ -235,9 +235,9 @@ double Xvalue_Get_Flt(YOYO_XVALUE *val, double dfltval)
           case XVALUE_OPT_VALTYPE_FLT:          
             return val->flt;
           case XVALUE_OPT_VALTYPE_STR:
-            return Str_To_Flt(val->txt);
+            return Str_To_Flt_Dflt(val->txt,dfltval);
           case XVALUE_OPT_VALTYPE_LIT:
-            return Str_To_Flt((char*)&val->down);
+            return Str_To_Flt_Dflt((char*)&val->down,dfltval);
           case XVALUE_OPT_VALTYPE_NONE:
             return 0;
           default:
@@ -261,9 +261,9 @@ int Xvalue_Get_Bool(YOYO_XVALUE *val, int dfltval)
           case XVALUE_OPT_VALTYPE_FLT:          
             return val->flt?1:0;
           case XVALUE_OPT_VALTYPE_STR:
-            return Str_To_Bool(val->txt);
+            return Str_To_Bool_Dflt(val->txt,dfltval);
           case XVALUE_OPT_VALTYPE_LIT:
-            return Str_To_Bool((char*)&val->down);
+            return Str_To_Bool_Dflt((char*)&val->down,dfltval);
           case XVALUE_OPT_VALTYPE_NONE:
             return 0;
           default:

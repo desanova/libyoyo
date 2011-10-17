@@ -54,6 +54,31 @@ enum { YOYO_FILE_COPY_BUFFER_SIZE = 4096, };
 # define _YOYO_FILE_EXTERN extern
 #endif
 
+void File_Check_Error(char *op, FILE *f, char *fname, int look_to_errno)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int err = 0;
+    char *errS = 0;
+    
+    if ( look_to_errno )
+      {
+        if ( (err = errno) ) 
+          errS = strerror(err);
+      }
+    else if ( f && !feof(f) && ( err = ferror(f) ) )
+      {
+        errS = strerror(err);
+        clearerr(f);
+      }
+    
+    if (err)
+      __Raise_Format(YOYO_ERROR_IO,("%s failed on file '%s': %s",op,fname,errS));
+  }
+#endif
+  ;
+
+#define Raise_If_File_Error(Op,Fname) File_Check_Error(Op,0,Fname,1)
+
 char *Path_Basename(char *path)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -121,6 +146,25 @@ char *Current_Directory()
 #endif
   ;
 
+void Change_Directory(char *dirname)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    __Auto_Release
+      {
+        int err;
+      #ifdef __windoze
+        wchar_t *tmp = Str_Utf8_To_Unicode(dirname);
+        err = _wchdir(tmp);
+      #else
+        err = chdir(dirname);
+      #endif
+        if ( err == - 1 )
+          Raise_If_File_Error("chdir",dirname);
+      }
+  }
+#endif
+  ;
+  
 char *Path_Unique_Name(char *dirname,char *pfx, char *sfx)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -245,33 +289,6 @@ char *Path_Fullname(char *path)
   }
 #endif
   ;
-
-void File_Check_Error(char *op, FILE *f, char *fname, int look_to_errno)
-#ifdef _YOYO_FILE_BUILTIN
-  {
-    int err = 0;
-    char *errS = 0;
-    
-    if ( look_to_errno )
-      {
-        if ( (err = errno) ) 
-          errS = strerror(err);
-      }
-    else if ( f && !feof(f) && ( err = ferror(f) ) )
-      {
-        errS = strerror(err);
-        clearerr(f);
-      }
-    
-    if (err)
-      Yo_Raise(YOYO_ERROR_IO,
-        Yo_Format("%s failed on file '%s': %s",op,fname,errS),
-        __FILE__,__LINE__);
-  }
-#endif
-  ;
-
-#define Raise_If_File_Error(Op,Fname) File_Check_Error(Op,0,Fname,1)
 
 typedef struct _YOYO_FILE_STATS
   {
@@ -403,6 +420,23 @@ int File_Is_Readable(char *name)
 int File_Is_Executable(char *name)
   _YOYO_FILE_BUILTIN_CODE({YOYO_FILE_STATS st={0}; return File_Get_Stats(name,&st,0)->f.is_executable;});
 
+void Delete_Directory(char *name)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    YOYO_FILE_STATS st;
+    if ( File_Get_Stats(name,&st,1)->f.is_directory )
+      {
+      #ifdef __windoze
+        if ( _wrmdir(Str_Utf8_To_Unicode(name)) < 0 )
+      #else
+        if ( rmdir(name) < 0 )
+      #endif  
+          File_Check_Error("rmdir",0,name,1);
+      }
+  }
+#endif
+  ;
+
 void Create_Directory(char *name)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -526,6 +560,7 @@ void File_Unlink(char *name, int force)
                 YOYO_ARRAY *L = File_List_Directory(name,0);
                 for ( i = 0; i < L->count; ++i )
                   File_Unlink(Path_Join(name,L->at[i]),force);
+                Delete_Directory(name);
               }
             else
               err =
