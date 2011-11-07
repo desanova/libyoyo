@@ -1,7 +1,23 @@
 
 /*
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -297,6 +313,8 @@ enum _YOYO_ERRORS
     YOYO_ERROR_LIMIT_REACHED    = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+28),
     YOYO_ERROR_UNSUPPORTED      = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+29),
     YOYO_ERROR_IO_EOF           = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+30),
+    YOYO_ERROR_DNS              = YOYO_IO_ERROR_GROUP|(YOYO_ERROR_BASE+31),
+    YOYO_ERROR_SUBSYSTEM_INIT   = YOYO_RUNTIME_ERROR_GROUP|(YOYO_ERROR_BASE+32),
   };
 
 #define YOYO_ERROR_IS_USER_ERROR(err) !(err&YOYO_XXXX_ERROR_GROUP)
@@ -424,10 +442,11 @@ void Quad_To_Eight(quad_t q, void *b)
 uint_t Four_To_Unsigned(void *b)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    uint_t q =   (unsigned int)((unsigned char*)b)[0]
-              | ((unsigned int)((unsigned char*)b)[1] << 8)
-              | ((unsigned int)((unsigned char*)b)[2] << 16)
-              | ((unsigned int)((unsigned char*)b)[3] << 24);
+    byte_t *p = b;
+    uint_t q =   p[0]
+              |  (p[1] << 8)
+              |  (p[2] << 16)
+              |  (p[3] << 24);
     return q;
   }
 #endif
@@ -449,6 +468,31 @@ void Unsigned_To_Four(uint_t q, void *b)
 #endif
   ;
 #endif
+
+uint_t Four_To_Unsigned_BE(void *b)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    byte_t *p = b;
+    uint_t q =   p[3]
+              |  (p[2] << 8)
+              |  (p[1] << 16)
+              |  (p[0] << 24);
+    return q;
+  }
+#endif
+  ;
+
+void Unsigned_To_Four_BE(uint_t q, void *b)
+#ifdef _YOYO_CORE_BUILTIN
+  {
+    byte_t *p = b;
+    p[3] = (byte_t)q;
+    p[2] = (byte_t)(q>>8);
+    p[1] = (byte_t)(q>>16);
+    p[0] = (byte_t)(q>>24);
+  }
+#endif
+  ;
 
 uint_t Two_To_Unsigned(void *b)
 #ifdef _YOYO_CORE_BUILTIN
@@ -803,12 +847,12 @@ void *Yo_Unpool(void *pooled,int do_cleanup)
 #endif
   ;
 
-void *Yo_Unwind_Scope(void *pooled,int min_top)
+void *Yo_Unwind_Scope(void *pooled,int min_top,void *mark)
 #ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     int L = min_top>=0?min_top:0;
-    int counter = 0;
+    //int counter = 0;
     if ( nfo )
       {
         YOYO_AUTORELEASE *q_p = 0;
@@ -817,19 +861,19 @@ void *Yo_Unwind_Scope(void *pooled,int min_top)
           {
             YOYO_AUTORELEASE *q = &nfo->auto_pool[nfo->auto_top];
             STRICT_REQUIRE(nfo->auto_top <= nfo->auto_count);
-            if ( q->ptr )
+            //printf("ptr: %p, cleanup: %p ?= pooled: %p, mark: %p\n", q->ptr, q->cleanup, pooled, mark);
+            if ( q->ptr && (q->cleanup != Yo_Pool_Marker_Tag) )
               {
-                //printf("%p/%p ?= %p\n", q->ptr, q->cleanup, pooled);
                 if ( !pooled || q->ptr != pooled )
                   { 
                     q->cleanup(q->ptr);
-                    ++counter;
+                    //++counter;
                   }
                 else
                   q_p = q;
               }
             --nfo->auto_top;
-            if ( q->cleanup == Yo_Pool_Marker_Tag && !min_top )
+            if ( q->cleanup == Yo_Pool_Marker_Tag && !min_top && mark == q->ptr )
               break;
           }
         REQUIRE(nfo->auto_top < nfo->auto_count);
@@ -879,7 +923,7 @@ void Yo_Thread_Cleanup()
 #ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo;
-    Yo_Unwind_Scope(0,-1);
+    Yo_Unwind_Scope(0,-1,0);
     if ( !!(nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls)) )
       {
         free(nfo->err.msg);
@@ -1491,7 +1535,7 @@ void _Yo_Raise(int err,char *msg,char *filename,int lineno)
           if (  locks[i].cs ) 
             locks[i].unlock(locks[i].cs);
         
-        Yo_Unwind_Scope(0,nfo->jb[nfo->jb_top].auto_top);
+        Yo_Unwind_Scope(0,nfo->jb[nfo->jb_top].auto_top,0);
         
         --nfo->jb_top;
         STRICT_REQUIRE(nfo->jb_top >= -1);
@@ -1738,7 +1782,7 @@ void Error_Exit(char *pfx)
       StdErr_Print_Nl(Yo_Format(__yoTa("\n%s(%08x): %s",0),(pfx?pfx:__yoTa("error",0)),code,msg));
     if ( code & YOYO_FATAL_ERROR_GROUP )
       abort();
-    Yo_Unwind_Scope(0,-1);
+    Yo_Unwind_Scope(0,-1,0);
     exit(code);
   }
 #endif
@@ -1785,13 +1829,15 @@ void Error_Exit(char *pfx)
 #define __Tls_Set(Name,Val)             Yo_Tls_Set(Name,Val)
 #define __Tls_Get(Name)                 Yo_Tls_Get(Name)
 
+#ifdef _STRONGPOOL
+
 #define __Auto_Release \
   switch ( 0 ) \
     if ( 0 ); else \
       while ( 1 ) \
         if ( 1 ) \
           { \
-            Yo_Unwind_Scope(0,0); \
+            Yo_Unwind_Scope(0,0,0); \
             break; \
           case 0: Yo_Push_Scope(); \
             goto YOYO_LOCAL_ID(Body);\
@@ -1805,13 +1851,47 @@ void Error_Exit(char *pfx)
       while ( 1 ) \
         if ( 1 ) \
           { \
-            Yo_Unwind_Scope(Ptr,0); \
+            Yo_Unwind_Scope(Ptr,0,0); \
             break; \
           case 0: Yo_Push_Scope(); \
             goto YOYO_LOCAL_ID(Body);\
           } \
         else \
           YOYO_LOCAL_ID(Body):
+
+#else
+
+#define __Auto_Release \
+  switch ( 0 ) \
+    if ( 0 ); else \
+      while ( 1 ) \
+        if ( 1 ) \
+          { \
+            int YOYO_LOCAL_ID(Mark); \
+            Yo_Unwind_Scope(0,0,&YOYO_LOCAL_ID(Mark)); \
+            break; \
+          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(Mark),Yo_Pool_Marker_Tag); \
+            goto YOYO_LOCAL_ID(Body);\
+          } \
+        else \
+          YOYO_LOCAL_ID(Body):
+
+#define __Auto_Ptr(Ptr) \
+  switch ( 0 ) \
+    if ( 0 ); else \
+      while ( 1 ) \
+        if ( 1 ) \
+          { \
+            int YOYO_LOCAL_ID(Mark); \
+            Yo_Unwind_Scope(Ptr,0,&YOYO_LOCAL_ID(Mark)); \
+            break; \
+          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(Mark),Yo_Pool_Marker_Tag); \
+            goto YOYO_LOCAL_ID(Body);\
+          } \
+        else \
+          YOYO_LOCAL_ID(Body):
+
+#endif /* _STRONGPOOL */
 
 #define __Interlock_Opt(Decl,Lx,Lock,Unlock,Unlock_Proc) \
   switch ( 0 ) \

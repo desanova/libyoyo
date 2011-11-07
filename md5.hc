@@ -4,8 +4,23 @@
 // The MD5 algorithm was designed by Ron Rivest in 1991.
 // http://www.ietf.org/rfc/rfc1321.txt
 
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,14 +44,6 @@ Except as contained in this notice, the name of a copyright holder shall not
 be used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization of the copyright holder.
 
-RSA MD5 Message-Digest Algorithm
-(C) 1991-2, RSA Data Security, Inc. Created 1991.
-
-License to copy and use this software is granted provided that it
-is identified as the "RSA Data Security, Inc. MD5 Message-Digest
-Algorithm" in all material mentioning or referencing this software
-or this function.
-
 */
 
 #ifndef C_once_C5021104_5DB9_4FCC_BAFC_AFB22BD458D3
@@ -47,6 +54,7 @@ or this function.
 #endif
 
 #include "yoyo.hc"
+#include "crc.hc"
 
 typedef struct _YOYO_MD5
   {
@@ -79,12 +87,16 @@ void * Md5_Start(YOYO_MD5 *md5)
 #endif
   ;
 
+void Md5_Update(YOYO_MD5 *md5, void *data, int len);
+void *Md5_Finish(YOYO_MD5 *md5, void *digest);
+
 void *Md5_Init()
 #ifdef _YOYO_MD5_BUILTIN
   {
     static YOYO_FUNCTABLE funcs[] = 
       { {0},
         {Oj_Clone_OjMID, Md5_Clone },
+        {Oj_Digest_Update_OjMID, Md5_Update },
         {0}};
     
     YOYO_MD5 *md5 = __Object(sizeof(YOYO_MD5),funcs);
@@ -92,9 +104,6 @@ void *Md5_Init()
   }
 #endif
   ;
-
-void Md5_Update(YOYO_MD5 *md5, void *data, int len);
-void *Md5_Finish(YOYO_MD5 *md5, void *digest);
 
 #define YOYO_MD5_INITIALIZER {{0x67452301,0xefcdab89,0x98badcfe,0x10325476},{0},0,{0}}
 
@@ -374,24 +383,19 @@ void *Hmac_Md5_Start(YOYO_HMAC_MD5 *hmac, void *key, int key_len)
 #endif
   ;
 
-void *Hmac_Md5_Init(void *key, int key_len)
-#ifdef _YOYO_MD5_BUILTIN
-  {
-    static YOYO_FUNCTABLE funcs[] = 
-      { {0},
-        {Oj_Clone_OjMID, Hmac_Md5_Clone },
-        {0}};
-    
-    YOYO_HMAC_MD5 *md5 = __Object(sizeof(YOYO_HMAC_MD5),funcs);
-    return Hmac_Md5_Start(md5,key,key_len);
-  }
-#endif
-  ;
-
 void Hmac_Md5_Update(YOYO_HMAC_MD5 *hmac, void *input, int input_length)
 #ifdef _YOYO_MD5_BUILTIN
   {
     Md5_Update(&hmac->md5,input,input_length);
+  }
+#endif
+  ;
+
+void Hmac_Md5_Reset(YOYO_HMAC_MD5 *hmac)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    Md5_Start(&hmac->md5);
+    Md5_Update(&hmac->md5,hmac->ipad,64);
   }
 #endif
   ;
@@ -410,15 +414,6 @@ void *Hmac_Md5_Finish(YOYO_HMAC_MD5 *hmac, void *digest)
 #endif
   ;
 
-void Hmac_Md5_Reset(YOYO_HMAC_MD5 *hmac)
-#ifdef _YOYO_MD5_BUILTIN
-  {
-    Md5_Start(&hmac->md5);
-    Md5_Update(&hmac->md5,hmac->ipad,64);
-  }
-#endif
-  ;
-
 void *Hmac_Md5_Digest(void *data, int len, void *key, int key_len, void *digest)
 #ifdef _YOYO_MD5_BUILTIN
   {
@@ -426,6 +421,21 @@ void *Hmac_Md5_Digest(void *data, int len, void *key, int key_len, void *digest)
     Hmac_Md5_Start(&hmac5,key,key_len);
     Md5_Update(&hmac5.md5,data,len);
     return Hmac_Md5_Finish(&hmac5,digest);
+  }
+#endif
+  ;
+
+void *Hmac_Md5_Init(void *key, int key_len)
+#ifdef _YOYO_MD5_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Clone_OjMID, Hmac_Md5_Clone },
+        {Oj_Digest_Update_OjMID, Hmac_Md5_Update },
+        {0}};
+    
+    YOYO_HMAC_MD5 *md5 = __Object(sizeof(YOYO_HMAC_MD5),funcs);
+    return Hmac_Md5_Start(md5,key,key_len);
   }
 #endif
   ;

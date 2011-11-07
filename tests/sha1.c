@@ -1,5 +1,7 @@
 
+#define _LIBYOYO
 #include "../libyoyo.hc"
+#include "../libcrypt.hc"
 
 /*
  * FIPS-180-1 test vectors

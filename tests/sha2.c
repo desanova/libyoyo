@@ -1,5 +1,7 @@
 
+#define _LIBYOYO
 #include "../libyoyo.hc"
+#include "../libcrypt.hc"
 
 byte_t Data_Buf[3][57] = 
   {

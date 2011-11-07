@@ -6,7 +6,23 @@
 //   http://www.itl.nist.gov/fipspubs/fip180-1.htm
 //
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +56,7 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 #include "yoyo.hc"
+#include "crc.hc"
 
 typedef struct _YOYO_SHA1
   {
@@ -73,12 +90,16 @@ void *Sha1_Start(YOYO_SHA1 *sha1)
 #endif
   ;
 
+void Sha1_Update(YOYO_SHA1 *sha1, void *data, int len);
+void *Sha1_Finish(YOYO_SHA1 *sha1, void *digest);
+
 void *Sha1_Init()
 #ifdef _YOYO_SHA1_BUILTIN
   {
     static YOYO_FUNCTABLE funcs[] = 
       { {0},
         {Oj_Clone_OjMID, Sha1_Clone },
+        {Oj_Digest_Update_OjMID, Sha1_Update },
         {0}};
     
     YOYO_SHA1 *sha1 = __Object(sizeof(YOYO_SHA1),funcs);
@@ -86,9 +107,6 @@ void *Sha1_Init()
   }
 #endif
   ;
-
-void Sha1_Update(YOYO_SHA1 *sha1, void *data, int len);
-void *Sha1_Finish(YOYO_SHA1 *sha1, void *digest);
 
 void *Sha1_Digest(void *data, int len, void *digest)
 #ifdef _YOYO_SHA1_BUILTIN
@@ -359,20 +377,6 @@ void *Hmac_Sha1_Start(YOYO_HMAC_SHA1 *hmac, void *key, int key_len)
 #endif
   ;
 
-void *Hmac_Sha1_Init(void *key, int key_len)
-#ifdef _YOYO_SHA1_BUILTIN
-  {
-    static YOYO_FUNCTABLE funcs[] = 
-      { {0},
-        {Oj_Clone_OjMID, Hmac_Sha1_Clone },
-        {0}};
-    
-    YOYO_HMAC_SHA1 *sha1 = __Object(sizeof(YOYO_HMAC_SHA1),funcs);
-    return Hmac_Sha1_Start(sha1,key,key_len);
-  }
-#endif
-  ;
-
 void Hmac_Sha1_Update(YOYO_HMAC_SHA1 *hmac, void *input, int input_length)
 #ifdef _YOYO_SHA1_BUILTIN
   {
@@ -411,6 +415,21 @@ void *Hmac_Sha1_Digest(void *data, int len, void *key, int key_len, void *digest
     Hmac_Sha1_Start(&hmac1,key,key_len);
     Sha1_Update(&hmac1.sha1,data,len);
     return Hmac_Sha1_Finish(&hmac1,digest);
+  }
+#endif
+  ;
+
+void *Hmac_Sha1_Init(void *key, int key_len)
+#ifdef _YOYO_SHA1_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Clone_OjMID, Hmac_Sha1_Clone },
+        {Oj_Digest_Update_OjMID, Hmac_Sha1_Update },
+        {0}};
+    
+    YOYO_HMAC_SHA1 *sha1 = __Object(sizeof(YOYO_HMAC_SHA1),funcs);
+    return Hmac_Sha1_Start(sha1,key,key_len);
   }
 #endif
   ;

@@ -1,7 +1,23 @@
 
 /*
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+    
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -64,8 +80,9 @@ typedef struct _YOYO_BIGINT_STATIC
     halflong_t space[YOYO_BIGINT_MINDIGITS-1];
   } YOYO_BIGINT_STATIC;
 
-#define Bigint_Size_Of_Digits(Digits) ((((Digits-1)*sizeof(halflong_t)+sizeof(YOYO_BIGINT))+YOYO_BIGINT_BLOCKMASK)&~YOYO_BIGINT_BLOCKMASK)
-#define Bigint_Digits_Of_Bits(Bits) ((bits+sizeof(halflong_t)*8-1)/(sizeof(halflong_t)*8))
+#define Bigint_Size_Of_Digits(Digits) (((((Digits)-1)*sizeof(halflong_t)+sizeof(YOYO_BIGINT))+YOYO_BIGINT_BLOCKMASK)&~YOYO_BIGINT_BLOCKMASK)
+#define Bigint_Digits_Of_Bits(Bits) (((Bits)+sizeof(halflong_t)*8-1)/(sizeof(halflong_t)*8))
+#define Bigint_Digits_Of_Bytes(Bytes) (((Bytes)+sizeof(halflong_t)-1)/sizeof(halflong_t))
 
 #define Bigint_Init(Value) Bigint_Init_Digits(Value,1)
 YOYO_BIGINT *Bigint_Init_Digits(quad_t val, int digits)
@@ -187,6 +204,19 @@ YOYO_BIGINT *Bigint_Expand(YOYO_BIGINT *bint, int extra_digits)
       }
     
     return Bigint_Copy_Expand(bint,extra_digits);
+  }
+#endif
+  ;
+  
+YOYO_BIGINT *Bigint_Expand_If_Small(YOYO_BIGINT *bint, int required)
+#ifdef _YOYO_BINGINT_BUILTIN
+  {
+    if ( !bint )
+      return Bigint_Copy_Expand(0,required);
+    else if ( bint->digits < required )
+      return Bigint_Expand(bint,required - bint->digits);
+    else
+      return bint;
   }
 #endif
   ;
@@ -1252,7 +1282,7 @@ void Bigint_Generate_Rsa_Key_Pair(
         int pBits = Get_Random(bits/5,bits/2);
         int qBits = (bits+1)-pBits;
 
-        STRICT_REQUIRE(pBits < bits/2 && pBist > 0 );
+        STRICT_REQUIRE(pBits < bits/2 && pBits > 0 );
         STRICT_REQUIRE(pBits+qBits == bits+1);
 
         n = 0;
@@ -1279,6 +1309,40 @@ void Bigint_Generate_Rsa_Key_Pair(
 #endif
   ;
 
+YOYO_BIGINT *Bigint_From_Bytes(YOYO_BIGINT *bint, void *data, int len)
+#ifdef _YOYO_BINGINT_BUILTIN
+  {
+#if defined __i386 || defined __x86_64
+    int digits = Bigint_Digits_Of_Bytes(len);
+    bint = Bigint_Expand_If_Small(bint,digits);
+    memset(bint->value,0,bint->digits*sizeof(halflong_t));
+    memcpy(bint->value,data,len);
+    return bint;
+#else
+  #error fixme!
+#endif
+  }
+#endif
+  ;
+  
+int Bigint_To_Bytes(YOYO_BIGINT *bint, void *out, int maxlen)
+#ifdef _YOYO_BINGINT_BUILTIN
+  {
+#if defined __i386 || defined __x86_64
+    int l = sizeof(halflong_t)*bint->digits;
+    byte_t *p = (byte_t*)(bint->value+bint->digits) - 1;
+    while ( p != (byte_t*)bint->value && !*p ) --l;
+    if ( l > maxlen )
+      __Raise(YOYO_ERROR_NO_ENOUGH,"raw bigint outbuffer to small!");
+    memcpy(out,bint->value,l);
+    return l;
+#else
+    #error fixme!
+#endif
+  }
+#endif
+  ;
+  
 #endif /* C_once_B4220D86_3019_4E13_8682_D7F809F4E829 */
 
 

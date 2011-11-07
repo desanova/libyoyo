@@ -6,7 +6,23 @@
 //   Designed in 1993 by Bruce Schneier 
 //
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -331,16 +347,13 @@ static uint_t Blowfish_S[4][256] =
        + (S)[3][(X) & 0x0ff])
 #endif
 
-void Blowfish_Encrypt8(YOYO_BLOWFISH *self,void *block8)
+void Blowfish_Encrypt8_(YOYO_BLOWFISH *self, uint_t *Lx, uint_t *Rx)
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
-    uint_t  L;
-    uint_t  R;
+    uint_t  L = *Lx;
+    uint_t  R = *Rx;
     uint_t  temp;
     int     i;
-
-    L = Four_To_Unsigned((byte_t*)block8+0);
-    R = Four_To_Unsigned((byte_t*)block8+4);
   
     for (i = 0; i < 16; ++i) 
       {
@@ -356,25 +369,31 @@ void Blowfish_Encrypt8(YOYO_BLOWFISH *self,void *block8)
     L = R;
     R = temp;
 
-    R = R ^ self->P[16];
-    L = L ^ self->P[16 + 1];
-
-    Unsigned_To_Four(L,(byte_t*)block8+0);
-    Unsigned_To_Four(R,(byte_t*)block8+4);
+    *Rx = R ^ self->P[16];
+    *Lx = L ^ self->P[16 + 1];
   }
 #endif
   ;
 
-void Blowfish_Decrypt8(YOYO_BLOWFISH *self,void *block8)
+void Blowfish_Encrypt8(YOYO_BLOWFISH *self,void *block8)
 #ifdef _YOYO_BLOWFISH_BUILTIN
   {
-    uint_t  L;
-    uint_t  R;
+    uint_t L = Four_To_Unsigned_BE((byte_t*)block8+0);
+    uint_t R = Four_To_Unsigned_BE((byte_t*)block8+4);
+    Blowfish_Encrypt8_(self,&L,&R);
+    Unsigned_To_Four_BE(L,(byte_t*)block8+0);
+    Unsigned_To_Four_BE(R,(byte_t*)block8+4);
+  }
+#endif
+  ;
+
+void Blowfish_Decrypt8_(YOYO_BLOWFISH *self, uint_t *Lx, uint_t *Rx)
+#ifdef _YOYO_BLOWFISH_BUILTIN
+  {
+    uint_t  L = *Lx;
+    uint_t  R = *Rx;
     uint_t  temp;
     int     i;
-    
-    L = Four_To_Unsigned((byte_t*)block8+0);
-    R = Four_To_Unsigned((byte_t*)block8+4);
     
     for (i = 16 + 1; i > 1; --i) 
       {
@@ -390,11 +409,20 @@ void Blowfish_Decrypt8(YOYO_BLOWFISH *self,void *block8)
     L = R;
     R = temp;
 
-    R = R ^ self->P[1];
-    L = L ^ self->P[0];
+    *Rx = R ^ self->P[1];
+    *Lx = L ^ self->P[0];
+  }
+#endif
+  ;
 
-    Unsigned_To_Four(L,(byte_t*)block8+0);
-    Unsigned_To_Four(R,(byte_t*)block8+4);
+void Blowfish_Decrypt8(YOYO_BLOWFISH *self,void *block8)
+#ifdef _YOYO_BLOWFISH_BUILTIN
+  {
+    uint_t L = Four_To_Unsigned_BE((byte_t*)block8+0);
+    uint_t R = Four_To_Unsigned_BE((byte_t*)block8+4);
+    Blowfish_Decrypt8_(self,&L,&R);
+    Unsigned_To_Four_BE(L,(byte_t*)block8+0);
+    Unsigned_To_Four_BE(R,(byte_t*)block8+4);
   }
 #endif
   ;
@@ -416,13 +444,9 @@ void *Blowfish_Init_Static(YOYO_BLOWFISH *self, void *key, int key_len)
   {
     int i, j, k;
     uint_t data;
-    struct { uint_t L; uint_t R; } LR = {0};
+    uint_t L = 0, R = 0;
 
-    for ( i = 0; i < 4; ++i ) 
-      {
-        for ( j = 0; j < 256; ++j )
-          self->S[i][j] = Blowfish_S[i][j];
-      }
+    key_len = Yo_MIN(key_len,56);
 
     j = 0;
     for ( i = 0; i < 16 + 2; ++i ) 
@@ -430,28 +454,28 @@ void *Blowfish_Init_Static(YOYO_BLOWFISH *self, void *key, int key_len)
         data = 0;
         for ( k = 0; k < 4; ++k ) 
           {
-            data = (data << 8) | ((byte_t*)key)[j];
-            j = j + 1;
-            if ( j >= key_len )
-              j = 0;
+            data = (data << 8) | ((byte_t*)key)[j % key_len];
+            ++j;
           }
         self->P[i] = Blowfish_P[i] ^ data;
       }
 
+    memcpy(self->S,Blowfish_S,sizeof(self->S));
+
     for ( i = 0; i < 16 + 2; i += 2 ) 
       {
-        Blowfish_Encrypt8(self,&LR);
-        self->P[i] = LR.L;
-        self->P[i + 1] = LR.R;
+        Blowfish_Encrypt8_(self,&L,&R);
+        self->P[i] = L;
+        self->P[i + 1] = R;
       }
 
     for ( i = 0; i < 4; ++i ) 
       {
         for ( j = 0; j < 256; j += 2 ) 
           {
-            Blowfish_Encrypt8(self,&LR);
-            self->S[i][j] = LR.L;
-            self->S[i][j + 1] = LR.R;
+            Blowfish_Encrypt8_(self,&L,&R);
+            self->S[i][j] = L;
+            self->S[i][j + 1] = R;
           }
       }
       

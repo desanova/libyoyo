@@ -1,7 +1,23 @@
 
 /*
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +51,19 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 #include "yoyo.hc"
+
+#ifdef _YOYO_CRC_BUILTIN
+# define _YOYO_CRC_BUILTIN_CODE(Code) Code
+# define _YOYO_CRC_EXTERN 
+#else
+# define _YOYO_CRC_BUILTIN_CODE(Code)
+# define _YOYO_CRC_EXTERN extern 
+#endif
+
+_YOYO_CRC_EXTERN char Oj_Digest_Update_OjMID[] _YOYO_CRC_BUILTIN_CODE( = "digest-update/@*i"); 
+void Oj_Digest_Update(void *dgst,void *buf,int L) _YOYO_CRC_BUILTIN_CODE(
+  { ((void(*)(void*,void*,int))Yo_Find_Method_Of(&dgst,Oj_Digest_Update_OjMID,YO_RAISE_ERROR))
+        (dgst,buf,L); });
 
 uint_t    Crc_32(uint_t crc, void *, int len);
 ushort_t  Crc_16(ushort_t crc, void *, int len);

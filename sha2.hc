@@ -6,7 +6,23 @@
 //   http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
 //
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +56,7 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 #include "yoyo.hc"
+#include "crc.hc"
 
 typedef struct _YOYO_SHA2
   {
@@ -74,12 +91,16 @@ void *Sha2_Start(YOYO_SHA2 *sha2)
 #endif
   ;
 
+void Sha2_Update(YOYO_SHA2 *sha2, void *data, int len);
+void *Sha2_Finish(YOYO_SHA2 *sha2, void *digest);
+
 void *Sha2_Init()
 #ifdef _YOYO_SHA2_BUILTIN
   {
     static YOYO_FUNCTABLE funcs[] = 
       { {0},
         {Oj_Clone_OjMID, Sha2_Clone },
+        {Oj_Digest_Update_OjMID, Sha2_Update },
         {0}};
     
     YOYO_SHA2 *sha2 = __Object(sizeof(YOYO_SHA2),funcs);
@@ -87,9 +108,6 @@ void *Sha2_Init()
   }
 #endif
   ;
-
-void Sha2_Update(YOYO_SHA2 *sha2, void *data, int len);
-void *Sha2_Finish(YOYO_SHA2 *sha2, void *digest);
 
 #define YOYO_SHA2_INITIALIZER {\
   {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, \
@@ -361,20 +379,6 @@ void *Hmac_Sha2_Start(YOYO_HMAC_SHA2 *hmac, void *key, int key_len)
 #endif
   ;
 
-void *Hmac_Sha2_Init(void *key, int key_len)
-#ifdef _YOYO_SHA2_BUILTIN
-  {
-    static YOYO_FUNCTABLE funcs[] = 
-      { {0},
-        {Oj_Clone_OjMID, Hmac_Sha2_Clone },
-        {0}};
-    
-    YOYO_HMAC_SHA2 *sha2 = __Object(sizeof(YOYO_HMAC_SHA2),funcs);
-    return Hmac_Sha2_Start(sha2,key,key_len);
-  }
-#endif
-  ;
-
 void Hmac_Sha2_Update(YOYO_HMAC_SHA2 *hmac, void *input, int input_length)
 #ifdef _YOYO_SHA2_BUILTIN
   {
@@ -413,6 +417,21 @@ void *Hmac_Sha2_Digest(void *data, int len, void *key, int key_len, void *digest
     Hmac_Sha2_Start(&hmac2,key,key_len);
     Sha2_Update(&hmac2.sha2,data,len);
     return Hmac_Sha2_Finish(&hmac2,digest);
+  }
+#endif
+  ;
+
+void *Hmac_Sha2_Init(void *key, int key_len)
+#ifdef _YOYO_SHA2_BUILTIN
+  {
+    static YOYO_FUNCTABLE funcs[] = 
+      { {0},
+        {Oj_Clone_OjMID, Hmac_Sha2_Clone },
+        {Oj_Digest_Update_OjMID, Hmac_Sha2_Update },
+        {0}};
+    
+    YOYO_HMAC_SHA2 *sha2 = __Object(sizeof(YOYO_HMAC_SHA2),funcs);
+    return Hmac_Sha2_Start(sha2,key,key_len);
   }
 #endif
   ;

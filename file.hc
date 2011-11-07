@@ -1,7 +1,23 @@
 
 /*
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1699,6 +1715,37 @@ void Oj_Fill(void *fobj, byte_t val, int count)
         Oj_Write_Full(fobj,bf,L);
         count -= L;
       }
+  }
+#endif
+  ;
+
+int Oj_Apply_File(void *foj, void *accu, void (*algo)(void *accu,void *buf, int L))
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    char bf[YOYO_FILE_COPY_BUFFER_SIZE];
+    int count = 0;
+    int (*xread)(void*,void*,int,int) = Yo_Find_Method_Of(&foj,Oj_Read_OjMID,YO_RAISE_ERROR);
+    for ( ;; )
+      {
+        int i = xread(foj,bf,YOYO_FILE_COPY_BUFFER_SIZE,0);
+        if ( !i ) break;
+        algo(accu,bf,i);
+        count += i;
+      }
+    return count;
+  }
+#endif
+  ;
+
+_YOYO_FILE_EXTERN char Oj_Digest_File_Update_OjMID[] _YOYO_FILE_BUILTIN_CODE( = "digest-file-update/@*"); 
+void Oj_Digest_File_Update(void *dgst,void *foj) _YOYO_FILE_BUILTIN_CODE(
+  { void(*update)(void*,void*,int) = Yo_Find_Method_Of(&dgst,Oj_Digest_Update_OjMID,YO_RAISE_ERROR);
+    Oj_Apply_File(foj,dgst,update); });
+
+void File_Update_Digest(void *dgst, char *filename)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    __Auto_Release Oj_Digest_File_Update(dgst,Cfile_Open(filename,"r"));
   }
 #endif
   ;

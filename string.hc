@@ -1,7 +1,23 @@
 
 /*
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1622,6 +1638,39 @@ char *Str_Ansi_Transform_Npl(char *S, int L, char (*transform)(char))
 #define Str_Ansi_Upper_Npl(S,L) Str_Ansi_Transform_Npl(S,L,(void*)toupper)
 #define Str_Ansi_Lower(S,L) ((char*)__Pool(Str_Ansi_Lower_Npl(S,L)))
 #define Str_Ansi_Lower_Npl(S,L) Str_Ansi_Transform_Npl(S,L,(void*)tolower)
+
+char *Str_Utf8_Transform_Npl(char *S, int L, wchar_t (*transform)(wchar_t) )
+#ifdef _YOYO_STRING_BUILTIN  
+  {
+    char *E, *R = 0;
+    int R_capacity = 1;
+    int R_count = 0;
+    
+    if ( S )
+      {
+        if ( L < 0 ) L = strlen(S);
+        R_capacity = L+1;
+        for( E = S+L; S < E; ) 
+          { 
+            int wc_L = 0;
+            byte_t b[8];
+            wchar_t wc = Utf8_Get_Wide(&S); 
+            wc = transform(wc);
+            Utf8_Wide_Encode(b,wc,&wc_L);
+            R_count += __Elm_Append_Npl(&R,R_count,b,1,wc_L,&R_capacity);
+          }
+      }
+    
+    __Elm_Append_Npl(&R,R_count,"\0",1,1,&R_capacity);
+    return R;
+  }
+#endif
+  ;
+  
+#define Str_Utf8_Upper(S,L) ((char*)__Pool(Str_Utf8_Upper_Npl(S,L)))
+#define Str_Utf8_Upper_Npl(S,L) Str_Utf8_Transform_Npl(S,L,(void*)towupper)
+#define Str_Utf8_Lower(S,L) ((char*)__Pool(Str_Utf8_Lower_Npl(S,L)))
+#define Str_Utf8_Lower_Npl(S,L) Str_Utf8_Transform_Npl(S,L,(void*)towlower)
 
 char *Str_Safe_Oneline_Quote(char *S)
 #ifdef _YOYO_STRING_BUILTIN  

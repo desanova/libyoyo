@@ -1,7 +1,23 @@
 
 /*
 
-(C)2011, Alexéy Sudáchen, alexey@sudachen.name
+Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+
+In USA, UK, Japan and other countries allowing software patents:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    http://www.gnu.org/licenses/
+
+Otherwise:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -126,7 +142,6 @@ void _Oj_Encrypt_Decrypt_ECB_16(void *cipher, void (*f16)(void*,void*), void *S,
 void Oj_Encrypt_ECB(void *cipher, void *S, int S_len)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
-    int i;
     void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
     
     if ( f )
@@ -143,7 +158,6 @@ void Oj_Encrypt_ECB(void *cipher, void *S, int S_len)
 void Oj_Decrypt_ECB(void *cipher, void *S, int S_len)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
-    int i;
     void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,0);
     
     if ( f )
@@ -157,7 +171,7 @@ void Oj_Decrypt_ECB(void *cipher, void *S, int S_len)
 #endif
   ;
 
-quad_t _Oj_Encrypt_Decrypt_XEX_8(void *cipher, void (*f8)(void*,void*), void (*xex)(void*,void*), void *S, int S_len, quad_t st)
+quad_t _Oj_Encrypt_Decrypt_XEX_8(void *cipher, void (*f8)(void*,void*), void *cipher2, void (*xex)(void*,void*), void *S, int S_len, quad_t st)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
     int i,j, n = xex?8:16;
@@ -172,7 +186,7 @@ quad_t _Oj_Encrypt_Decrypt_XEX_8(void *cipher, void (*f8)(void*,void*), void (*x
         Quad_To_Eight(st,q16);
         
         if ( xex )
-          xex(cipher,q16);
+          xex(cipher2,q16);
         else
           Md5_Digest(q16,8,q16);
         
@@ -188,7 +202,7 @@ quad_t _Oj_Encrypt_Decrypt_XEX_8(void *cipher, void (*f8)(void*,void*), void (*x
 #endif
   ;
 
-quad_t _Oj_Encrypt_Decrypt_XEX_16(void *cipher, void (*f16)(void*,void*), void (*xex)(void*,void*), void *S, int S_len, quad_t st)
+quad_t _Oj_Encrypt_Decrypt_XEX_16(void *cipher, void (*f16)(void*,void*), void *cipher2, void (*xex)(void*,void*), void *S, int S_len, quad_t st)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
     int i,j, n = xex?16:32;
@@ -205,7 +219,7 @@ quad_t _Oj_Encrypt_Decrypt_XEX_16(void *cipher, void (*f16)(void*,void*), void (
         Quad_To_Eight(st,q32+8);
         
         if ( xex )
-          xex(cipher,q32);
+          xex(cipher2,q32);
         else
           Sha2_Digest(q32,16,q32);
           
@@ -221,18 +235,74 @@ quad_t _Oj_Encrypt_Decrypt_XEX_16(void *cipher, void (*f16)(void*,void*), void (
 #endif
   ;
 
-quad_t Oj_Encrypt_XEX(void *cipher, void *S, int S_len, quad_t st)
+quad_t Oj_Encrypt_XEX_2(void *cipher, void *cipher2, void *S, int S_len, quad_t st)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
     void (*encrypt)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
     if ( encrypt ) 
-      return _Oj_Encrypt_Decrypt_XEX_8(cipher,encrypt,encrypt,S,S_len,st);
+      {
+        if ( !cipher2 )
+          return _Oj_Encrypt_Decrypt_XEX_8(cipher,encrypt,0,0,S,S_len,st);
+        else
+          {
+            void (*encrypt2)(void*,void*) = Yo_Find_Method_Of(&cipher2,Oj_Encrypt8_OjMID,YO_RAISE_ERROR);
+            return _Oj_Encrypt_Decrypt_XEX_8(cipher,encrypt,cipher2,encrypt2,S,S_len,st);
+          }
+      }
     else if ( 0 != (encrypt = Yo_Find_Method_Of(&cipher,Oj_Encrypt16_OjMID,0)) ) 
-      return _Oj_Encrypt_Decrypt_XEX_16(cipher,encrypt,encrypt,S,S_len,st);
+      {
+        if ( !cipher2 )
+          return _Oj_Encrypt_Decrypt_XEX_16(cipher,encrypt,0,0,S,S_len,st);
+        else
+          {
+            void (*encrypt2)(void*,void*) = Yo_Find_Method_Of(&cipher2,Oj_Encrypt16_OjMID,YO_RAISE_ERROR);
+            return _Oj_Encrypt_Decrypt_XEX_16(cipher,encrypt,cipher2,encrypt2,S,S_len,st);
+          }
+      }
     else
       __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
               __yoTa("cipher does not contain Oj_Encrypt8_OjMID or Oj_Encrypt16_OjMID mothod",0));
     return 0;
+  }
+#endif
+  ;
+
+quad_t Oj_Decrypt_XEX_2(void *cipher, void *cipher2, void *S, int S_len, quad_t st)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    void (*decrypt)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,0);
+    if ( decrypt )
+      {
+        if ( !cipher2 )
+          return _Oj_Encrypt_Decrypt_XEX_8(cipher,decrypt,0,0,S,S_len,st);
+        else
+          {
+            void (*encrypt)(void*,void*) = Yo_Find_Method_Of(&cipher2,Oj_Encrypt8_OjMID,YO_RAISE_ERROR);
+            return _Oj_Encrypt_Decrypt_XEX_8(cipher,decrypt,cipher2,encrypt,S,S_len,st);
+          }
+      }
+    else if ( 0 != (decrypt = Yo_Find_Method_Of(&cipher,Oj_Decrypt16_OjMID,0)) )
+      {
+        if ( !cipher2 )
+          return _Oj_Encrypt_Decrypt_XEX_16(cipher,decrypt,0,0,S,S_len,st);
+        else
+          {
+            void (*encrypt)(void*,void*) = Yo_Find_Method_Of(&cipher2,Oj_Encrypt16_OjMID,YO_RAISE_ERROR);
+            return _Oj_Encrypt_Decrypt_XEX_16(cipher,decrypt,cipher2,encrypt,S,S_len,st);
+          }
+      }
+    else
+      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
+              __yoTa("cipher does not contain Oj_Decrypt8_OjMID or Oj_Decrypt16_OjMID mothod",0));
+    return 0;
+  }
+#endif
+  ;
+
+quad_t Oj_Encrypt_XEX(void *cipher, void *S, int S_len, quad_t st)
+#ifdef _YOYO_CIPHER_BUILTIN
+  {
+    return Oj_Encrypt_XEX_2(cipher,cipher,S,S_len,st);
   }
 #endif
   ;
@@ -240,22 +310,7 @@ quad_t Oj_Encrypt_XEX(void *cipher, void *S, int S_len, quad_t st)
 quad_t Oj_Decrypt_XEX(void *cipher, void *S, int S_len, quad_t st)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
-    void (*encrypt)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
-    void (*decrypt)(void*,void*);
-    if ( encrypt )
-      {
-        decrypt = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,YO_RAISE_ERROR);
-        return _Oj_Encrypt_Decrypt_XEX_8(cipher,decrypt,encrypt,S,S_len,st);
-      }
-    else if ( 0 != (encrypt = Yo_Find_Method_Of(&cipher,Oj_Encrypt16_OjMID,0)) )
-      {
-        decrypt = Yo_Find_Method_Of(&cipher,Oj_Decrypt16_OjMID,YO_RAISE_ERROR);
-        return _Oj_Encrypt_Decrypt_XEX_16(cipher,decrypt,encrypt,S,S_len,st);
-      }
-    else
-      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
-              __yoTa("cipher does not contain Oj_Encrypt8_OjMID or Oj_Encrypt16_OjMID mothod",0));
-    return 0;
+    return Oj_Decrypt_XEX_2(cipher,cipher,S,S_len,st);
   }
 #endif
   ;
@@ -263,15 +318,7 @@ quad_t Oj_Decrypt_XEX(void *cipher, void *S, int S_len, quad_t st)
 quad_t Oj_Encrypt_XEX_MDSH(void *cipher, void *S, int S_len, quad_t st)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
-    void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Encrypt8_OjMID,0);
-    if ( f ) 
-      return _Oj_Encrypt_Decrypt_XEX_8(cipher,f,0,S,S_len,st);
-    else if ( 0 != (f = Yo_Find_Method_Of(&cipher,Oj_Encrypt16_OjMID,0)) ) 
-      return _Oj_Encrypt_Decrypt_XEX_16(cipher,f,0,S,S_len,st);
-    else
-      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
-              __yoTa("cipher does not contain Oj_Encrypt8_OjMID or Oj_Encrypt16_OjMID mothod",0));
-    return 0;
+    return Oj_Decrypt_XEX_2(cipher,0,S,S_len,st);
   }
 #endif
   ;
@@ -279,15 +326,7 @@ quad_t Oj_Encrypt_XEX_MDSH(void *cipher, void *S, int S_len, quad_t st)
 quad_t Oj_Decrypt_XEX_MDSH(void *cipher, void *S, int S_len, quad_t st)
 #ifdef _YOYO_CIPHER_BUILTIN
   {
-    void (*f)(void*,void*) = Yo_Find_Method_Of(&cipher,Oj_Decrypt8_OjMID,0);
-    if ( f ) 
-      return _Oj_Encrypt_Decrypt_XEX_8(cipher,f,0,S,S_len,st);
-    else if ( 0 != (f = Yo_Find_Method_Of(&cipher,Oj_Decrypt16_OjMID,0)) ) 
-      return _Oj_Encrypt_Decrypt_XEX_16(cipher,f,0,S,S_len,st);
-    else
-      __Raise(YOYO_ERROR_METHOD_NOT_FOUND,
-              __yoTa("cipher does not contain Oj_Decrypt8_OjMID or Oj_Decrypt16_OjMID mothod",0));
-    return 0;
+    return Oj_Decrypt_XEX_2(cipher,0,S,S_len,st);
   }
 #endif
   ;
