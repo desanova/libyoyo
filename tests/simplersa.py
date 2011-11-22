@@ -1,11 +1,12 @@
+#!/usr/bin/env python
 # 
 # Simple RSA
 # Copyright (c) 2007, Alexey Sudachen
 # 
 
-from random import random
+from random import random, randrange
 from os import urandom
-import sys,struct
+import sys,struct,time
 
 _there_is_no_more = "there is no more then 500 primes"
 
@@ -291,7 +292,56 @@ def decrypt_512L(s,key,n,Sx=False):
     return decrypt_L(64,s,key,n,Sx)
 
 
+def miller_rabin_pass(a, s, d, n):
+    a_to_power = pow(a, d, n)
+    if a_to_power == 1:
+        return True
+    for i in xrange(s-1):
+        if a_to_power == n - 1:
+            return True
+        a_to_power = (a_to_power * a_to_power) % n
+    return a_to_power == n - 1
+
+
+def miller_rabin(n):
+    d = n - 1
+    s = 0
+    while d % 2 == 0:
+        d >>= 1
+        s += 1
+
+    for repeat in xrange(20):
+        a = 0
+        while a == 0:
+            a = randrange(n)
+        if not miller_rabin_pass(a, s, d, n):
+            return False
+    return True
+
+
+def gen_prime2(bits):
+    while True:
+        r = 2L
+        for i in xrange(bits-3):
+            r = (r << 1) + long(random() * 2)
+        r = (r << 1) + 1
+        if miller_rabin(r):
+            return r
+
 if __name__ == '__main__':
+
+    t0 = time.time()
+    Q = gen_prime(1024,150)
+    print time.time() - t0
+    print Q
+    t0 = time.time()
+    Q = gen_prime2(1024)
+    print time.time() - t0
+    print Q
+    
+    
+    sys.exit(0)
+    
     for i in range(1):
         pub,pri,n = gen_key_pair_128()
         for j in range(100):

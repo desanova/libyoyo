@@ -1068,7 +1068,7 @@ YOYO_BIGINT *Bigint_Invmod(YOYO_BIGINT *bint, YOYO_BIGINT *mod)
 #ifndef _YOYO_BINGINT_BUILTIN
 extern
 #endif
-halflong_t First_Prime_Values[]
+unsigned short First_Prime_Values[]
 #ifdef _YOYO_BINGINT_BUILTIN
 = {
 #include "prime_values.inc"        
