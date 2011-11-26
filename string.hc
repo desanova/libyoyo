@@ -1672,7 +1672,7 @@ char *Str_Utf8_Transform_Npl(char *S, int L, wchar_t (*transform)(wchar_t) )
 #define Str_Utf8_Lower(S,L) ((char*)__Pool(Str_Utf8_Lower_Npl(S,L)))
 #define Str_Utf8_Lower_Npl(S,L) Str_Utf8_Transform_Npl(S,L,(void*)towlower)
 
-char *Str_Safe_Oneline_Quote(char *S)
+char *Str_Safe_Quote(char *S)
 #ifdef _YOYO_STRING_BUILTIN  
   {
     int S_len = S? strlen(S):0;
@@ -1684,17 +1684,18 @@ char *Str_Safe_Oneline_Quote(char *S)
       for ( ; *S; ++S )
         {
           if ( 0 ) ;
-          else if ( *S == '\n' || *S == '\r' 
+          else if ( *(signed char*)S < 30
             || *S == '|' || *S == '&' || *S == ';' 
-            || *S == '<' || *S == '>' || *S =='[' 
-            || *S ==']'  || *S == '{' || *S =='}'
-            || *S == '"' || *S == '\'' || *S == '\\' )  
-            R_count += __Elm_Append_Npl(&R,R_count,"~",1,1,&R_capacity);
-          else if ( *S < 30 ) 
+            || *S == '<' || *S == '>' || *S == '[' 
+            || *S == ']' || *S == '{' || *S == '}'
+            || *S == '"' || *S == '\'' ||*S == '\\' 
+            || *S == '#' || *S == '$' //|| *S == '%' 
+            || *S == '?' || *S == '=' || *S == '`'
+          )
             {
-              char b[2];
-              Unsigned_To_Hex2(*S,b);
-              R_count += __Elm_Append_Npl(&R,R_count,b,2,1,&R_capacity);
+              char b[3] = {'#',0,0};
+              Unsigned_To_Hex2(*S,b+1);
+              R_count += __Elm_Append_Npl(&R,R_count,b,3,1,&R_capacity);
             }
           else R_count += __Elm_Append_Npl(&R,R_count,S,1,1,&R_capacity);
         }

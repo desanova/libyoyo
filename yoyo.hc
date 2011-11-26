@@ -2006,26 +2006,5 @@ int Yo_Elm_Insert(void **inout, int pos, int count, void *S, int L, int type_wid
 #define __Elm_Append(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append((void**)Mem,Count,S,L,Width,CpsPtr)
 #define __Elm_Append_Npl(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append_Npl((void**)Mem,Count,S,L,Width,CpsPtr)
 
-#ifdef __windoze
-int Is_WOW64()
-#ifdef _YOYO_CORE_BUILTIN
-  {
-    static int system_is = 0;
-    if ( !system_is )
-      {
-        int (__stdcall *f_IsWow64Process)(HANDLE, int*) = 0;
-        int is_wow64 = 0;
-        f_IsWow64Process = (void *)GetProcAddress(GetModuleHandleA(__yoTa("kernel32.dll",0)),__yoTa("IsWow64Process",0));
-        if ( f_IsWow64Process && f_IsWow64Process( GetCurrentProcess(), &is_wow64 ) && is_wow64 ) 
-          system_is = 64;
-        else
-          system_is = 32;
-      }
-    return system_is == 64;
-  }
-#endif
-  ;
-#endif /* __windoze */
-
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
 

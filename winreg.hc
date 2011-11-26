@@ -101,7 +101,7 @@ char *WinReg_Query_String(YOYO_WINREG *o,char *opt)
 
         if ( ltype != REG_SZ )
           __Raise(YOYO_ERROR_IO,
-            Yo_Format("failed to query value '%s' of '%s': is not string value",(opt?opt:""),o->name));
+            __Format("failed to query value '%s' of '%s': is not string value",(opt?opt:""),o->name));
 
         //buf = Yo_Malloc((L+1)*sizeof(wchar_t));
         buf = Yo_Malloc(L+2);

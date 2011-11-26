@@ -374,22 +374,6 @@ typedef struct _XTEB
     PVOID                   StackReserved;
   } XTEB, *PXTEB;
 
-typedef struct _INITIAL_TEB 
-  {
-    struct {
-        PVOID OldStackBase;
-        PVOID OldStackLimit;
-    } OldInitialTeb;
-    PVOID StackBase;
-    PVOID StackLimit;
-    PVOID StackAllocationBase;
-    //PVOID                StackBase;
-    //PVOID                StackLimit;
-    //PVOID                StackCommit;
-    //PVOID                StackCommitMax;
-    //PVOID                StackReserved;
-  } INITIAL_TEB, *PINITIAL_TEB;
-
 XTEB *Query_TEB()
 #ifdef _YOYO_XNTDEF_BUILTIN
   {
@@ -421,6 +405,26 @@ IMAGE_NT_HEADERS *Get_Nt_Headers(void *p)
   }
 #endif
   ;
-  
+
+int Is_WOW64()
+#ifdef _YOYO_XNTDEF_BUILTIN
+  {
+    static int system_is = 0;
+    if ( !system_is )
+      {
+        int (__stdcall *f_IsWow64Process)(HANDLE, int*) = 0;
+        int is_wow64 = 0;
+        f_IsWow64Process = (void *)GetProcAddress(GetModuleHandleA(__yoTa("kernel32.dll",0)),__yoTa("IsWow64Process",0));
+        if ( f_IsWow64Process && f_IsWow64Process( GetCurrentProcess(), &is_wow64 ) && is_wow64 ) 
+          system_is = 64;
+        else
+          system_is = 32;
+      }
+    return system_is == 64;
+  }
+#endif
+  ;
+
 #endif /* __windoze */  
 #endif /* C_once_D26A79BF_9E35_48C1_8D5B_03D5A42C3203 */
+
