@@ -206,8 +206,8 @@ typedef unsigned long  ulong_t;
 #else
 # define __Yo_FILE__ 0
 # define __Yo_Expr__(Expr) 0
-# define Yo_Raise(Error,Msg,File,Line) _Yo_Raise(Error,0,0,0)
-# define Yo_Fatal(Error,Msg,File,Line) _Yo_Fatal(Error,0,0,0)
+# define Yo_Raise(Error,Msg,File,Line) _Yo_Raise(Error,Msg,0,0)
+# define Yo_Fatal(Error,Msg,File,Line) _Yo_Fatal(Error,Msg,0,0)
 #endif
 
 #define YOYO_COMPOSE2(a,b) a##b
@@ -1512,6 +1512,8 @@ void _Yo_Raise(int err,char *msg,char *filename,int lineno)
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     STRICT_REQUIRE( !nfo || nfo->jb_top < nfo->jb_count );
     
+    printf("err: %d, msg: %s, filename: %s, lineno: %d\n",err,msg,filename,lineno);
+    
     if ( err == YO_RERAISE_CURRENT_ERROR && (!nfo || !nfo->err.code) )
       return;
     
@@ -1796,7 +1798,7 @@ void Error_Exit(char *pfx)
 #define __Refe(Ptr)                     Yo_Refe(Ptr)
 #define __Unrefe(Ptr)                   Yo_Unrefe(Ptr)
 #define __Raise(Err,Msg)                Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
-#define __Raise_User_Error(Msg)         Yo_Raise(YOYO_ERROR_USER,Msg,__Yo_FILE__,__LINE__)
+#define __Raise_User_Error(Msg_)        Yo_Raise(YOYO_ERROR_USER,Msg_,__Yo_FILE__,__LINE__)
 #define __Raise_Format(Err,Fmt)         Yo_Raise(Err,(Yo_Format Fmt),__Yo_FILE__,__LINE__)
 #define __Raise_If_Occured()            Yo_Raise_If_Occured()
 #define __Fatal(Ctx)                    Yo_Fatal(YOYO_FATAL_ERROR,Ctx,__Yo_FILE__,__LINE__)

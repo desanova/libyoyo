@@ -1,5 +1,7 @@
 
+#define _LIBYOYO
 #include "../libyoyo.hc"
+#include "../libcrypt.hc"
 
 int main(int argc, char **argv)
   {

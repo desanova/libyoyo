@@ -1,4 +1,5 @@
 
+#define _LIBYOYO
 #include "../libyoyo.hc"
 #include "../bigint.hc"
 
@@ -17,7 +18,7 @@ int main(int argc, char **argv)
     //data = Bigint_Random(bits-1);
     puts(Bigint_Encode_16(data));
     
-    __Raise_User_Error("test");
+    //__Raise_User_Error("test");
     
     for ( i = 0; i < MAX_ITER_COUNT; ++i ) __Auto_Release
       {

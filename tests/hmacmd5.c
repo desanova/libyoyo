@@ -1,6 +1,7 @@
 
+#define _LIBYOYO
 #include "../libyoyo.hc"
-
+#include "../libcrypt.hc"
 
 /*
  * RFC 2202 test vectors
