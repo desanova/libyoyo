@@ -161,11 +161,11 @@ in this Software without prior written authorization of the copyright holder.
 # define backtrace(Cbk,Count) (0)
 #endif
 
-#define Isspace(x)   isspace((unsigned)(x))
-#define Isdigit(x)   isdigit((unsigned)(x))
-#define Isxdigit(x)  isxdigit((unsigned)(x))
-#define Toupper(x)   toupper((unsigned)(x))
-#define Tolower(x)   tolower((unsigned)(x))
+#define Isspace(x)   isspace((byte_t)(x))
+#define Isdigit(x)   isdigit((byte_t)(x))
+#define Isxdigit(x)  isxdigit((byte_t)(x))
+#define Toupper(x)   toupper((byte_t)(x))
+#define Tolower(x)   tolower((byte_t)(x))
 
 #define iszof(x)     ((int)sizeof(x))
 #define iszof_double ((int)sizeof(double))
