@@ -283,7 +283,7 @@ char *Path_Fullname(char *path)
     if ( path )
       {
         wchar_t *foo;
-        char *ret;
+        char *ret = 0;
         __Auto_Ptr(ret)
           {
             wchar_t *tmp = __Malloc((MAX_PATH+1)*sizeof(wchar_t));
@@ -625,7 +625,7 @@ int Raise_If_Cfile_Is_Not_Opened(YOYO_CFILE *f)
   {
     if ( !f || !f->fd )
       Yo_Raise(YOYO_ERROR_IO,
-        Yo_Format("file '%s' is already closed",f->name)
+        Yo_Format("file '%s' is already closed",(f?f->name:""))
         ,__Yo_FILE__,__LINE__);
     return 1;
   }
@@ -1181,12 +1181,12 @@ uint_t File_Access_From_Str(char *S)
 void Cfile_Remove_Nonstandard_AC(char *nonst, char *ac)
 #ifdef _YOYO_FILE_BUILTIN
   {
-    int ac_a = 0;
     int ac_r = 0;
     int ac_w = 0;
     int ac_plus = 0;
     int ac_t = 0;
-    int ac_b = 0;
+/*  int ac_a = 0;
+    int ac_b = 0; */
     
     for ( ; *nonst; ++nonst )
       switch ( *nonst )
@@ -1195,9 +1195,9 @@ void Cfile_Remove_Nonstandard_AC(char *nonst, char *ac)
           case 'r': ac_r = 1; break;
           case 'w': ac_w = 1; break;
           case 'c': ac_w = ac_plus = 1; break;
-          case 'a': ac_a = 1; break;
+          /*case 'a': ac_a = 1; break;*/
           case 't': ac_t = 1; break;
-          case 'b': ac_b = 1; break;
+          /*case 'b': ac_b = 1; break;*/
           case 'n': ac_w = ac_plus = 1; break;
         }
         

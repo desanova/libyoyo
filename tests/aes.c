@@ -47,5 +47,6 @@ int main(int argc, char **argv)
       
     REQUIRE( memcmp(bf->at,bbbf->at,bf->count) == 0 );
     puts("succeeded!");
+    return 0;
   }
 

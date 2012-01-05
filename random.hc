@@ -153,9 +153,9 @@ void System_Random(void *bits,int count /* of bytes*/ )
         fCryptAcquireContext = (tCryptAcquireContext)GetProcAddress(hm,"CryptAcquireContextA");
         fCryptGenRandom = (tCryptGenRandom)GetProcAddress(hm,"CryptGenRandom");
       }
-    if ( !cp && !fCryptAcquireContext(&cp, 0, 0,PROV_RSA_FULL, CRYPT_VERIFYCONTEXT) )
+    if ( !cp && (!fCryptAcquireContext || !fCryptAcquireContext(&cp, 0, 0,PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) )
       goto simulate;
-    if ( !fCryptGenRandom(cp,count,(unsigned char*)bits) )
+    if ( !fCryptGenRandom || !fCryptGenRandom(cp,count,(unsigned char*)bits) )
       goto simulate;
     if ( count >= 4 && *(unsigned*)bits == 0 )
       goto simulate;

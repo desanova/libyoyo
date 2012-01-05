@@ -496,7 +496,7 @@ YOYO_XDATA *Def_Parse_File(char *filename)
     __Auto_Ptr(ret)
       {
         YOYO_BUFFER *bf = Oj_Read_All(Cfile_Open(filename,"rt"));
-        ret = Def_Parse_Str(bf->at);
+        ret = Def_Parse_Str((char*)bf->at);
       }
     return ret;
   }
@@ -672,7 +672,7 @@ char *Def_Format_Into(YOYO_BUFFER *bf, YOYO_XNODE *r, int flags)
     int indent = (flags&0xff);
     if ( !bf ) bf = Buffer_Init(0);
     Def_Format_Node_In_Depth(bf,r,flags,indent);
-    return bf->at;
+    return (char*)bf->at;
   }
 #endif
   ;

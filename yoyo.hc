@@ -69,6 +69,14 @@ in this Software without prior written authorization of the copyright holder.
 /* markers */
 #define __Acquire /* a function acquires the ownership of argument */
 
+#if defined _MSC_VER
+#define __No_Return __declspec(noreturn)
+#elif defined __GNUC__
+#define __No_Return __attribute__((noreturn))
+#else
+#define __No_Return 
+#endif
+
 #ifndef __yoTa
 # define __yoTa(Text,NumId) Text
 #endif
@@ -128,6 +136,7 @@ in this Software without prior written authorization of the copyright holder.
 # include <excpt.h>
 # include <objbase.h>
 # include <io.h>
+# include <process.h>
 # include <malloc.h> /* alloca */
 #else
 # include <sys/time.h>
@@ -326,8 +335,8 @@ enum _YOYO_FLAGS
     YO_PRINT_NEWLINE          = 2,
   };
 
-void _Yo_Fatal(int err,void *ctx,char *filename,int lineno);
-void _Yo_Raise(int err,char *msg,char *filename,int lineno);
+__No_Return void _Yo_Fatal(int err,void *ctx,char *filename,int lineno);
+__No_Return void _Yo_Raise(int err,char *msg,char *filename,int lineno);
 
 #ifndef _THREADS
 
@@ -1313,48 +1322,44 @@ int Oj_Count(void *self)
 
 #define __Try  \
   switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    if ( 1 ) \
-      while ( 1 ) \
-        if ( 1 ) \
-          { Yo_Pop_JmpBuf(); break; } \
-        else if ( 1 ) \
-          default: Yo_Raise_If_Occured(); \
-        else \
-          case 0:
+    while ( 1 ) \
+      if ( 1 ) \
+        { Yo_Pop_JmpBuf(); break; } \
+      else if ( 0 ) \
+        default: Yo_Raise_If_Occured(); \
+      else if ( 0 ) \
+        case 0:
 
 #define __Try_Abort  \
   switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    if ( 1 ) \
-      while ( 1 ) \
-        if ( 1 ) \
-          { Yo_Pop_JmpBuf(); break; } \
-        else if ( 1 ) \
-          default: Error_Abort(); \
-        else \
-          case 0:
+    while ( 1 ) \
+      if ( 1 ) \
+        { Yo_Pop_JmpBuf(); break; } \
+      else if ( 0 ) \
+        default: Error_Abort(); \
+      else if ( 0 ) \
+        case 0:
 
 #define __Try_Exit(pfx)  \
   switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    if ( 1 ) \
-      while ( 1 ) \
-        if ( 1 ) \
-          { Yo_Pop_JmpBuf(); break; } \
-        else if ( 1 ) \
-          default: Error_Exit(pfx); \
-        else \
-          case 0:
+    while ( 1 ) \
+      if ( 1 ) \
+        { Yo_Pop_JmpBuf(); break; } \
+      else if ( 0 ) \
+        default: Error_Exit(pfx); \
+      else if ( 0 ) \
+        case 0:
 
 #define __Try_Except  \
   switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    if ( 1 ) \
-      while ( 1 ) \
-        if ( 1 ) \
-          { Yo_Pop_JmpBuf(); break; } \
-        else \
-          case 0:
+    while ( 1 ) \
+      if ( 1 ) \
+        { Yo_Pop_JmpBuf(); break; } \
+      else if ( 0 ) \
+        case 0:
 
 #define __Catch(Code) \
-    else if ( 1 ) \
+    else if ( 0 ) \
       case (Code):
 
 #define __Except \
@@ -1507,15 +1512,15 @@ void Yo_JmpBuf_Pop_Cs(void *cs)
 char *Yo_Btrace(void);
 
 #ifdef _YOYO_CORE_BUILTIN
-void _Yo_Raise(int err,char *msg,char *filename,int lineno)
+__No_Return void _Yo_Raise(int err,char *msg,char *filename,int lineno)
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     STRICT_REQUIRE( !nfo || nfo->jb_top < nfo->jb_count );
     
-    printf("err: %d, msg: %s, filename: %s, lineno: %d\n",err,msg,filename,lineno);
+    printf(__yoTa("err: %d, msg: %s, filename: %s, lineno: %d\n",0),err,msg,filename,lineno);
     
     if ( err == YO_RERAISE_CURRENT_ERROR && (!nfo || !nfo->err.code) )
-      return;
+      Yo_Fatal(YOYO_ERROR_UNEXPECTED,__yoTa("no errors occured yet",0),filename,lineno);
     
     if ( nfo && nfo->jb_top >= 0 && !nfo->stats.unwinding )
       {
@@ -1559,7 +1564,7 @@ void _Yo_Raise(int err,char *msg,char *filename,int lineno)
 
 #define Yo_Raise_If_Occured() _Yo_Raise(YO_RERAISE_CURRENT_ERROR,0,0,0)
 
-void Yo_Abort(char *msg)
+__No_Return void Yo_Abort(char *msg)
 #ifdef _YOYO_CORE_BUILTIN
   {
     StdErr_Print_Nl(msg);
@@ -1705,7 +1710,7 @@ char *Yo_Error_Format_Btrace(void)
 #endif
   ;
 
-void Yo_Btrace_N_Abort(char *prefix, char *msg, char *filename, int lineno)
+__No_Return void Yo_Btrace_N_Abort(char *prefix, char *msg, char *filename, int lineno)
 #ifdef _YOYO_CORE_BUILTIN
   {
     char *at = filename?Yo_Format_Npl(__yoTa(" [%s(%d)]",0),Yo__basename(filename),lineno):"";
@@ -1717,7 +1722,7 @@ void Yo_Btrace_N_Abort(char *prefix, char *msg, char *filename, int lineno)
   ;
 
 #ifdef _YOYO_CORE_BUILTIN
-void _Yo_Fatal(int err,void *ctx,char *filename,int lineno)
+__No_Return void _Yo_Fatal(int err,void *ctx,char *filename,int lineno)
   {
     switch (err)
       {
@@ -1741,7 +1746,7 @@ void _Yo_Fatal(int err,void *ctx,char *filename,int lineno)
 #endif
   ;
 
-void Error_Abort()
+__No_Return void Error_Abort()
 #ifdef _YOYO_CORE_BUILTIN
   {
     Yo_Btrace_N_Abort(
@@ -1765,7 +1770,7 @@ char *Yo_Error_Format()
 #endif
   ;
   
-void Error_Exit(char *pfx)
+__No_Return void Error_Exit(char *pfx)
 #ifdef _YOYO_CORE_BUILTIN
   {
     int code = Error_Code();
@@ -1842,10 +1847,10 @@ void Error_Exit(char *pfx)
             Yo_Unwind_Scope(0,0,0); \
             break; \
           case 0: Yo_Push_Scope(); \
-            goto YOYO_LOCAL_ID(Body);\
+            goto YOYO_LOCAL_ID(ar_Body);\
           } \
         else \
-          YOYO_LOCAL_ID(Body):
+          YOYO_LOCAL_ID(ar_Body):
 
 #define __Auto_Ptr(Ptr) \
   switch ( 0 ) \
@@ -1856,10 +1861,10 @@ void Error_Exit(char *pfx)
             Yo_Unwind_Scope(Ptr,0,0); \
             break; \
           case 0: Yo_Push_Scope(); \
-            goto YOYO_LOCAL_ID(Body);\
+            goto YOYO_LOCAL_ID(ap_Body);\
           } \
         else \
-          YOYO_LOCAL_ID(Body):
+          YOYO_LOCAL_ID(ap_Body):
 
 #else
 
@@ -1869,14 +1874,14 @@ void Error_Exit(char *pfx)
       while ( 1 ) \
         if ( 1 ) \
           { \
-            int YOYO_LOCAL_ID(Mark); \
-            Yo_Unwind_Scope(0,0,&YOYO_LOCAL_ID(Mark)); \
+            int YOYO_LOCAL_ID(ar_Mark); \
+            Yo_Unwind_Scope(0,0,&YOYO_LOCAL_ID(ar_Mark)); \
             break; \
-          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(Mark),Yo_Pool_Marker_Tag); \
-            goto YOYO_LOCAL_ID(Body);\
+          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(ar_Mark),Yo_Pool_Marker_Tag); \
+            goto YOYO_LOCAL_ID(ar_Body);\
           } \
         else \
-          YOYO_LOCAL_ID(Body):
+          YOYO_LOCAL_ID(ar_Body):
 
 #define __Auto_Ptr(Ptr) \
   switch ( 0 ) \
@@ -1884,14 +1889,14 @@ void Error_Exit(char *pfx)
       while ( 1 ) \
         if ( 1 ) \
           { \
-            int YOYO_LOCAL_ID(Mark); \
-            Yo_Unwind_Scope(Ptr,0,&YOYO_LOCAL_ID(Mark)); \
+            int YOYO_LOCAL_ID(ap_Mark); \
+            Yo_Unwind_Scope(Ptr,0,&YOYO_LOCAL_ID(ap_Mark)); \
             break; \
-          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(Mark),Yo_Pool_Marker_Tag); \
-            goto YOYO_LOCAL_ID(Body);\
+          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(ap_Mark),Yo_Pool_Marker_Tag); \
+            goto YOYO_LOCAL_ID(ap_Body);\
           } \
         else \
-          YOYO_LOCAL_ID(Body):
+          YOYO_LOCAL_ID(ap_Body):
 
 #endif /* _STRONGPOOL */
 

@@ -1334,7 +1334,7 @@ char *Xvalue_Str_Bf(YOYO_XVALUE *value,YOYO_BUFFER *bf)
             Buffer_Append(bf,S,-1);
             __Release(S);
           }
-        return bf->at+start;
+        return (char*)bf->at+start;
       }
     
     return 0;

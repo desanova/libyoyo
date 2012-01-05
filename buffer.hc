@@ -183,9 +183,9 @@ void Buffer_Printf_Va(YOYO_BUFFER *bf, char *fmt, va_list va)
     Buffer_Grow_Reserve(bf,bf->count+rq_len);
     
   #ifdef __windoze
-    q = vsprintf(bf->at+bf->count,fmt,va);
+    q = vsprintf((char*)bf->at+bf->count,fmt,va);
   #else
-    q = vsnprintf(bf->at+bf->count,rq_len,fmt,va);
+    q = vsnprintf((char*)bf->at+bf->count,rq_len,fmt,va);
   #endif
   
     if ( q >= 0 )
