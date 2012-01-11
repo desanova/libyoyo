@@ -1326,7 +1326,7 @@ int Oj_Count(void *self)
       if ( 1 ) \
         { Yo_Pop_JmpBuf(); break; } \
       else if ( 0 ) \
-        default: Yo_Raise_If_Occured(); \
+        default: Yo_Raise_Occured(); \
       else if ( 0 ) \
         case 0:
 
@@ -1562,7 +1562,7 @@ __No_Return void _Yo_Raise(int err,char *msg,char *filename,int lineno)
   }
 #endif
 
-#define Yo_Raise_If_Occured() _Yo_Raise(YO_RERAISE_CURRENT_ERROR,0,0,0)
+#define Yo_Raise_Occured() _Yo_Raise(YO_RERAISE_CURRENT_ERROR,0,0,0)
 
 __No_Return void Yo_Abort(char *msg)
 #ifdef _YOYO_CORE_BUILTIN
@@ -1805,7 +1805,7 @@ __No_Return void Error_Exit(char *pfx)
 #define __Raise(Err,Msg)                Yo_Raise(Err,Msg,__Yo_FILE__,__LINE__)
 #define __Raise_User_Error(Msg_)        Yo_Raise(YOYO_ERROR_USER,Msg_,__Yo_FILE__,__LINE__)
 #define __Raise_Format(Err,Fmt)         Yo_Raise(Err,(Yo_Format Fmt),__Yo_FILE__,__LINE__)
-#define __Raise_If_Occured()            Yo_Raise_If_Occured()
+#define __Raise_Occured()               Yo_Raise_Occured()
 #define __Fatal(Ctx)                    Yo_Fatal(YOYO_FATAL_ERROR,Ctx,__Yo_FILE__,__LINE__)
 #define __Fatal_Format(x)               Yo_Fatal(YOYO_FATAL_ERROR,Yo_Format_Npl x,__Yo_FILE__,__LINE__)
 #define __Format                        Yo_Format
@@ -1839,86 +1839,77 @@ __No_Return void Error_Exit(char *pfx)
 #ifdef _STRONGPOOL
 
 #define __Auto_Release \
-  switch ( 0 ) \
-    if ( 0 ); else \
-      while ( 1 ) \
-        if ( 1 ) \
-          { \
-            Yo_Unwind_Scope(0,0,0); \
-            break; \
-          case 0: Yo_Push_Scope(); \
-            goto YOYO_LOCAL_ID(ar_Body);\
-          } \
-        else \
-          YOYO_LOCAL_ID(ar_Body):
+  switch ( 0 ) while ( 1 ) \
+    if ( 1 ) \
+      { \
+        Yo_Unwind_Scope(0,0,0); \
+        break; \
+      case 0: Yo_Push_Scope(); \
+        goto YOYO_LOCAL_ID(ar_Body);\
+      } \
+    else \
+      YOYO_LOCAL_ID(ar_Body):
 
 #define __Auto_Ptr(Ptr) \
-  switch ( 0 ) \
-    if ( 0 ); else \
-      while ( 1 ) \
-        if ( 1 ) \
-          { \
-            Yo_Unwind_Scope(Ptr,0,0); \
-            break; \
-          case 0: Yo_Push_Scope(); \
-            goto YOYO_LOCAL_ID(ap_Body);\
-          } \
-        else \
-          YOYO_LOCAL_ID(ap_Body):
+  switch ( 0 ) while ( 1 ) \
+    if ( 1 ) \
+      { \
+        Yo_Unwind_Scope(Ptr,0,0); \
+        break; \
+      case 0: Yo_Push_Scope(); \
+        goto YOYO_LOCAL_ID(ap_Body);\
+      } \
+    else \
+      YOYO_LOCAL_ID(ap_Body):
 
 #else
 
 #define __Auto_Release \
-  switch ( 0 ) \
-    if ( 0 ); else \
-      while ( 1 ) \
-        if ( 1 ) \
-          { \
-            int YOYO_LOCAL_ID(ar_Mark); \
-            Yo_Unwind_Scope(0,0,&YOYO_LOCAL_ID(ar_Mark)); \
-            break; \
-          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(ar_Mark),Yo_Pool_Marker_Tag); \
-            goto YOYO_LOCAL_ID(ar_Body);\
-          } \
-        else \
-          YOYO_LOCAL_ID(ar_Body):
+  switch ( 0 ) while ( 1 ) \
+    if ( 1 ) \
+      { \
+        int YOYO_LOCAL_ID(ar_Mark); \
+        Yo_Unwind_Scope(0,0,&YOYO_LOCAL_ID(ar_Mark)); \
+        break; \
+      case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(ar_Mark),Yo_Pool_Marker_Tag); \
+        goto YOYO_LOCAL_ID(ar_Body);\
+      } \
+    else \
+      YOYO_LOCAL_ID(ar_Body):
 
 #define __Auto_Ptr(Ptr) \
-  switch ( 0 ) \
-    if ( 0 ); else \
-      while ( 1 ) \
-        if ( 1 ) \
-          { \
-            int YOYO_LOCAL_ID(ap_Mark); \
-            Yo_Unwind_Scope(Ptr,0,&YOYO_LOCAL_ID(ap_Mark)); \
-            break; \
-          case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(ap_Mark),Yo_Pool_Marker_Tag); \
-            goto YOYO_LOCAL_ID(ap_Body);\
-          } \
-        else \
-          YOYO_LOCAL_ID(ap_Body):
+  switch ( 0 ) while ( 1 ) \
+    if ( 1 ) \
+      { \
+        int YOYO_LOCAL_ID(ap_Mark); \
+        Yo_Unwind_Scope(Ptr,0,&YOYO_LOCAL_ID(ap_Mark)); \
+        break; \
+      case 0: Yo_Pool_Ptr(&YOYO_LOCAL_ID(ap_Mark),Yo_Pool_Marker_Tag); \
+        goto YOYO_LOCAL_ID(ap_Body);\
+      } \
+    else \
+      YOYO_LOCAL_ID(ap_Body):
 
 #endif /* _STRONGPOOL */
 
 #define __Interlock_Opt(Decl,Lx,Lock,Unlock,Unlock_Proc) \
-  switch ( 0 ) \
-    while ( 1 ) \
-      if ( 1 ) \
-        goto YOYO_LOCAL_ID(Do_Unlock); \
-      else if ( 1 ) \
-        case 0: \
-          { \
-            Decl;\
-            Lock(Lx); \
-            Yo_JmpBuf_Push_Cs(Lx,(Yo_JMPBUF_Unlock)Unlock_Proc); \
-            goto YOYO_LOCAL_ID(Do_Code); \
-          YOYO_LOCAL_ID(Do_Unlock): \
-            Yo_JmpBuf_Pop_Cs(Lx); \
-            Unlock(Lx); \
-            break; \
-          } \
-      else \
-        YOYO_LOCAL_ID(Do_Code):
+  switch ( 0 ) while ( 1 ) \
+    if ( 1 ) \
+      goto YOYO_LOCAL_ID(Do_Unlock); \
+    else if ( 1 ) \
+      case 0: \
+        { \
+          Decl;\
+          Lock(Lx); \
+          Yo_JmpBuf_Push_Cs(Lx,(Yo_JMPBUF_Unlock)Unlock_Proc); \
+          goto YOYO_LOCAL_ID(Do_Code); \
+        YOYO_LOCAL_ID(Do_Unlock): \
+          Yo_JmpBuf_Pop_Cs(Lx); \
+          Unlock(Lx); \
+          break; \
+        } \
+    else \
+      YOYO_LOCAL_ID(Do_Code):
 
 #define __Gogo \
   if ( 1 ) goto YOYO_LOCAL_ID(__gogo); \
