@@ -170,42 +170,79 @@ in this Software without prior written authorization of the copyright holder.
 # define backtrace(Cbk,Count) (0)
 #endif
 
+/* Only if x is one-byte symbol! */
 #define Isspace(x)   isspace((byte_t)(x))
 #define Isdigit(x)   isdigit((byte_t)(x))
 #define Isxdigit(x)  isxdigit((byte_t)(x))
 #define Toupper(x)   toupper((byte_t)(x))
 #define Tolower(x)   tolower((byte_t)(x))
 
+/* ATTENTION! int is always less then size_t! use it carefully */
 #define iszof(x)     ((int)sizeof(x))
 #define iszof_double ((int)sizeof(double))
 #define iszof_long   ((int)sizeof(long))
 #define iszof_wchar  ((int)sizeof(wchar_t))
 #define iszof_arr(x) ((int)(sizeof(x)/sizeof(*x)))
+
 #define __Offset_Of(T,Memb) ((longptr_t)(&((T*)0)->Memb))
 
-typedef signed char    ioct_t;
+typedef signed   char  ioct_t;
 typedef unsigned char  byte_t;
+
 typedef unsigned short ushort_t;
+typedef unsigned short uhalf_t; /* 16 bit unsigned ( half word )*/
+typedef short          half_t;  /* 16 bit signed ( half word )  */
+
 typedef unsigned int   uint_t;
+typedef unsigned int   udword_t; /* 32 bit unsigned ( i386 word ) */
+typedef int            dword_t;  /* 32 bit signed ( i386 word )   */
+
 typedef unsigned long  ulong_t;
 
 #ifndef __windoze
-  typedef unsigned long long  uquad_t;
-# if defined __APPLE__
-    typedef long long  quad_t;
+  typedef unsigned long long  uquad_t; /* 64-bit unsigned ( double word ) historically named as quad word */
+# if !defined __APPLE__
+    typedef long long  quad_t; /* 64-bit signed word ( double word ) */
 # endif
 #else
   typedef unsigned __int64  uquad_t;
   typedef __int64  quad_t;
 #endif
 
-#ifdef __x86_64
-  typedef uint_t   halflong_t;
-  typedef ulong_t  longptr_t;
+/* halflong_t is half of unsigned long value can be 16 or 32 bit, depends on platform */
+#if defined __x86_64 && !defined __windoze
+  typedef uint_t   halflong_t;  /* windows has 32-bit long always */
 #else
   typedef ushort_t halflong_t;
+#endif
+
+/* maxint_t is max integer value supporting natively by CPU, depends on platform */
+#ifdef __x86_64
+  typedef uquad_t   umaxint_t; 
+  typedef uint_t    halfumi_t; 
+  typedef quad_t    maxint_t; 
+  typedef int       halfmi_t; 
+#else
+  typedef ulong_t   umaxint_t; 
+  typedef ushort_t  halfumi_t;
+  typedef int       maxint_t;
+  typedef short     halfmi_t;
+#endif
+
+/* longptr_t is unsigned integer value enough to store pointer value */
+#ifdef __x86_64
+  typedef uquad_t  longptr_t; /* windows has 32-bit long always */
+#else
   typedef ulong_t  longptr_t;
 #endif
+
+/* compatibility with legacy TeggoSoft/MoleStudio code */
+typedef uhalf_t  u16_t;
+typedef udword_t u32_t;
+typedef uquad_t  u64_t;
+typedef half_t   i16_t;
+typedef dword_t  i32_t;
+typedef quad_t   i64_t;
 
 #ifndef _NO__FILE__
 # define __Yo_FILE__ __FILE__
@@ -234,6 +271,7 @@ typedef unsigned long  ulong_t;
 
 #define Yo_MIN(a,b) ( (a) < (b) ? (a) : (b) )
 #define Yo_MAX(a,b) ( (a) > (b) ? (a) : (b) )
+#define Yo_ABS(a) ( (a) > 0 ? (a) : -(a) ) /* a > 0  does not produce warning on unsigned types */
 #define Yo_ALIGNU(a,n) ( ((a) + ((n) - 1))&~((n) - 1) )
 
 #define YOYO_REPN_2(Val)   Val,Val
@@ -572,6 +610,7 @@ int Yo_Mini(int a, int b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MIN(a,b); });
 int Yo_Maxi(int a, int b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MAX(a,b); });
 uint_t Yo_Minu(uint_t a, uint_t b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MIN(a,b); });
 uint_t Yo_Maxu(uint_t a, uint_t b) _YOYO_CORE_BUILTIN_CODE({ return Yo_MAX(a,b); });
+uint_t Yo_Absi(int a) _YOYO_CORE_BUILTIN_CODE({ return Yo_ABS(a); });
 
 uint_t Align_To_Pow2(uint_t a, uint_t mod)
 #ifdef _YOYO_CORE_BUILTIN
@@ -971,14 +1010,12 @@ void *Yo_Resize(void *p,unsigned size,int granularity)
 #endif
   ;
   
-#ifdef __windoze
-  #ifdef __VSCPRINTF
+#if defined _YOYO_CORE_BUILTIN && defined __windoze && defined __VSCPRINTF
 int _vscprintf(char *fmt,va_list va)
   {
     static char simulate[4096*4] = {0};
     return vsprintf(simulate,fmt,va);
   }
-  #endif
 #endif
   
   
@@ -1320,50 +1357,29 @@ int Oj_Count(void *self)
 #endif
   ;
 
-#define __Try  \
-  switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    while ( 1 ) \
-      if ( 1 ) \
-        { Yo_Pop_JmpBuf(); break; } \
-      else if ( 0 ) \
-        default: Yo_Raise_Occured(); \
-      else if ( 0 ) \
-        case 0:
 
-#define __Try_Abort  \
-  switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    while ( 1 ) \
-      if ( 1 ) \
-        { Yo_Pop_JmpBuf(); break; } \
-      else if ( 0 ) \
-        default: Error_Abort(); \
-      else if ( 0 ) \
-        case 0:
+#define __Try __Try_Specific(default: Yo_Raise_Occured())
+#define __Try_Abort __Try_Specific(default: Error_Abort())
+#define __Try_Exit(pfx) __Try_Specific(default: Error_Exit(pfx))
+#define __Try_Except __Try_Specific((void)0)
 
-#define __Try_Exit(pfx)  \
+#define __Try_Specific(What)  \
   switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    while ( 1 ) \
-      if ( 1 ) \
+    if (1) /* guards exception way */ while (1) \
+      if (1) /* on second while's step if executed without errors */ \
         { Yo_Pop_JmpBuf(); break; } \
-      else if ( 0 ) \
-        default: Error_Exit(pfx); \
-      else if ( 0 ) \
-        case 0:
-
-#define __Try_Except  \
-  switch ( setjmp(Yo_Push_JmpBuf()->b) ) \
-    while ( 1 ) \
-      if ( 1 ) \
-        { Yo_Pop_JmpBuf(); break; } \
-      else if ( 0 ) \
+      else if (0) /* if unexpected */ \
+        /* default: */ What; \
+      else /* there is protected code */ \
+        /* switch jumps to here */ \
         case 0:
 
 #define __Catch(Code) \
-    else if ( 0 ) \
+    else if (0) /* else branch of guards if */ \
       case (Code):
 
-#define __Except \
-    else \
+#define __Except /* using with __Try_Except */ \
+    else /* else branch of guards if */ \
       default:
 
 YOYO_ERROR_INFO *Error_Info()

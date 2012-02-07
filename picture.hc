@@ -60,13 +60,17 @@ enum
     YOYO_RGB5_PICTURE  = __FOUR_CHARS('R',2,'5',0),
     YOYO_RGB6_PICTURE  = __FOUR_CHARS('R',2,'6',0),
     YOYO_RGBA8_PICTURE = __FOUR_CHARS('R',4,'8','A'),
+    YOYO_RGBX8_PICTURE = __FOUR_CHARS('R',4,'8',0),
     YOYO_RGB5A1_PICTURE= __FOUR_CHARS('R',2,'5','A'),
     YOYO_BGR8_PICTURE  = __FOUR_CHARS('B',3,'8',0),
     YOYO_BGR5_PICTURE  = __FOUR_CHARS('B',2,'5',0),
     YOYO_BGR6_PICTURE  = __FOUR_CHARS('B',2,'6',0),
     YOYO_BGRA8_PICTURE = __FOUR_CHARS('B',4,'8','A'),
-    YOYO_BGB5A1_PICTURE= __FOUR_CHARS('B',2,'5','A'),
+    YOYO_BGRX8_PICTURE = __FOUR_CHARS('B',4,'8',0),
+    YOYO_BGR5A1_PICTURE= __FOUR_CHARS('B',2,'5','A'),
   };
+
+#define Pict_Format_Bytes_PP(Fmt) ((Fmt>>8)&0x0ff)
 
 typedef struct _YOYO_PICTURE
   {
@@ -128,49 +132,70 @@ typedef struct _YOYO_BGR8
 YOYO_RGBA8 Pict_Get_RGBA8_Pixel(byte_t *ptr, int format)
 #ifdef _YOYO_PICTURE_BUILTIN
   {
-    if ( format == YOYO_RGBA8_PICTURE )
-      return *(YOYO_RGBA8*)ptr;
-    else if ( format == YOYO_RGB8_PICTURE )
+    switch ( format )
       {
-        YOYO_RGBA8 rgba;
-        rgba.r = ((YOYO_RGB8*)ptr)->r;
-        rgba.g = ((YOYO_RGB8*)ptr)->g;
-        rgba.b = ((YOYO_RGB8*)ptr)->b;
-        rgba.a = 0xff;
-        return rgba;
-      }
-    else if ( format == YOYO_BGR8_PICTURE )
-      {
-        YOYO_RGBA8 rgba;
-        rgba.r = ((YOYO_BGR8*)ptr)->r;
-        rgba.g = ((YOYO_BGR8*)ptr)->g;
-        rgba.b = ((YOYO_BGR8*)ptr)->b;
-        rgba.a = 0xff;
-        return rgba;
-      }
-    else if ( format == YOYO_BGRA8_PICTURE )
-      {
-        YOYO_RGBA8 rgba;
-        rgba.r = ((YOYO_BGRA8*)ptr)->r;
-        rgba.g = ((YOYO_BGRA8*)ptr)->g;
-        rgba.b = ((YOYO_BGRA8*)ptr)->b;
-        rgba.a = ((YOYO_BGRA8*)ptr)->a;
-        return rgba;
-      }
-    else if ( format == YOYO_RGBAf_PICTURE )
-      {
-        YOYO_RGBA8 rgba;
-        rgba.r = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->r + .5f ,1.f) * 255.f);
-        rgba.g = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->g + .5f ,1.f) * 255.f);
-        rgba.b = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->b + .5f ,1.f) * 255.f);
-        rgba.a = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->a + .5f ,1.f) * 255.f);
-        return rgba;
-      }
-    else
-      {
-        YOYO_RGBA8 rgba = {0};
-        __Raise(YOYO_ERROR_UNSUPPORTED,"bad pixel format");
-        return rgba;
+        case YOYO_RGBA8_PICTURE:
+          return *(YOYO_RGBA8*)ptr;
+        case YOYO_RGB8_PICTURE:
+          {
+            YOYO_RGBA8 rgba;
+            rgba.r = ((YOYO_RGB8*)ptr)->r;
+            rgba.g = ((YOYO_RGB8*)ptr)->g;
+            rgba.b = ((YOYO_RGB8*)ptr)->b;
+            rgba.a = 0xff;
+            return rgba;
+          }
+        case YOYO_RGBX8_PICTURE:
+          {
+            YOYO_RGBA8 rgba;
+            rgba.r = ((YOYO_RGB8*)ptr)->r;
+            rgba.g = ((YOYO_RGB8*)ptr)->g;
+            rgba.b = ((YOYO_RGB8*)ptr)->b;
+            rgba.a = 0xff;
+            return rgba;
+          }
+        case YOYO_BGR8_PICTURE:
+          {
+            YOYO_RGBA8 rgba;
+            rgba.r = ((YOYO_BGR8*)ptr)->r;
+            rgba.g = ((YOYO_BGR8*)ptr)->g;
+            rgba.b = ((YOYO_BGR8*)ptr)->b;
+            rgba.a = 0xff;
+            return rgba;
+          }
+        case YOYO_BGRX8_PICTURE:
+          {
+            YOYO_RGBA8 rgba;
+            rgba.r = ((YOYO_BGRA8*)ptr)->r;
+            rgba.g = ((YOYO_BGRA8*)ptr)->g;
+            rgba.b = ((YOYO_BGRA8*)ptr)->b;
+            rgba.a = 0xff;
+            return rgba;
+          }
+        case YOYO_BGRA8_PICTURE:
+          {
+            YOYO_RGBA8 rgba;
+            rgba.r = ((YOYO_BGRA8*)ptr)->r;
+            rgba.g = ((YOYO_BGRA8*)ptr)->g;
+            rgba.b = ((YOYO_BGRA8*)ptr)->b;
+            rgba.a = ((YOYO_BGRA8*)ptr)->a;
+            return rgba;
+          }
+        case YOYO_RGBAf_PICTURE:
+          {
+            YOYO_RGBA8 rgba;
+            rgba.r = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->r + .5f ,1.f) * 255.f);
+            rgba.g = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->g + .5f ,1.f) * 255.f);
+            rgba.b = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->b + .5f ,1.f) * 255.f);
+            rgba.a = (byte_t)(Yo_MAX(((YOYO_RGBAf*)ptr)->a + .5f ,1.f) * 255.f);
+            return rgba;
+          }
+        default:
+          {
+            YOYO_RGBA8 rgba = {0};
+            __Raise(YOYO_ERROR_UNSUPPORTED,"bad pixel format");
+            return rgba;
+          }
       }
   }
 #endif
@@ -220,36 +245,48 @@ YOYO_RGBAf Pict_Get_RGBAf_Pixel(byte_t *ptr, int format)
 void Pict_Set_RGBA8_Pixel(byte_t *ptr, YOYO_RGBA8 pix, int format)
 #ifdef _YOYO_PICTURE_BUILTIN
   {
-    if ( format == YOYO_RGBA8_PICTURE )
-      *(YOYO_RGBA8*)ptr = pix;
-    else if ( format == YOYO_RGB8_PICTURE )
+    switch ( format )
       {
-        ((YOYO_RGB8*)ptr)->r = pix.r;
-        ((YOYO_RGB8*)ptr)->g = pix.g;
-        ((YOYO_RGB8*)ptr)->b = pix.b;
+        case YOYO_RGBA8_PICTURE:
+          *(YOYO_RGBA8*)ptr = pix;
+          break;
+        case YOYO_RGB8_PICTURE:
+          ((YOYO_RGB8*)ptr)->r = pix.r;
+          ((YOYO_RGB8*)ptr)->g = pix.g;
+          ((YOYO_RGB8*)ptr)->b = pix.b;
+          break;
+        case YOYO_RGBX8_PICTURE:
+          ((YOYO_RGBA8*)ptr)->r = pix.r;
+          ((YOYO_RGBA8*)ptr)->g = pix.g;
+          ((YOYO_RGBA8*)ptr)->b = pix.b;
+          ((YOYO_RGBA8*)ptr)->a = 0;
+          break;
+        case YOYO_BGR8_PICTURE:
+          ((YOYO_BGRA8*)ptr)->r = pix.r;
+          ((YOYO_BGRA8*)ptr)->g = pix.g;
+          ((YOYO_BGRA8*)ptr)->b = pix.b;
+          break;
+        case YOYO_BGRX8_PICTURE:
+          ((YOYO_BGRA8*)ptr)->r = pix.r;
+          ((YOYO_BGRA8*)ptr)->g = pix.g;
+          ((YOYO_BGRA8*)ptr)->b = pix.b;
+          ((YOYO_BGRA8*)ptr)->a = 0;
+          break;
+        case YOYO_BGRA8_PICTURE:
+          ((YOYO_BGRA8*)ptr)->r = pix.r;
+          ((YOYO_BGRA8*)ptr)->g = pix.g;
+          ((YOYO_BGRA8*)ptr)->b = pix.b;
+          ((YOYO_BGRA8*)ptr)->a = pix.a;
+          break;
+        case YOYO_RGBAf_PICTURE:
+          ((YOYO_RGBAf*)ptr)->r = (pix.r + .5f) / 255.f;
+          ((YOYO_RGBAf*)ptr)->g = (pix.g + .5f) / 255.f;
+          ((YOYO_RGBAf*)ptr)->b = (pix.b + .5f) / 255.f;
+          ((YOYO_RGBAf*)ptr)->a = (pix.a + .5f) / 255.f;
+          break;
+        default:
+          __Raise(YOYO_ERROR_UNSUPPORTED,"bad pixel format");
       }
-    else if ( format == YOYO_BGRA8_PICTURE )
-      {
-        ((YOYO_BGRA8*)ptr)->r = pix.r;
-        ((YOYO_BGRA8*)ptr)->g = pix.g;
-        ((YOYO_BGRA8*)ptr)->b = pix.b;
-        ((YOYO_BGRA8*)ptr)->a = pix.a;
-      }
-    else if ( format == YOYO_BGR8_PICTURE )
-      {
-        ((YOYO_BGR8*)ptr)->r = pix.r;
-        ((YOYO_BGR8*)ptr)->g = pix.g;
-        ((YOYO_BGR8*)ptr)->b = pix.b;
-      }
-    else if ( format == YOYO_RGBAf_PICTURE )
-      {
-        ((YOYO_RGBAf*)ptr)->r = (pix.r + .5f) / 255.f;
-        ((YOYO_RGBAf*)ptr)->g = (pix.g + .5f) / 255.f;
-        ((YOYO_RGBAf*)ptr)->b = (pix.b + .5f) / 255.f;
-        ((YOYO_RGBAf*)ptr)->a = (pix.a + .5f) / 255.f;
-      }
-    else
-      __Raise(YOYO_ERROR_UNSUPPORTED,"bad pixel format");
   }
 #endif
   ;
@@ -273,40 +310,40 @@ void Pict_Allocate_Buffer(YOYO_PICTURE *pict)
     if ( pict->pixels ) 
       __Raise(YOYO_ERROR_ALREADY_EXISTS,"pixel buffer already exists");
     
-    if ( pict->format == YOYO_RGBA8_PICTURE )
+    switch( pict->format )
       {
-        pict->pitch  = sizeof(YOYO_RGBA8)*pict->width;
-        pict->weight = sizeof(YOYO_RGBA8);
+        case YOYO_RGBA8_PICTURE:
+        case YOYO_RGBX8_PICTURE:
+          pict->pitch  = sizeof(YOYO_RGBA8)*pict->width;
+          pict->weight = sizeof(YOYO_RGBA8);
+          break;
+        case YOYO_RGB8_PICTURE:
+          pict->pitch  = sizeof(YOYO_RGB8)*pict->width;
+          pict->weight = sizeof(YOYO_RGB8);
+          break;
+        case YOYO_BGRA8_PICTURE:
+        case YOYO_BGRX8_PICTURE:
+          pict->pitch  = sizeof(YOYO_BGRA8)*pict->width;
+          pict->weight = sizeof(YOYO_BGRA8);
+          break;
+        case YOYO_BGR8_PICTURE:
+          pict->pitch  = sizeof(YOYO_BGR8)*pict->width;
+          pict->weight = sizeof(YOYO_BGR8);
+          break;
+        case YOYO_RGBAf_PICTURE:
+          pict->pitch  = sizeof(YOYO_RGBAf)*pict->width;
+          pict->weight = sizeof(YOYO_RGBAf);
+          break;
+        default:
+          __Raise(YOYO_ERROR_UNSUPPORTED,"bad pixel format");
       }
-    else if ( pict->format == YOYO_RGBAf_PICTURE )
-      {
-        pict->pitch  = sizeof(YOYO_RGBAf)*pict->width;
-        pict->weight = sizeof(YOYO_RGBAf);
-      }
-    else if ( pict->format == YOYO_RGB8_PICTURE )
-      {
-        pict->pitch  = sizeof(YOYO_RGB8)*pict->width;
-        pict->weight = sizeof(YOYO_RGB8);
-      }
-    else if ( pict->format == YOYO_BGR8_PICTURE )
-      {
-        pict->pitch  = sizeof(YOYO_BGR8)*pict->width;
-        pict->weight = sizeof(YOYO_BGR8);
-      }
-    else if ( pict->format == YOYO_BGRA8_PICTURE )
-      {
-        pict->pitch  = sizeof(YOYO_BGRA8)*pict->width;
-        pict->weight = sizeof(YOYO_BGRA8);
-      }
-    else
-      __Raise(YOYO_ERROR_UNSUPPORTED,"bad pixel format");
       
     pict->pixels = __Malloc_Npl(pict->pitch*pict->height);
   }
 #endif
   ;
   
-void Pict_Nullify_Transpoarent_Pixels(YOYO_PICTURE *pict, byte_t threshold)
+void Pict_Nullify_Transparent_Pixels(YOYO_PICTURE *pict, byte_t threshold)
 #ifdef _YOYO_PICTURE_BUILTIN
   {
     if ( pict->format == YOYO_RGBA8_PICTURE || pict->format == YOYO_BGRA8_PICTURE )
@@ -363,6 +400,25 @@ void Pict_Convert_Pixels_Row(byte_t *src, int src_format, byte_t *dst, int dst_f
 #endif
   ;
   
+void Pict_Convert_Pixels_Row_Pal(byte_t *src, int src_format, byte_t *dst, int dst_format, int count, void *pal, int pal_count )
+#ifdef _YOYO_PICTURE_BUILTIN
+  {
+    int i, bpp = Pict_Format_Bytes_PP(dst_format);
+    byte_t palx[256*16]; /* sizeof(rgbaf) == 16 */
+    Pict_Convert_Pixels_Row(pal,src_format,palx,dst_format,pal_count);
+    if ( bpp == 4 )
+      for ( i = 0; i < count; ++i )
+        ((u32_t*)dst)[i] = ((u32_t*)palx)[src[i]];
+    else if ( bpp == 2 )
+      for ( i = 0; i < count; ++i )
+        ((u32_t*)dst)[i] = ((u32_t*)palx)[src[i]];
+    else
+      for ( i = 0; i < count; ++i )
+        memcpy((dst + i * bpp),palx + src[i]*bpp,bpp);
+  }
+#endif
+  ;
+
 #ifdef __windoze
 HBITMAP Pict_Create_HBITMAP(YOYO_PICTURE *pict)
 #ifdef _YOYO_PICTURE_BUILTIN

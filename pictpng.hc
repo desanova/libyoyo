@@ -115,7 +115,7 @@ YOYO_PICTURE *Pict_From_PNG_Specific(void *bytes, int count, int format)
             else 
               bpp = 3;
 
-            stride = (bpp*pict->width + 7) & ~3;
+            stride = (bpp*pict->width + 3) & ~3;
             jformat = (bpp==4?YOYO_RGBA8_PICTURE:YOYO_RGB8_PICTURE);
             if ( jformat != pict->format )
               row = __Malloc(stride);
