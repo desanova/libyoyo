@@ -692,6 +692,10 @@ void *Array_Pchars(void)
 #endif
   ;
 
+#ifdef _YOYO_ARRAY_BUILTIN
+int __wcscmp(void *a, void *b) { return wcscmp(a,b); }
+#endif
+
 void *Array_Pwide(void)
 #ifdef _YOYO_ARRAY_BUILTIN
   {
@@ -699,7 +703,7 @@ void *Array_Pwide(void)
       { {0},
         {Oj_Destruct_OjMID,         Array_Destruct},
         {Oj_Destruct_Element_OjMID, free},
-        {Oj_Compare_Elements_OjMID, wcscmp},
+        {Oj_Compare_Elements_OjMID, __wcscmp},
         {Oj_Sort_OjMID,             Array_Sort},
         {Oj_Sorted_Insert_OjMID,    Array_Sorted_Insert},
         {Oj_Sorted_Find_OjMID,      Array_Binary_Find},

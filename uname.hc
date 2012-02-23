@@ -121,12 +121,13 @@ int cpuid(unsigned id, uint_t *rgs);
         }
     #else // VS2005 and later
       #include <intrin.h>
-      int cpuid(unsigned id, uint_t *rgs)
+      #define cpuid(Id,Rgs) (__cpuid(Rgs,Id), 1)
+      /*int cpuid(unsigned id, uint_t *rgs)
         {
           typedef int int4[4];
-          __cpuid((int4)rgs,id);
+          __cpuid((int*)rgs,id);
           return 1;
-        }
+        }*/
     #endif 
   #else
     int cpuid(unsigned id, uint_t *rgs) { return 0; }
