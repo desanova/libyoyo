@@ -172,6 +172,8 @@ in this Software without prior written authorization of the copyright holder.
 
 /* Only if x is one-byte symbol! */
 #define Isspace(x)   isspace((byte_t)(x))
+#define Isalpha(x)   isalpha((byte_t)(x))
+#define Isalnum(x)   isalnum((byte_t)(x))
 #define Isdigit(x)   isdigit((byte_t)(x))
 #define Isxdigit(x)  isxdigit((byte_t)(x))
 #define Toupper(x)   toupper((byte_t)(x))

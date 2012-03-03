@@ -151,6 +151,16 @@ char *Str_Copy_Npl(char *S,int L)
 #endif
   ;
 
+#define Str_Range(Start,End) __Pool(Str_Range_Npl(Start,End))
+char *Str_Range_Npl(char *S, char *E)
+#ifdef _YOYO_STRING_BUILTIN
+  {
+    STRICT_REQUIRE(E >= S);
+    return Str_Copy_Npl(S,E-S);
+  }
+#endif
+  ;
+
 #define Str_Trim_Copy(Str,Len) __Pool(Str_Trim_Copy_Npl(Str,Len))
 char *Str_Trim_Copy_Npl(char *S, int L)
 #ifdef _YOYO_STRING_BUILTIN

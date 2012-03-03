@@ -180,7 +180,7 @@ char *Xvalue_Get_Str(YOYO_XVALUE *val, char *dfltval)
       switch (val->opt&XVALUE_OPT_VALTYPE_MASK) 
         {
           case XVALUE_OPT_VALTYPE_STR:
-            return val->txt;
+            return ( val->txt[0] ) ? val->txt : dfltval;
           case XVALUE_OPT_VALTYPE_LIT:
             return (char*)&val->down;
           case XVALUE_OPT_VALTYPE_NONE:

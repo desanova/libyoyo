@@ -54,13 +54,13 @@ in this Software without prior written authorization of the copyright holder.
 #define _YOYO_TCPIP_BUILTIN
 #endif
 
-typedef struct _YOYO_SOCKET
+typedef struct _YOYO_TCPSOK
   {
     int       skt;
     char     *host;
     int       port;
     in_addr_t ip;
-  } YOYO_SOCKET
+  } YOYO_TCPSOK;
 
 #ifdef __windoze
 void _WSA_Init()
@@ -127,7 +127,7 @@ in_addr_t Dns_Resolve(char *host)
 #endif
   ;
   
-void Socket_Close(YOYO_SOCKET *sok)
+void Tcp_Close(YOYO_TCPSOK *sok)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
     if ( sok->skt >= 0 ) 
@@ -139,17 +139,17 @@ void Socket_Close(YOYO_SOCKET *sok)
 #endif
   ;
   
-void YOYO_SOCKET_Destruct(YOYO_SOCKET *sok)
+void YOYO_TCPSOK_Destruct(YOYO_TCPSOK *sok)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
-    Socket_Close(sok);
+    Tcp_Close(sok);
     free(sok->host);
     __Detruct(sok);
   }
 #endif
   ;
   
-int Socket_Read(YOYO_SOCKET *sok, void *out, int count, int mincount)
+int Tcp_Read(YOYO_TCPSOK *sok, void *out, int count, int mincount)
 #ifdef _YOYO_TCPIP_BUILTIN  
   {
     byte_t *b = out;
@@ -170,7 +170,7 @@ int Socket_Read(YOYO_SOCKET *sok, void *out, int count, int mincount)
 #endif
   ;
   
-int Socket_Write(YOYO_SOCKET *sok, void *out, int count, int mincount)
+int Tcp_Write(YOYO_TCPSOK *sok, void *out, int count, int mincount)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
     byte_t *b = out;
@@ -191,21 +191,21 @@ int Socket_Write(YOYO_SOCKET *sok, void *out, int count, int mincount)
 #endif
   ;
   
-YOYO_SOCKET *Socket_Init(in_addr_t ip, int port, int skt, char *hostname)
+YOYO_TCPSOK *Tcp_Init(in_addr_t ip, int port, int skt, char *hostname)
 #ifdef _YOYO_TCPIP_BUILTIN  
   {
     static YOYO_FUNCTABLE funcs[] = 
       { {0},
-        {Oj_Destruct_OjMID,    YOYO_SOCKET_Destruct},
-        {Oj_Close_OjMID,       Socket_Close},
-        {Oj_Read_OjMID,        Socket_Read},
-        {Oj_Write_OjMID,       Socket_Write},
-        //{Oj_Available_OjMID,   Socket_Available},
-        //{Oj_Eof_OjMID,         Socket_Eof},
+        {Oj_Destruct_OjMID,    YOYO_TCPSOK_Destruct},
+        {Oj_Close_OjMID,       Tcp_Close},
+        {Oj_Read_OjMID,        Tcp_Read},
+        {Oj_Write_OjMID,       Tcp_Write},
+        //{Oj_Available_OjMID,   Tcp_Available},
+        //{Oj_Eof_OjMID,         Tcp_Eof},
         {0}
       };
 
-    YOYO_SOCKET *sok = __Object(sizeof(YOYO_SOCKET),funcs);
+    YOYO_TCPSOK *sok = __Object(sizeof(YOYO_TCPSOK),funcs);
     sok->skt = skt;
     sok->port = port;
     sok->ip = ip;
@@ -214,10 +214,10 @@ YOYO_SOCKET *Socket_Init(in_addr_t ip, int port, int skt, char *hostname)
 #endif
   ;
   
-YOYO_TCPSOKET *Socket_Open_Inaddr(in_addr_t ip, int port, char *hostname)
+YOYO_TCPSOK *Tcp_Open_Inaddr(in_addr_t ip, int port, char *hostname)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
-    YOYO_TCPSOKET *sok;
+    YOYO_TCPSOK *sok;
     
     sockaddr_in addr = {0}; 
     int skt, conerr;
@@ -239,17 +239,17 @@ YOYO_TCPSOKET *Socket_Open_Inaddr(in_addr_t ip, int port, char *hostname)
                           ,port
                           ,conerr));
 
-    sok = Socket_Init(skt,ip,port,hostname);
+    sok = Tcp_Init(skt,ip,port,hostname);
     return sok;
   }
 #endif
   ;
   
-YOYO_TCPSOKET *Socket_Open(char *host, int port)
+YOYO_TCPSOK *Tcp_Open(char *host, int port)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
     in_addr_t ip = Dns_Resolve(host);
-    YOYO_TCPSOKET *sok = Soket_Open_Inaddr(ip,port,hotname);
+    YOYO_TCPSOK *sok = Soket_Open_Inaddr(ip,port,hotname);
     return sok;
   }
 #endif
