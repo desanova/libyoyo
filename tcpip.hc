@@ -49,17 +49,23 @@ in this Software without prior written authorization of the copyright holder.
 #include "yoyo.hc"
 #include "string.hc"
 #include "file.hc"
+#include "asio.hc"
 
 #ifdef _LIBYOYO
 #define _YOYO_TCPIP_BUILTIN
 #endif
 
+enum  
+  {
+    TCPSOK_ASYNC = 1,
+  };
+
 typedef struct _YOYO_TCPSOK
   {
-    int       skt;
-    char     *host;
-    int       port;
     in_addr_t ip;
+    int       skt;
+    int       port;
+    int       async: 1;
   } YOYO_TCPSOK;
 
 #ifdef __windoze
@@ -144,7 +150,7 @@ void YOYO_TCPSOK_Destruct(YOYO_TCPSOK *sok)
   {
     Tcp_Close(sok);
     free(sok->host);
-    __Detruct(sok);
+    __Destruct(sok);
   }
 #endif
   ;
@@ -156,7 +162,7 @@ int Tcp_Read(YOYO_TCPSOK *sok, void *out, int count, int mincount)
     int cc = count;
     while ( cc )
       {
-        int q = recv(skt,b,cc,0);
+        int q = recv(sok->skt,b,cc,0);
         if ( q < 0 )
           __Raise_Format(YOYO_ERROR_IO,("tcp recv failed with error %s",strerror(errno)));
         STRICT_REQUIRE( q <= cc );
@@ -169,7 +175,23 @@ int Tcp_Read(YOYO_TCPSOK *sok, void *out, int count, int mincount)
   }
 #endif
   ;
-  
+
+int Tcp_Asio_Recv(YOYO_TCPSOK *sok,void *out, int count, int mincount, void *obj, asio_send_callback_t callback)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    if ( sok->async )
+      return Asio_Recv(sok->skt,out,count,mincount,obj,callback);
+    else
+      {
+        int cc = Tcp_Read(sok,out,count,mincount);
+        if ( callback )
+          return callback(obj,ASIO_COMPLETED|ASIO_SYNCHRONOUSE,cc);
+      }
+    return 0;
+  }
+#endif
+  ;
+
 int Tcp_Write(YOYO_TCPSOK *sok, void *out, int count, int mincount)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
@@ -177,7 +199,7 @@ int Tcp_Write(YOYO_TCPSOK *sok, void *out, int count, int mincount)
     int cc = count;
     while ( cc )
       {
-        int q = send(skt,b,cc,0);
+        int q = send(sok->skt,b,cc,0);
         if ( q < 0 )
           __Raise_Format(YOYO_ERROR_IO,("tcp send failed with error %s",strerror(errno)));
         STRICT_REQUIRE( q <= cc );
@@ -191,7 +213,23 @@ int Tcp_Write(YOYO_TCPSOK *sok, void *out, int count, int mincount)
 #endif
   ;
   
-YOYO_TCPSOK *Tcp_Init(in_addr_t ip, int port, int skt, char *hostname)
+int Tcp_Asio_Send(YOYO_TCPSOK *sok,void *out, int count, void *obj, asio_send_callback_t callback)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    if ( sok->async )
+      return Asio_Send(sok->skt,out,count,obj,callback);
+    else
+      {
+        int cc = Tcp_Write(sok,out,count,count);
+        if ( callback )
+          return callback(obj,ASIO_COMPLETED|ASIO_SYNCHRONOUSE,cc);
+      }
+    return 0;
+  }
+#endif
+  ;
+  
+YOYO_TCPSOK *Tcp_Socket(int flags)
 #ifdef _YOYO_TCPIP_BUILTIN  
   {
     static YOYO_FUNCTABLE funcs[] = 
@@ -206,21 +244,20 @@ YOYO_TCPSOK *Tcp_Init(in_addr_t ip, int port, int skt, char *hostname)
       };
 
     YOYO_TCPSOK *sok = __Object(sizeof(YOYO_TCPSOK),funcs);
-    sok->skt = skt;
-    sok->port = port;
-    sok->ip = ip;
-    sok->host = hostname ? Str_Copy_Npl(hostname,-1) : Ipv4_Format_Npl(ip);
+    sok->skt = INVALID_SOCKET;
+    if ( flags & TCPSOK_ASYNC ) sok->async = 1;
+    return sok;
   }
 #endif
   ;
   
-YOYO_TCPSOK *Tcp_Open_Inaddr(in_addr_t ip, int port, char *hostname)
+#define Tcp_IPv4_Connect(Sok,Ip,Port) Tcp_Asio_IPv4_Connet(Sok,Ip,Port,0,0)
+int Tcp_Asio_IPv4_Connect(YOYO_TCPSOK *sok, in_addr_t ip, int port, void *obj, asio_notify_callback_t *callback)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
-    YOYO_TCPSOK *sok;
-    
     sockaddr_in addr = {0}; 
-    int skt, conerr;
+    socket_t skt;
+    int conerr;
     
     _WSA_Init();
     
@@ -228,32 +265,67 @@ YOYO_TCPSOK *Tcp_Open_Inaddr(in_addr_t ip, int port, char *hostname)
     addr.sin_port   = htons(port);
     addr.sin_addr.s_addr = ip;
     
-    skt = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
-    conerr = 0;
+    sok->port = port;
+    sok->ip = ip;
     
-    if ( skt < 0 || ( conerr = connect(skt,(sockaddr*)&addr,sizeof(addr)) ) < 0 )
-        __Raise_Format(YOYO_ERROR_IO,("tcp connection failed: sok %d, point (%s -> %s):%d, error %d"
+    skt = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
+    sok->skt = skt;
+
+    if ( skt != INVALID_SOCKET && sok->async )
+      {
+      #ifdef __windoze
+        ulong_t nonblock = 1;
+        ioctlsocket(skt, FIONBIO, &nonblock);
+      #else       
+        int arg = fcntl(skt,F_GETFL,0);
+        arg |= O_NONBLOCK; 
+        fcntl(skt,F_SETFL,arg); 
+      #endif
+      }
+          
+    conerr = (skt != INVALID_SOCKET ) ? connect(skt,(sockaddr*)&addr,sizeof(addr)) : -1;
+    
+    if ( conerr < 0 )
+      {
+        if ( skt != INVALID_SOCKET && sok->async && Asio_Status_Repeat_Or_Die() == ASIO_PENGING && callback )
+          {
+            return Asio_Notify(skt,obj,callback);
+          }
+        else
+          __Raise_Format(YOYO_ERROR_IO,
+                          (__yoTa("tcp connection failed: sok %d, point %s:%d, error %d",0),
                           ,skt
-                          ,hostname?hostname:Ipv4_Fomat(ip)
                           ,Ipv4_Fomat(ip)
                           ,port
                           ,conerr));
-
-    sok = Tcp_Init(skt,ip,port,hostname);
-    return sok;
+      }
+      
+    if ( callback ) 
+      return callback(obj,ASIO_COMPLETED|(sok->async?ASIO_SYNCHRONOUSE:0));
+    return 0;
   }
 #endif
   ;
-  
-YOYO_TCPSOK *Tcp_Open(char *host, int port)
+
+#define Tcp_Connect(Sok,Host,Port) Tcp_Asio_Connect(Sok,Host,Port,0,0)
+int Tcp_Asio_Connect(YOYO_TCPSOK *sok,char *host,int port,void *obj,asio_notify_callback_t *callback)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
     in_addr_t ip = Dns_Resolve(host);
-    YOYO_TCPSOK *sok = Soket_Open_Inaddr(ip,port,hotname);
+    return Tcp_Asio_IPv4_Connect(sok,ip,port,obj,callback);    
+  }
+#endif
+  ;
+
+YOYO_TCPSOK *Tcp_Open(char *host, int port)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    YOYO_TCPSOK *sok = Tcp_Socket(0);
+    Tcp_Connect(sok,host,port);
     return sok;
   }
 #endif
   ;
-  
+
 #endif /* C_once_F8F16072_F92E_49E7_A983_54F60965F4C9 */
 

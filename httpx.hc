@@ -52,25 +52,435 @@ in this Software without prior written authorization of the copyright holder.
 #include "dicto.hc"
 #include "file.hc"
 #include "tcpip.hc"
-#include "bio.hc"
-//#include "ssl.hc"
+#include "url.hc"
+#include "asio.hc"
 
 #ifdef _LIBYOYO
 #define _YOYO_HTTPX_BUILTIN
 #endif
 
+/*
+добавить отсылку на пост
+добваить разбор хидеров ответа
+добавить вызов колбек хендлера на финише
+в колбек хендлер на терминирование и завершение добавить закрытие соеденения (тольео если не завершение с кипэлайвом)
+*/
+
+typedef int (*httpx_collback_t)(void *obj, struct _YOYO_HTTPX *httpx, int status);
+
+typedef struct _YOYO_HTTPX
+  {
+    void *netchnl;
+    YOYO_URL *url;
+    YOYO_URL *proxy_url;
+    
+    int  method;
+    int  maxcount;
+    int  left;
+    
+    void *outstrm;
+    void *poststrm;
+    void *mon_obj;
+    httpx_collback_t mon_callback;
+
+    YOYO_BUFFER *bf;
+    
+    YOYO_DICTO  *hdrs;
+    YOYO_BUFFER *content;
+    int   streamed;
+    int   status;
+    char *status_text;
+    
+    int async:      1;
+    int keepalive:  1;
+    int legacy10:   1;
+    int ssl:        1;
+    int proxy:      1;
+    int nline:      1;
+        
+  } YOYO_HTTPX;
+
+enum 
+  {
+    HTTPX_ASYNC       = 1,
+    HTTPX_KEEPALIVE   = 2,
+    HTTPX_LEGACY_10   = 4,
+    
+    HTTPX_GET         = __FOUR_CHARS('G','E','T','_'),
+    HTTPX_PUT         = __FOUR_CHARS('P','U','T','_'),
+    HTTPX_POST        = __FOUR_CHARS('P','O','S','T'),
+    HTTPX_HEAD        = __FOUR_CHARS('H','E','A','D'),
+  
+    HTTPX_BROKEN                  = 0x8e000000,
+    HTTPX_FAILED                  = 0x8f000000,
+    HTTPX_NOTIFY                  = 0x00001000,
+    
+    /* HTTPX_RESOLVED                = 0x00000f01, */
+    HTTPX_PROXY_CONNECTED         = 0x00000f01,
+    HTTPX_PROXY_AUTHORIZED        = 0x00000f02,
+    HTTPX_SSL_CONNECTED           = 0x00000f03,
+    HTTPX_CONNECTED               = 0x00000f10,
+    HTTPX_REQUESTED               = 0x00000f20,
+    HTTPX_GETTING_HEADERS         = 0x00000f30,
+    HTTPX_RESPONDED               = 0x00000f41,
+    HTTPX_GETTING_CONTENT         = 0x00000f42,
+    HTTPX_FINISHED                = 0x00000f43,
+    HTTPX_SEND                    = 0x00000e01,
+    HTTPX_RECV                    = 0x00000e02,
+
+    HTTPX_INVALID_RESPONSE        = 0x00000d01,
+    HTTPX_INVALID_RESPONSE_CODE   = 0x00000d02,
+
+    HTTPX_PENDING = ASIO_PENDING /* 0 */,
+  };
+
+#define HTTPX_SUCCEEDED(Status) (((Status)&0x8f000000) == 0)
+#define HTTPX_STATUS(Status)    ((Status)&0x0fff)
+
+int Httpx_Asio_Recv(YOYO_HTTPX *httpx, void *dta, int count, int mincount, asio_callback_t callback)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    if ( !httpx->ssl )
+      return Tcp_Asio_Recv(httpx->netchnl,dta,count,mincount,httpx,callback);
+  }
+#endif
+  ;
+  
+int Httpx_Asio_Send(YOYO_HTTPX *httpx, void *dta, int count, asio_callback_t callback)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    if ( !httpx->ssl )
+      return Tcp_Asio_Send(httpx->netchnl,dta,count,httpx,callback);
+  }
+#endif
+  ;
+  
+YOYO_HTTPX *Httpx_Client(char *url,int flags,void *mon_obj,httpx_collback_t mon_callback)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    YOYO_HTTPX *httpx = __Object(sizeof(YOYO_HTTPX),funcs);
+    httpx->url = __Retain(Url_Parse(url));
+    
+    if ( flags & HTTPX_ASYNC )
+      httpx->async = 1;
+    if ( flags & HTTPX_KEEPALIVE )
+      httpx->keepalive = 1;
+    if ( flags & HTTPX_LEGACY_10 )
+      httpx->legacy10 = 1;
+    
+    if ( httpx->url->proto && httpx->url->proto != URLX_HTTP  )  
+      __Raise(YOYO_ERROR_ILLFORMED,__yoTa("unknown HTTPX protocol requested",0));
+
+    if ( !httpx->url->port ) 
+      if ( !httpx->url->proto || httpx->url->proto == URLX_HTTP ) 
+        httpx->url->port = 80;
+        
+    return httpx;
+  }
+#endif
+  ;
+  
+int Httpx_Do_Callback(YOYO_HTTPX *httpx, int status)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    if ( httpx->mon_callback )
+      return httpx->mon_callback(httpx->mon_obj,httpx,status);
+    return status;
+  }
+#endif
+  ;
+  
+int Httpx_Update_Until_EOH(YOYO_HTTPX *httpx, int count)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    YOYO_BUFFER *bf = httpx->bf;
+    int i;
+    char *q = bf->at + bf->count;
+    bf->count += count;
+
+    for ( i = 0; i < count; ++i )
+      {
+        if ( q[i] == '\r' && q[i+1] == '\n' )
+          { if ( httpx->nline ) return bf->count-(count-i+2); httpx->nline = 1; ++i; } 
+        else if ( q[i] == '\n' )
+          { if ( httpx->nline ) return bf->count-(count-i+1);  httpx->nline = 1; } 
+        ++i;
+      }
+      
+    return 0;
+  }      
+#endif
+  ;
+  
+void Httpx_Analyze_Headers(YOYO_HTTPX *httpx)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    int i;
+    char *q, *Q, *S = httpx->bf->at;
+    while (*S!='\n') ++S; /* skip HTTP/1.x line */
+    for (;;)
+      {
+        q = ++S;
+        while ( *q != '\n' ) ++q;
+        *q = 0;
+        for ( i = 1; q-i > S && Isspace(q[-i]); ++i ) q[-i] = 0;
+        while (Isspace(*S)) ++S;
+        if ( !*S ) break; /* empty line => end of headers*/ 
+        Q = S;
+        while ( *Q && *Q != ':' ) ++Q;
+        if ( *Q == ':' )
+          {
+            *Q = 0;
+            for ( i = 1; Q-i > S && Isspace(Q[-i]); ++i ) Q[-i] = 0;
+            ++Q;
+            while ( Isspace(*Q) ) ++Q;
+            Dicto_Put(httpx->hdrs,S,(Q=Str_Copy_Npl(q,-1)));
+          }
+      }
+  }
+#endif
+  ;
+  
+int Cbk_Httpx_Getting_Content(void *netchnl, void *_httpx, int status, byte_t *bytes, int count, int left)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    int L;
+    YOYO_HTTPX *httpx = _httpx;
+    YOYO_BUFFER *bf = httpx->bf;
+    
+    if ( !ASIO_SUCCEEDED(status) )
+      return Httpx_Do_Callback(httpx,HTTPX_BROKEN|HTTPX_GETTING_HEADERS);
+
+    L = Yo_MIN(httpx->left,count);
+    httpx->left -= L;
+    httpx->streamed += L;
+    Oj_Write(httpx->outstrm,bf->at,L,-1);
+
+    if ( !httpx->left )
+      return HTTPX_FINISHED;
+
+    if ( status&ASIO_SYNCHRONOUSE )
+      return HTTPX_CONTINUE;
+    
+    return Httpx_Asio_Recv(netchnl,bf->at,bf->capacity,Yo_MIN(httpx->left,bf->capacity)
+                        ,httpx
+                        ,Cbk_Httpx_Getting_Content);
+  }
+#endif
+  ;
+    
+int Cbk_Httpx_Getting_Headers(void *netchnl, void *_httpx, int status, byte_t *bytes, int count, int left)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    YOYO_HTTPX *httpx = _httpx;
+    YOYO_BUFFER *bf = httpx->bf;
+    int iterate = 0;
+    
+    if ( !ASIO_SUCCEEDED(status) )
+      return Httpx_Do_Callback(httpx,HTTPX_BROKEN|HTTPX_GETTING_HEADERS);
+    
+    if ( httpx->bf->count == 0 )
+      {
+        if ( !strcmp_I(bf->at,"HTTP/1.") )
+          {
+            char *q = bf->at + 8, *Q;
+            bf->at[count] = 0;
+            while ( *q && !Isspace(*q) ) ++q;
+            while ( Isspace(*q) ) ++q;
+            httpx->status = strtol(q,&q,10);
+            if ( httpx->status < 100 || httpx->status >= 510 )
+              return Httpx_Do_Callback(httpx,HTTPX_FAILED|HTTPX_INVALID_RESPONSE_CODE);    
+            while ( *q != '\n' && *q != '\r' && Isspace(*q) ) ++q;
+            Q = q;
+            while ( *q && *q != '\n' && *q != '\r' && !Isspace(*q) ) ++q;
+            httpx->status_text = Str_Range_Npl(Q,q);
+            bf->count = (q - bf->at);         
+            count -= bf->count; 
+            httpx->nline = 0;
+          }
+        else
+          return Httpx_Do_Callback(httpx,HTTPX_FAILED|HTTPX_INVALID_RESPONSE);
+      }
+    else
+      iterate = status&ASIO_SYNCHRONOUSE;
+      
+    for(;;) 
+      {
+        int eoh = Httpx_Update_Until_EOH(httpx,count);
+
+        if ( eoh )
+          {
+            char *foo;
+            Httpx_Analyze_Headers(httpx);
+            httpx->left = 0;
+            
+            if ( foo = Dicto_Get(httpx->hdrs,"Content-Length",0) )
+              httpx->left = Yo_Minu(Str_To_Int(foo),httpx->maxcount);
+              
+            if ( httpx->outstrm && httpx->left != 0 )
+              {
+                int L = bf->count-eoh;
+                L = Yo_MIN(httpx->left,L);
+                httpx->left -= L;
+                Oj_Write(httpx->outstrm,bf->at+eoh,L,-1);
+                httpx->streamed += L;
+                bf->count = 0;
+                while ( httpx->left )
+                  {
+                    status = Httpx_Asio_Recv(netchnl,bf->at,bf->capacity,Yo_MIN(httpx->left,bf->capacity)
+                                          ,httpx
+                                          ,Cbk_Httpx_Getting_Content);
+                    if ( status != HTTPX_CONTINUE )
+                      return status;
+                  }
+              }
+              
+            return HTTPX_FINISHED;
+          }
+        
+        if ( iterate )
+           return HTTPX_CONTINUE;
+           
+        Buffer_Grow_Reserve(bf,bf->count + 512);
+        status = Httpx_Asio_Recv(netchnl,bf->at,512,1,
+                          ,httpx
+                          ,Cbk_Httpx_Getting_Headers);    
+
+        if ( status != HTTPX_CONTINUE )
+          return status;
+      }
+  }
+#endif
+  ;
+  
+int Cbk_Httpx_Requested(void *netchnl, void *_httpx, int status)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    YOYO_HTTPX *httpx = _httpx;
+    if ( !ASIO_SUCCEEDED(status) )
+      return Httpx_Do_Callback(httpx,HTTPX_BROKEN|HTTPX_REQUESTED);
+    httpx->state = HTTPX_REQUESTED;
+    Httpx_Do_Callback(httpx,HTTPX_REQUESTED);
+    Buffer_Grow_Reserve(httpx->bf,1023);
+    return Httpx_Asio_Recv(netchnl, httpx->bf->at, 1023, 12 /* lengthof HTTP/1.1 200 */
+                        ,httpx
+                        ,Cbk_Httpx_Getting_Headers);    
+  }
+#endif
+  ;
+  
+int Cbk_Httpx_Connected(void *netchnl,void *_httpx,int status)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    YOYO_HTTPX *httpx = _httpx;
+    if ( !ASIO_SUCCEEDED(status) )
+      return Httpx_Do_Callback(httpx,HTTPX_BROKEN|HTTPX_CONNECTED);
+    httpx->state = HTTPX_CONNECTED;
+    Httpx_Do_Callback(httpx,HTTPX_CONNECTED);
+    /* httpx->bf contains prepared request */
+    return Httpx_Asio_Send(netchnl,httpx->bf->at,httpx->bf->count,httpx,Cbk_Httpx_Requested);    
+  }
+#endif
+  ;
+  
+int Cbk_Httpx_Proxy_Connected(void *netchnl,void *_httpx,int status)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    YOYO_HTTPX *httpx = _httpx;
+    if ( !ASIO_SUCCEEDED(status) )
+      return Httpx_Do_Callback(httpx,HTTPX_BROKEN|HTTPX_PROXY_CONNECTED);
+    httpx->state = HTTPX_PROXY_CONNECTED;
+    Httpx_Do_Callback(httpx,HTTPX_PROXY_CONNECTED);
+    
+    /// auth / ssl connect
+    return Cbk_Httpx_Connected(netchnl,_httpx,status);
+  }
+#endif
+  ;
+  
+int Httpx_Asio_Connect(YOYO_HTTPX *httpx)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    __Unrefe(httpx->netchnl);
+    httpx->netchnl = Tcp_Socket(httpx->async?TCPSOK_ASYNC:0);
+    
+    if ( httpx->proxy_url )
+      return Tcp_Asio_Connect(httpx->netchnl,httpx->proxy_url->host,httpx->proxy_url->port,httpx,Cbk_Httpx_Proxy_Connected);
+      
+    return Tcp_Asio_Connect(httpx->netchnl,httpx->url->host,httpx->url->port,httpx,Cbk_Httpx_Connected);
+  }
+#endif
+  ;
+
+void Build_Http_Request(YOYO_HTTPX *httpx, int method, char *uri, YOYO_DICTO *hdrs)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+  }
+#endif
+  ;
+  
+int Httpx_Query(YOYO_HTTPX *httpx, int method, char *uri, YOYO_DICTO *hdrs, void *poststrm, void *contstrm, int maxcount)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    if ( httpx->status_text ) { free(httpx->status_text); httpx->status_text = 0; }
+    httpx->status = 0;
+    httpx->method = method;
+    httpx->maxcount = maxcount;
+    httpx->streamed = 0;
+    Build_Http_Request(httpx,method,uri,hdrs);
+    return Httpx_Asio_Connect(httpx->netchnl,httpx,Cbk_Httpx_Connected);
+  }
+#endif
+  ;
+  
+int Httpx_Head(YOYO_HTTPX *httpx, char *uri)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    return Httpx_Query(httpx,HTTPX_GET,uri,0,0,0,0);
+  }
+#endif
+  ;
+  
+int Httpx_Get(YOYO_HTTPX *httpx, char *uri, YOYO_DICTO *params, void *contstrm, int maxcount)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    uri = Url_Compose(uri,params,0);
+    return Httpx_Query(httpx,HTTPX_GET,uri,0,0,contstrm,maxcount);
+  }
+#endif
+  ;
+  
+int Httpx_Post(YOYO_HTTPX *httpx, char *uri, YOYO_DICTO *params, void *contstrm, int maxcount)
+#ifdef _YOYO_HTTPX_BUILTIN
+  {
+    void *poststrm = 0;
+    if ( params ) 
+      {
+        YOYO_BUFFER *bf = Buffer_Init(0);
+        Url_Xform_Encode(params,Buffer_Init(0));
+        poststrm = Buffer_As_File(bf);
+      } 
+    return Httpx_Query(httpx,HTTPX_GET,uri,0,poststrm,contstrm,maxcount);
+  }
+#endif
+  ;
+  
+
+
+
+
 enum
   {
     YOYO_HTTPX_DOING_NOTHING      = 0,
-    YOYO_HTTPX_IS_PREPARING       = 1,
-    YOYO_HTTPX_IS_RESOLVING       = 2,
-    YOYO_HTTPX_IS_CONNECTING      = 3,
-    YOYO_HTTPX_IS_QUERYING        = 4,
-    YOYO_HTTPX_IS_GETTING_STATUS  = 5,
-    YOYO_HTTPX_IS_GETTING_HEADERS = 6,
-    YOYO_HTTPX_IS_GETTING_CONTENT = 7,
-    YOYO_HTTPX_IS_FINISHED        = 8,
-    YOYO_HTTPX_IS_FAILED          = 9,
+    YOYO_HTTPX_PREPARING       = 1,
+    YOYO_HTTPX_RESOLVING       = 2,
+    YOYO_HTTPX_CONNECTING      = 3,
+    YOYO_HTTPX_QUERYING        = 4,
+    YOYO_HTTPX_GETTING_STATUS  = 5,
+    YOYO_HTTPX_GETTING_HEADERS = 6,
+    YOYO_HTTPX_GETTING_CONTENT = 7,
+    YOYO_HTTPX_FINISHED        = 8,
+    YOYO_HTTPX_FAILED          = 9,
     YOYO_HTTPX_RESOLVING_ERROR    = 0x1001,
     YOYO_HTTPX_URLPARSING_ERROR   = 0x1002,
     YOYO_HTTPX_GETTING_ERROR      = 0x1003,
@@ -95,143 +505,6 @@ typedef struct _YOYO_HTTPX_NTFY
     void (*error)(struct _YOYO_HTTPX_NTFY *, int st, char *msg);
   } YOYO_HTTPX_NTFY;
 
-typedef struct _YOYO_URL 
-  {
-    char *host, *user, *passw, *query, *args, *anchor, *uri;
-    int   port, proto;
-  } YOYO_URL;
-
-void YOYO_URL_Destruct(YOYO_URL *url)
-#ifdef _YOYO_HTTPX_BUILTIN
-  {
-    free(url->host);
-    free(url->user);
-    free(url->passw);
-    free(url->query);
-    free(url->args);
-    free(url->anchor);
-    free(url->uri);
-    __Destruct(url);
-  }
-#endif
-  ;
-  
-int Url_Proto(char *S)
-#ifdef _YOYO_HTTPX_BUILTIN
-  {
-    if ( !strcmp_I(S,"http")  )  return YOYO_URL_HTTP;
-    if ( !strcmp_I(S,"https") )  return YOYO_URL_HTTPS;
-    if ( !strcmp_I(S,"file")  )  return YOYO_URL_FILE;
-    return YOYO_URL_UNKNOWN;
-  }
-#endif
-  ;
-  
-YOYO_URL *Parse_Url(char *url)
-#ifdef _YOYO_HTTPX_BUILTIN
-  {
-    YOYO_URL *urlout = 0;
-    __Auto_Ptr(urlout)
-      {
-        /* proto://user:passwd@host:port/query#anchor?args */
-      
-        char *p;
-        char *pS = url;
-        
-        char *proto = 0;
-        char *host  = 0;
-        char *user  = 0;
-        char *passw = 0;
-        char *uri   = 0;
-        char *args  = 0;
-        char *query = 0;
-        char *anchor= 0;
-        int   port  = 0;
-        
-        p = pS;
-        while ( *p && Isalpha(*p) ) ++p;
-        
-        if ( *p && *p == ':' && p[1] && p[1] == '/' && p[2] && p[2] == '/' )
-          {
-            proto = Str_Range(pS,p);
-            pS = p+3;
-          }
-          
-        p = pS;
-        while ( *p && (Isalnum(*p) || *p == '.' || *p == '-' || *p == ':' ) ) ++p;
-        
-        if ( *p == '@' ) // user/password
-          {
-            char *q = pS;
-            while ( *q != '@' && *q != ':' ) ++q;
-            if ( *q == ':' ) 
-              {
-                user = Str_Range(pS,q);
-                passw = Str_Range(q+1,p);
-              }
-            else
-              user = Str_Range(pS,p);
-            pS = p+1;
-          }
-          
-        p = pS;
-        while ( *p && (Isalnum(*p) || *p == '.' || *p == '-') ) ++p;
-        
-        if ( *p == ':' )
-          {
-            host = Str_Range(pS,p);
-            pS = p+1; ++p;
-            while ( *p && Isdigit(*p) ) ++p;
-            if ( *p == '/' || !*p )
-              { 
-                port = strtol(pS,0,10); 
-              }
-            else
-              __Raise(YOYO_ERROR_ILLFORMED,__yoTa("invalid port value",0));
-            pS = p;
-          }
-        else if ( !*p || *p == '/' )
-          {
-            host = Str_Range(pS,p);
-            pS = p;
-          }
-        
-        uri = Str_Copy(pS,-1);  
-        
-        p = pS;
-        while ( *p && *p != '?' && *p != '#' ) ++p;
-        query = Str_Range(pS,p);
-
-        if ( *p == '#' )
-          {
-            pS = ++p;
-            while ( *p && *p != '?' ) ++p;
-            anchor = Str_Range(pS,p);
-          }
-           
-        if ( *p == '?' ) 
-          {
-            pS = ++p;
-            while ( *p ) ++p;
-            args = Str_Range(pS,p);
-          }
-                          
-        urlout = __Object_Dtor(sizeof(YOYO_URL),YOYO_URL_Destruct);
-        urlout->args  = __Retain(args);
-        urlout->anchor= __Retain(anchor);
-        urlout->query = __Retain(query);
-        urlout->uri   = __Retain(uri);
-        urlout->host  = __Retain(host);
-        urlout->passw = __Retain(passw);
-        urlout->user  = __Retain(user);
-        urlout->port  = port;
-        urlout->proto = Url_Proto(proto);
-      }
-      
-    return urlout;
-  }
-#endif
-  ;
 
 typedef struct _YOYO_HTTPX
   {
