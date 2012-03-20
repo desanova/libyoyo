@@ -1,7 +1,7 @@
 
 /*
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 
@@ -52,15 +52,19 @@ in this Software without prior written authorization of the copyright holder.
 #include "yoyo.hc"
 #ifdef __windoze
 
-#ifdef _LIBYOYO
-#define _YOYO_WINLPC_BUILTIN
-#endif
-
 #include "string.hc"
 #include "xntdef.hc"
 #include "winlpc.inc"
 
-enum { WINLPC_MAX_DATA_LENGTH = 256 };
+#ifdef _LIBYOYO
+#define _YOYO_WINLPC_BUILTIN
+#endif
+
+enum 
+  { 
+    WINLPC_MAX_CONINFO_LENGTH = 260, 
+    WINLPC_MAX_DATA_LENGTH = 328, 
+  };
 
 typedef struct _YOYO_LPCPORT
   {
@@ -88,9 +92,9 @@ long Lpc_Create_Port(YOYO_LPCPORT *port, char *name, int waitable)
     port->waitable = waitable;
     
     if ( waitable )
-      ntst = NtCreateWaitablePort(&port->handle, &oa, WINLPC_MAX_DATA_LENGTH, WINLPC_MAX_DATA_LENGTH, 0);
+      ntst = NtCreateWaitablePort(&port->handle, &oa, WINLPC_MAX_CONINFO_LENGTH, WINLPC_MAX_DATA_LENGTH, 0);
     else
-      ntst = NtCreatePort(&port->handle, &oa, WINLPC_MAX_DATA_LENGTH, WINLPC_MAX_DATA_LENGTH, 0);
+      ntst = NtCreatePort(&port->handle, &oa, WINLPC_MAX_CONINFO_LENGTH, WINLPC_MAX_DATA_LENGTH, 0);
 
     return ntst;
   }

@@ -1,7 +1,7 @@
 
 /*
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 
@@ -46,12 +46,12 @@ in this Software without prior written authorization of the copyright holder.
 #ifndef C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48
 #define C_once_0ED387CD_668B_44C3_9D91_A6336A2F5F48
 
+#include "yoyo.hc"
+#include "array.hc"
+
 #ifdef _LIBYOYO
 #define _YOYO_STRING_BUILTIN
 #endif
-
-#include "yoyo.hc"
-#include "array.hc"
 
 #ifdef _YOYO_STRING_BUILTIN
 #define _YOYO_STRING_EXTERN

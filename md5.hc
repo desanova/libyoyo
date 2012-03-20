@@ -4,7 +4,7 @@
 // The MD5 algorithm was designed by Ron Rivest in 1991.
 // http://www.ietf.org/rfc/rfc1321.txt
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 

@@ -7,7 +7,7 @@
 //   http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf
 //
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 

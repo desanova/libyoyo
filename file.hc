@@ -1,7 +1,7 @@
 
 /*
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 
@@ -60,6 +60,12 @@ in this Software without prior written authorization of the copyright holder.
 # include <sys/file.h>
 #endif
 
+#ifdef _FILEi32
+  typedef long file_offset_t;
+#else
+  typedef quad_t file_offset_t;
+#endif
+
 enum { YOYO_FILE_COPY_BUFFER_SIZE = 4096, };
 
 #ifdef _YOYO_FILE_BUILTIN
@@ -68,6 +74,12 @@ enum { YOYO_FILE_COPY_BUFFER_SIZE = 4096, };
 #else
 # define _YOYO_FILE_BUILTIN_CODE(Code)
 # define _YOYO_FILE_EXTERN extern
+#endif
+
+#ifdef __windoze
+enum { YOYO_PATH_SEPARATOR = '\\' };
+#else
+enum { YOYO_PATH_SEPARATOR = '/' };
 #endif
 
 void File_Check_Error(char *op, FILE *f, char *fname, int look_to_errno)
@@ -181,6 +193,36 @@ void Change_Directory(char *dirname)
 #endif
   ;
   
+char *Path_Normilize_Npl_(char *path, int sep)
+#ifdef _YOYO_FILE_BUILTIN
+  {
+    int i = 0, ln = strlen(path);
+    char *S = __Malloc_Npl(ln+1);
+    *S = 0;
+    
+    while ( *path )
+      {
+        if ( *path != '/' && *path != '\\' )
+          S[i++] = *path;
+        else
+          if ( !i || S[i-1] != sep ) 
+            S[i++] = sep;
+        ++path;
+      }
+    
+    S[i] = 0;
+    if ( i && S[i-1] == sep ) S[--i] = 0;
+    
+    return S;
+  }
+#endif
+  ;
+
+#define Path_Normilize_Npl(S) Path_Normilize_Npl_(S,YOYO_PATH_SEPARATOR)
+#define Path_Normilize(S) __Pool(Path_Normilize_Npl(S))
+#define Path_Normposix_Npl(S) Path_Normilize_Npl_(S,'/')
+#define Path_Normposix(S) __Pool(Path_Normilize_Npl(S))
+
 char *Path_Unique_Name(char *dirname,char *pfx, char *sfx)
 #ifdef _YOYO_FILE_BUILTIN
   {
@@ -1436,7 +1478,13 @@ int Fd_Read_Into(int fd, void *data, int count, int do_raise)
 int Fd_Lseek(int fd, quad_t pos, int do_raise)
 #ifdef _YOYO_FILE_BUILTIN
   {
-    if ( lseek(fd,pos,(pos<0?SEEK_END:SEEK_SET)) < 0 )
+    if ( 0 >  
+  #ifdef _FILEi32
+    lseek(fd,(long)pos,(pos<0?SEEK_END:SEEK_SET))
+  #else
+    _WINPOSIX(_lseeki64,lseek64)(fd,pos,(pos<0?SEEK_END:SEEK_SET))
+  #endif
+    )
       {
         int err = errno;
         if ( do_raise )
@@ -1583,11 +1631,11 @@ quad_t Buffer_File_Seek(YOYO_BUFFER_FILE *f, quad_t pos, int whence)
   {
     quad_t old = f->offs;
     if ( whence == SEEK_SET )
-      f->offs = pos;
+      f->offs = (int)pos;
     else if ( whence == SEEK_CUR )
-      f->offs += pos;
+      f->offs += (int)pos;
     else if ( whence == SEEK_END )
-      f->offs = f->bf->count + pos;
+      f->offs = f->bf->count + (int)pos;
     if ( f->offs < 0 ) 
       {
         f->offs = 0;

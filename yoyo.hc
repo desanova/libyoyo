@@ -1,7 +1,7 @@
 
 /*
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 
@@ -132,6 +132,7 @@ in this Software without prior written authorization of the copyright holder.
 #  define WINVER 0x500
 # endif
 # include <windef.h>
+# include <winsock2.h>
 # include <winbase.h>
 # include <excpt.h>
 # include <objbase.h>
@@ -245,6 +246,12 @@ typedef uquad_t  u64_t;
 typedef half_t   i16_t;
 typedef dword_t  i32_t;
 typedef quad_t   i64_t;
+
+#ifdef __windoze
+  #define _WINPOSIX(W,F) W
+#else
+  #define _WINPOSIX(W,F) F
+#endif
 
 #ifndef _NO__FILE__
 # define __Yo_FILE__ __FILE__
@@ -836,6 +843,7 @@ YOYO_AUTORELEASE *Yo_Find_Ptr_In_Pool(YOYO_C_SUPPORT_INFO *nfo, void *p)
 #define Yo_Push_Scope() Yo_Pool_Ptr(0,Yo_Pool_Marker_Tag)
 #define Yo_Pool(Ptr) Yo_Pool_Ptr(Ptr,0)
 
+void *Yo_Unrefe(void *p);
 void *Yo_Pool_Ptr(void *ptr,void *cleanup)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -843,7 +851,9 @@ void *Yo_Pool_Ptr(void *ptr,void *cleanup)
       {
         YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
         if ( !nfo ) nfo = Yo_Acquire_Csup_Nfo();
-        STRICT_REQUIRE( (cleanup == Yo_Pool_Marker_Tag) || !Yo_Find_Ptr_In_Pool(nfo,ptr) );
+        STRICT_REQUIRE( (cleanup == Yo_Pool_Marker_Tag)
+                      ||(cleanup == Yo_Unrefe) 
+                      ||!Yo_Find_Ptr_In_Pool(nfo,ptr) );
 
         ++nfo->auto_top;
         STRICT_REQUIRE(nfo->auto_top <= nfo->auto_count);

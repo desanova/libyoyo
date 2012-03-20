@@ -1,7 +1,7 @@
 
 /*
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 
@@ -60,15 +60,26 @@ enum
     TCPSOK_ASYNC = 1,
   };
 
+typedef uquad_t ipaddr_t; 
+
 typedef struct _YOYO_TCPSOK
   {
-    in_addr_t ip;
+    ipaddr_t  ip;
     int       skt;
     int       port;
     int       async: 1;
   } YOYO_TCPSOK;
 
 #ifdef __windoze
+
+void _WSA_Term(void)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    WSACleanup();
+  }
+#endif
+  ;
+  
 void _WSA_Init()
 #ifdef _YOYO_TCPIP_BUILTIN
   {
@@ -79,19 +90,22 @@ void _WSA_Init()
         if ( 0 != WSAStartup(MAKEWORD(2, 2), &wsa_data) )
           __Raise(YOYO_ERROR_SUBSYSTEM_INIT,"failed to initialize WSA subsystem");
         else
-          wsa_status = 0;
+          {
+            wsa_status = 0;
+            atexit(_WSA_Term);
+          }
       }
-    return true;
   }
 #endif
   ;
+
 #else
 #define _WSA_Init()
 #endif
 
 
 #define Ipv4_Format(Ip) __Pool(Ipv4_Format_Npl(Ip))
-char *Ipv4_Format_Npl(in_addr_t ip)
+char *Ipv4_Format_Npl(ipaddr_t ip)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
     return __Format_Npl("%d.%d.%d.%d"
@@ -103,11 +117,11 @@ char *Ipv4_Format_Npl(in_addr_t ip)
 #endif
   ;
   
-in_addr_t Dns_Resolve(char *host)
+ipaddr_t Dns_Resolve(char *host)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
-    in_addr_t ip;
-    hostent *hstn = 0;
+    ipaddr_t ip = 0;
+    struct hostent *hstn = 0;
     
     _WSA_Init();
     if ( !strcmp_I(host,"localhost") ) return 0x0100007f;
@@ -136,9 +150,13 @@ in_addr_t Dns_Resolve(char *host)
 void Tcp_Close(YOYO_TCPSOK *sok)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
-    if ( sok->skt >= 0 ) 
+    if ( sok->skt != INVALID_SOCKET ) 
       {
+#ifdef __windoze
+        closesocket(sok->skt);
+#else      
         close(sok->skt);
+#endif
         sok->skt = -1;
       }
   }
@@ -149,7 +167,6 @@ void YOYO_TCPSOK_Destruct(YOYO_TCPSOK *sok)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
     Tcp_Close(sok);
-    free(sok->host);
     __Destruct(sok);
   }
 #endif
@@ -168,7 +185,7 @@ int Tcp_Read(YOYO_TCPSOK *sok, void *out, int count, int mincount)
         STRICT_REQUIRE( q <= cc );
         cc -= q;
         b += q;
-        if ( q == 0 && count-cc >= mincount )
+        if ( count-cc >= mincount )
           break;
       }
     return count-cc;
@@ -176,7 +193,7 @@ int Tcp_Read(YOYO_TCPSOK *sok, void *out, int count, int mincount)
 #endif
   ;
 
-int Tcp_Asio_Recv(YOYO_TCPSOK *sok,void *out, int count, int mincount, void *obj, asio_send_callback_t callback)
+int Tcp_Asio_Recv(YOYO_TCPSOK *sok,void *out, int count, int mincount, void *obj, asio_recv_callback_t callback)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
     if ( sok->async )
@@ -185,7 +202,7 @@ int Tcp_Asio_Recv(YOYO_TCPSOK *sok,void *out, int count, int mincount, void *obj
       {
         int cc = Tcp_Read(sok,out,count,mincount);
         if ( callback )
-          return callback(obj,ASIO_COMPLETED|ASIO_SYNCHRONOUSE,cc);
+          return callback(obj,ASIO_COMPLETED|ASIO_SYNCHRONOUS,cc);
       }
     return 0;
   }
@@ -222,7 +239,7 @@ int Tcp_Asio_Send(YOYO_TCPSOK *sok,void *out, int count, void *obj, asio_send_ca
       {
         int cc = Tcp_Write(sok,out,count,count);
         if ( callback )
-          return callback(obj,ASIO_COMPLETED|ASIO_SYNCHRONOUSE,cc);
+          return callback(obj,ASIO_COMPLETED|ASIO_SYNCHRONOUS);
       }
     return 0;
   }
@@ -251,11 +268,23 @@ YOYO_TCPSOK *Tcp_Socket(int flags)
 #endif
   ;
   
+void Tcp_Set_Async(socket_t skt)
+  {
+  #ifdef __windoze
+    ulong_t nonblock = 1;
+    ioctlsocket(skt, FIONBIO, &nonblock);
+  #else       
+    int arg = fcntl(skt,F_GETFL,0);
+    arg |= O_NONBLOCK; 
+    fcntl(skt,F_SETFL,arg); 
+  #endif
+  }
+  
 #define Tcp_IPv4_Connect(Sok,Ip,Port) Tcp_Asio_IPv4_Connet(Sok,Ip,Port,0,0)
-int Tcp_Asio_IPv4_Connect(YOYO_TCPSOK *sok, in_addr_t ip, int port, void *obj, asio_notify_callback_t *callback)
+int Tcp_Asio_IPv4_Connect(YOYO_TCPSOK *sok, ipaddr_t ip, int port, void *obj, asio_notify_callback_t callback)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
-    sockaddr_in addr = {0}; 
+    struct sockaddr_in addr = {0}; 
     socket_t skt;
     int conerr;
     
@@ -263,7 +292,7 @@ int Tcp_Asio_IPv4_Connect(YOYO_TCPSOK *sok, in_addr_t ip, int port, void *obj, a
     
     addr.sin_family = AF_INET;
     addr.sin_port   = htons(port);
-    addr.sin_addr.s_addr = ip;
+    addr.sin_addr.s_addr = (ulong_t)ip;
     
     sok->port = port;
     sok->ip = ip;
@@ -272,18 +301,9 @@ int Tcp_Asio_IPv4_Connect(YOYO_TCPSOK *sok, in_addr_t ip, int port, void *obj, a
     sok->skt = skt;
 
     if ( skt != INVALID_SOCKET && sok->async )
-      {
-      #ifdef __windoze
-        ulong_t nonblock = 1;
-        ioctlsocket(skt, FIONBIO, &nonblock);
-      #else       
-        int arg = fcntl(skt,F_GETFL,0);
-        arg |= O_NONBLOCK; 
-        fcntl(skt,F_SETFL,arg); 
-      #endif
-      }
+      Tcp_Set_Async(skt);
           
-    conerr = (skt != INVALID_SOCKET ) ? connect(skt,(sockaddr*)&addr,sizeof(addr)) : -1;
+    conerr = (skt != INVALID_SOCKET ) ? connect(skt,(struct sockaddr*)&addr,sizeof(addr)) : -1;
     
     if ( conerr < 0 )
       {
@@ -293,25 +313,25 @@ int Tcp_Asio_IPv4_Connect(YOYO_TCPSOK *sok, in_addr_t ip, int port, void *obj, a
           }
         else
           __Raise_Format(YOYO_ERROR_IO,
-                          (__yoTa("tcp connection failed: sok %d, point %s:%d, error %d",0),
+                          (__yoTa("tcp connection failed: sok %d, point %s:%d, error %d",0)
                           ,skt
-                          ,Ipv4_Fomat(ip)
+                          ,Ipv4_Format(ip)
                           ,port
                           ,conerr));
       }
       
     if ( callback ) 
-      return callback(obj,ASIO_COMPLETED|(sok->async?ASIO_SYNCHRONOUSE:0));
+      return callback(obj,ASIO_COMPLETED|(sok->async?ASIO_SYNCHRONOUS:0));
     return 0;
   }
 #endif
   ;
 
 #define Tcp_Connect(Sok,Host,Port) Tcp_Asio_Connect(Sok,Host,Port,0,0)
-int Tcp_Asio_Connect(YOYO_TCPSOK *sok,char *host,int port,void *obj,asio_notify_callback_t *callback)
+int Tcp_Asio_Connect(YOYO_TCPSOK *sok,char *host,int port,void *obj,asio_notify_callback_t callback)
 #ifdef _YOYO_TCPIP_BUILTIN
   {
-    in_addr_t ip = Dns_Resolve(host);
+    ipaddr_t ip = Dns_Resolve(host);
     return Tcp_Asio_IPv4_Connect(sok,ip,port,obj,callback);    
   }
 #endif
@@ -323,6 +343,120 @@ YOYO_TCPSOK *Tcp_Open(char *host, int port)
     YOYO_TCPSOK *sok = Tcp_Socket(0);
     Tcp_Connect(sok,host,port);
     return sok;
+  }
+#endif
+  ;
+
+void Tcp_Asio_Interrupt(YOYO_TCPSOK *sok)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    Asio_Interrupt(sok->skt);
+  }
+#endif
+  ;
+
+YOYO_TCPSOK *Tcp_Listen(int flags, char *host,int port,int listlen)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    YOYO_TCPSOK *sok;
+    struct sockaddr_in addr = {0}; 
+    ipaddr_t ip;
+    
+    _WSA_Init();
+    
+    ip = host?Dns_Resolve(host):0;
+
+    addr.sin_family = AF_INET;
+    addr.sin_port   = htons(port);
+    addr.sin_addr.s_addr = (ulong_t)ip;
+    
+    sok = __Refe(Tcp_Socket(0));
+    sok->port = port;
+    sok->ip = ip;
+    
+    if ( INVALID_SOCKET == (sok->skt = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP)) )  goto sok_error;
+    if ( -1 == bind(sok->skt,(struct sockaddr*)&addr,sizeof(addr)) ) goto sok_error;
+    if ( -1 == listen(sok->skt,(listlen?listlen:SOMAXCONN)) ) goto sok_error;
+
+    if ( sok->skt == INVALID_SOCKET )
+      {       
+    sok_error: 
+        __Raise_Format(YOYO_ERROR_IO,
+                        (__yoTa("tcp bind/listen failed: sok %d, point %s:%d, error %s",0)
+                        ,sok->skt
+                        ,Ipv4_Format(ip)
+                        ,port
+                        ,Format_Network_Error()));
+      }
+    else if ( flags & TCPSOK_ASYNC )
+      Tcp_Set_Async(sok->skt);
+      
+    return sok;
+  }
+#endif
+  ;
+
+typedef int (*tcp_accept_callback_t)(void *obj,int status,YOYO_TCPSOK *sok);
+
+#ifdef _YOYO_TCPIP_BUILTIN
+typedef struct _YOYO_TCPSOK_ACCEPT
+  {
+    void *obj;
+    tcp_accept_callback_t callback;
+  } YOYO_TCPSOK_ACCEPT;
+
+void YOYO_TCPSOK_ACCEPT_Destruct(YOYO_TCPSOK_ACCEPT *acbk)
+  {
+    __Unrefe(acbk->obj);
+    __Destruct(acbk);
+  }
+
+YOYO_TCPSOK_ACCEPT *Tcp_Accept_Callback(void *obj,tcp_accept_callback_t callback)
+  {
+    YOYO_TCPSOK_ACCEPT *acbk = __Object_Dtor(sizeof(YOYO_TCPSOK_ACCEPT),YOYO_TCPSOK_ACCEPT_Destruct);
+    acbk->callback = callback;
+    acbk->obj = __Refe(obj);
+    return acbk;
+  }
+
+int Cbk_Tcp_Asio_Accept(void *obj, int status, socket_t skt, struct sockaddr *_addr)
+  {
+    struct sockaddr_in *addr = ((struct sockaddr_in*)_addr);
+    YOYO_TCPSOK *sok = Tcp_Socket( (status&ASIO_SYNCHRONOUS)?0:TCPSOK_ASYNC );
+    sok->ip = addr->sin_addr.s_addr;
+    sok->port = addr->sin_port;
+    sok->skt = skt;
+    if ( sok->async )
+      Tcp_Set_Async(sok->skt);
+    return ((YOYO_TCPSOK_ACCEPT*)obj)->callback(((YOYO_TCPSOK_ACCEPT*)obj)->obj,status,sok);
+  }
+#endif
+
+int Tcp_Asio_Accept(YOYO_TCPSOK *sok, void *obj, tcp_accept_callback_t callback)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    return Asio_Accept(sok->skt,Tcp_Accept_Callback(obj,callback),Cbk_Tcp_Asio_Accept);
+  }
+#endif
+  ;
+
+void Tcp_Asio_Shutdown(YOYO_TCPSOK *sok)
+#ifdef _YOYO_TCPIP_BUILTIN
+  {
+    if ( sok->async )
+      {
+        socket_t skt = sok->skt;
+        if ( skt != INVALID_SOCKET )
+          {
+            sok->skt = -1;
+            /*fixme*/ //Asio_Shutdown(skt);
+          }
+      }
+    else
+      {
+        shutdown(sok->skt,SB_BOTH);
+        Tcp_Close(sok);
+      }
   }
 #endif
   ;

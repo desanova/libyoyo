@@ -1,7 +1,7 @@
 
 /*
 
-Copyright © 2010-2011, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2011, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 
@@ -366,6 +366,25 @@ void *Dicto_Init(void)
   {
     YOYO_DICTO *dicto = Yo_Object_Dtor(sizeof(YOYO_DICTO),Dicto_Destruct);
     return dicto;
+  }
+#endif
+  ;
+
+void Dicto_Apply(YOYO_DICTO *o,void (*filter)(char *,void *,void *),void *state)  
+#ifdef _YOYO_DICTO_BUILTIN  
+  {
+    int i;
+    YOYO_DICTO_REC *nrec;
+    if ( o && o->table ) 
+      for ( i = 0; i < o->width; ++i )
+        {      
+          nrec = o->table[i];
+          while ( nrec )
+            {
+              filter(nrec->key,nrec->ptr,state);
+              nrec = nrec->next;
+            }  
+        }
   }
 #endif
   ;

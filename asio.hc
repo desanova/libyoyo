@@ -1,7 +1,7 @@
 
 /*
 
-Copyright © 2010-2012, Alexéy Sudáchen, alexey@sudachen.name, Chile
+Copyright © 2010-2012, Alexéy Sudachén, alexey@sudachen.name, Chile
 
 In USA, UK, Japan and other countries allowing software patents:
 
@@ -51,9 +51,10 @@ in this Software without prior written authorization of the copyright holder.
 #endif
 
 #include "yoyo.hc"
+#include "datetime.hc"
 
 #ifdef __windoze
-  #include <winsock.h>
+  #include <winsock2.h>
   typedef SOCKET socket_t;
 #else
   #include <errno.h>
@@ -69,12 +70,13 @@ enum
   {
     ASIO_COMPLETED    = 0x00000001,
     ASIO_CLOSED       = 0x00000002,
-    ASIO_SYNCHRONOUSE = 0x00200000,
+    ASIO_SYNCHRONOUS = 0x00200000,
     ASIO_TIMER        = 0x00100000,
     ASIO_FAILED       = 0x8e000000,
     ASIO_INTERRAPTED  = 0x8f000000,
     ASIO_PENGING      = 0,
     ASIO_CONTINUE     = 0,
+    ASIO_INTERRUPT    = 1,
   
     ASIO_ST_SEND      = 1,
     ASIO_ST_RECV      = 2,
@@ -86,11 +88,11 @@ enum
   
 #define ASIO_SUCCEEDED(State) (!((State)&0xff000000))
 
-int (asio_recv_callback_t)(void *obj,int status,int count);
-int (asio_send_callback_t)(void *obj,int status,int count);
-int (asio_accept_callback_t)(void *obj,int status,socket_t fd,struct sockaddr *addr);
-int (asio_notify_callback_t)(void *obj,int status);
-int (asio_any_callback_t)(void *obj,int status,...);
+typedef int (*asio_recv_callback_t)(void *obj,int status,int count);
+typedef int (*asio_send_callback_t)(void *obj,int status);
+typedef int (*asio_accept_callback_t)(void *obj,int status,socket_t fd,struct sockaddr *addr);
+typedef int (*asio_notify_callback_t)(void *obj,int status);
+typedef void (*asio_any_callback_t)(void *obj,int status,...);
 
 typedef struct _YOYO_ASIO_STATE
   {
@@ -101,7 +103,7 @@ typedef struct _YOYO_ASIO_STATE
     void *obj, *dta;
     asio_any_callback_t cbk;
     int (*perform)(struct _YOYO_ASIO_STATE *st);
-    YOYO_ASIO_STATE *next;
+    struct _YOYO_ASIO_STATE *next;
   } YOYO_ASIO_STATE;
 
 #ifdef _YOYO_ASIO_BUILTIN
@@ -115,9 +117,14 @@ static int Asio_Is_Init = 0;
 YOYO_ASIO_STATE **Asio_Map_Fd(socket_t fd)
 #ifdef _YOYO_ASIO_BUILTIN
   {
-    YOYO_ASIO_STATE **st = Asio_St_Map[fd/ASIO_MAP_BASE];
-    while ( *st && (*st)->fd != fd ) st = &(*st)->next;
-    return st;
+    if ( fd != INVALID_SOCKET )
+      {
+        YOYO_ASIO_STATE **st = &Asio_St_Map[(longptr_t)fd/ASIO_MAP_BASE];
+        while ( *st && (*st)->fd != fd ) st = &(*st)->next;
+        return st;
+      }
+    else
+      __Raise(YOYO_ERROR_INVALID_PARAM,__yoTa("ASIO couldn´t handle INVALID_SOCKET",0));
   }
 #endif
   ;
@@ -130,6 +137,7 @@ YOYO_ASIO_STATE *Asio_Pool_Get_State()
       {
         Asio_St_Pool = __Malloc_Npl(sizeof(YOYO_ASIO_STATE));
         st = Asio_St_Pool;
+        st->next = 0;
       }
     Asio_St_Pool = Asio_St_Pool->next;
     memset(st,0,sizeof(YOYO_ASIO_STATE));
@@ -169,10 +177,10 @@ int Asio_Do_Accept(YOYO_ASIO_STATE *st)
 #ifdef _YOYO_ASIO_BUILTIN
   {
     int len = sizeof(st->addr);
-    int e = accept(st->fd,&st->addr,&len);
-    if ( e < 0 ) 
-      return Asio_Status_Repeat_Or_Die()
-    st->accum = e;
+    socket_t e = accept(st->fd,&st->addr,&len);
+    if ( e == INVALID_SOCKET ) 
+      return Asio_Status_Repeat_Or_Die();
+    st->accum = (longptr_t)e;
     return ASIO_COMPLETED;
   }
 #endif  
@@ -182,12 +190,12 @@ int Asio_Do_Recv(YOYO_ASIO_STATE *st)
 #ifdef _YOYO_ASIO_BUILTIN
   {
     int e = recv(st->fd,(char*)st->dta+st->accum,st->count-st->accum,0);
-    if ( e < 0 || (!e && st->accum < st->mincount) )
-      return Asio_Status_Repeat_Or_Die()
+    if ( e < 0 || (!e && (int)st->accum < st->mincount) )
+      return Asio_Status_Repeat_Or_Die();
     if ( !e && st->count )
       return ASIO_CLOSED;
     st->accum += e;
-    return st->accum >= st->mincount ? ASIO_COMPLETED : ASIO_PENGING;  
+    return (int)st->accum >= st->mincount ? ASIO_COMPLETED : ASIO_PENGING;  
   }
 #endif
   ;
@@ -197,9 +205,9 @@ int Asio_Do_Send(YOYO_ASIO_STATE *st)
   {
     int e = send(st->fd,(char*)st->dta+st->accum,st->count-st->accum,0);
     if ( e <= 0 ) 
-      return Asio_Status_Repeat_Or_Die()
+      return Asio_Status_Repeat_Or_Die();
     st->accum += e;
-    return st->accum >= st->mincount ? ASIO_COMPLETED : ASIO_PENGING;  
+    return (int)st->accum >= st->mincount ? ASIO_COMPLETED : ASIO_PENGING;  
   }
 #endif
   ;
@@ -210,7 +218,7 @@ void Asio_Perform_Interrupt()
     int i;
     for ( i = 0; i < ASIO_MAP_BASE; ++i )
       {
-        YOYO_ASIO_STATE *pst = &Asio_St_Map[i];
+        YOYO_ASIO_STATE **pst = &Asio_St_Map[i];
         while ( *pst )
           {
             __Auto_Release
@@ -220,7 +228,7 @@ void Asio_Perform_Interrupt()
                 Asio_Release_State(pst);
                 
                 if ( st.cbk ) 
-                  st.cbk(obj,status,st.accum,&st.addr);
+                  st.cbk(obj,ASIO_INTERRAPTED,st.accum,&st.addr);
               }
           }
       }
@@ -228,7 +236,7 @@ void Asio_Perform_Interrupt()
 #endif
   ;
   
-void Asio_At_Exit()
+void Asio_At_Exit(void)
 #ifdef _YOYO_ASIO_BUILTIN
   {
     Asio_Perform_Interrupt();
@@ -270,36 +278,52 @@ YOYO_ASIO_STATE *Asio_Alloc_State(socket_t fd, int tag)
           st->perform = Asio_Do_Send; 
           break;
         case ASIO_ST_NOTIFY:  
+          st->fdsno = 1; 
           break;
+        default:
+          __Raise_Format(YOYO_ERROR_UNEXPECTED,(__yoTa("ASIO unknown tag: %d",0),tag));
       }
       
+    st->fd = fd;  
     ++Asio_St_Count;
     return st;
   }
 #endif
   ;
-  
+
 void Asio_Complete(socket_t fd, int failed)
 #ifdef _YOYO_ASIO_BUILTIN
   {
+    YOYO_ASIO_STATE **pst = Asio_Map_Fd(fd);
     __Auto_Release
       {
-        YOYO_ASIO_STATE **pst = Asio_Map_Fd(fd);
         if ( *pst )
           {
-            int status = failed ? ASIO_FAILED 
+            int status = failed ? failed 
                          : (*pst)->perform ? (*pst)->perform(*pst) 
                          : ASIO_COMPLETED;
             
             if ( status != ASIO_PENGING )
               {
-                YOYO_ASIO_STATE st = **pst;
-                void *obj     = __Pool_Ptr(st.obj,Yo_Unrefe);
-                Asio_Release_State(pst);
-                if ( st.cbk ) st.cbk(obj,status,st.accum);
-              }
+                pst = Asio_Map_Fd(fd);
+                if ( *pst )
+                  {
+                    YOYO_ASIO_STATE st = **pst;
+                    __Pool_Ptr(st.obj,Yo_Unrefe);
+                    Asio_Release_State(pst);
+                    if ( st.cbk ) st.cbk(st.obj,status,st.accum,&st.addr);
+                  }
+              } 
           }
       } 
+  }
+#endif
+  ;
+
+void Asio_Interrupt(socket_t fd)
+#ifdef _YOYO_ASIO_BUILTIN
+  {
+    Asio_Complete(fd,ASIO_INTERRUPT);
   }
 #endif
   ;
@@ -313,6 +337,7 @@ int Asio_Recv(socket_t fd, void *dta, int count, int mincount, void *obj, asio_r
     st->count    = count;
     st->mincount = mincount;
     st->dta      = dta;
+    return 0;
   }
 #endif
   ;
@@ -326,6 +351,7 @@ int Asio_Send(socket_t fd, void *dta, int count, void *obj, asio_send_callback_t
     st->count    = count;
     st->mincount = count;
     st->dta      = dta;
+    return 0;
   }
 #endif
   ;
@@ -336,25 +362,45 @@ int Asio_Notify(socket_t fd, void *obj, asio_notify_callback_t callback)
     YOYO_ASIO_STATE *st = Asio_Alloc_State(fd,ASIO_ST_NOTIFY);
     st->obj      = __Refe(obj);
     st->cbk      = (asio_any_callback_t)callback;
+    return 0;
   }
 #endif
   ;
   
-int Asio_Accept(socket_t fd, char *host, int port, void *obj, asio_accept_callback_t callback)
+int Asio_Accept(socket_t fd, void *obj, asio_accept_callback_t callback)
 #ifdef _YOYO_ASIO_BUILTIN
   {
     YOYO_ASIO_STATE *st = Asio_Alloc_State(fd,ASIO_ST_ACCEPT);
     st->obj      = __Refe(obj);
     st->cbk      = (asio_any_callback_t)callback;
+    return 0;
   }
 #endif
   ;
   
+char *Format_Network_Error()
+#ifdef _YOYO_ASIO_BUILTIN
+  {
+  #ifdef __windoze
+    int err = WSAGetLastError();
+    char *msg = __Malloc(1024);
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS |
+                  FORMAT_MESSAGE_MAX_WIDTH_MASK, NULL, err,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  (LPSTR)msg, 1024,0);
+    return msg;  
+  #else
+    return strerror(errno);
+  #endif
+  }
+#endif
+  ;
+
 int Asio_Perform_IO(int ms, int maxms)
 #ifdef _YOYO_ASIO_BUILTIN
   {
     int i,j;
-    timeval timeout = { ms/1000, ms*1000 };
+    struct timeval timeout = { ms/1000, ms*1000 };
     quad_t start    = maxms?System_Millis():0;
 
   #ifdef __windoze
@@ -365,7 +411,7 @@ int Asio_Perform_IO(int ms, int maxms)
         YOYO_ASIO_STATE *st = Asio_St_Map[i];
         while ( st )
           {
-            fd_set *q = fds[st->fdsno];
+            fd_set *q = &fds[st->fdsno];
             if ( fds[2].fd_count < FD_SETSIZE )
               {
                 q->fd_array[q->fd_count] = st->fd;
@@ -381,12 +427,12 @@ int Asio_Perform_IO(int ms, int maxms)
     i = select(Yo_MIN(FD_SETSIZE,Asio_St_Count),&fds[0],&fds[1],&fds[2],&timeout);
 
     if ( i < 0 )
-      __Raise_Format(YOYO_ERROR_IO,(__yoTa("ASIO select failed: %d",0),i));
+      __Raise_Format(YOYO_ERROR_IO,(__yoTa("ASIO select failed: %s",0),Format_Network_Error()));
 
     for ( i = 2; i >= 0; --i )
-      for ( j = 0; j < fds[i].fd_count; ++j )
+      for ( j = 0; j < (int)fds[i].fd_count; ++j )
         {
-          Asio_Complete(fds[i].fd_array[j],i==2);
+          Asio_Complete(fds[i].fd_array[j],i==2?ASIO_FAILED:0);
           if ( maxms && ( maxms < (System_Millis() - start) ) )
             goto l;
         }
@@ -404,6 +450,7 @@ int Asio_Perform_IO(int ms, int maxms)
 int Asio_Perform_Timer(int interval)
 #ifdef _YOYO_ASIO_BUILTIN
   {
+    return Asio_St_Count;
   }
 #endif
   ;
