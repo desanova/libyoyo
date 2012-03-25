@@ -46,7 +46,7 @@ in this Software without prior written authorization of the copyright holder.
 /*
 
   If using GNU bintools:
-    
+
     Don't foget to use -rdynamic to see symbols in backtrace!
 
 */
@@ -74,7 +74,7 @@ in this Software without prior written authorization of the copyright holder.
 #elif defined __GNUC__
 #define __No_Return __attribute__((noreturn))
 #else
-#define __No_Return 
+#define __No_Return
 #endif
 
 #ifndef __yoTa
@@ -131,8 +131,8 @@ in this Software without prior written authorization of the copyright holder.
 # if !defined WINVER
 #  define WINVER 0x500
 # endif
+# define WIN32_LEAN_AND_MEAN
 # include <windef.h>
-# include <winsock2.h>
 # include <winbase.h>
 # include <excpt.h>
 # include <objbase.h>
@@ -153,7 +153,7 @@ in this Software without prior written authorization of the copyright holder.
 #     warning {! NetBSD has malloc_usable_size commented !}
 #   endif
 #   define malloc_size(Ptr) (0)
-# else 
+# else
 #   define malloc_size(Ptr) malloc_usable_size(Ptr)
 # endif
 #endif
@@ -221,12 +221,12 @@ typedef unsigned long  ulong_t;
 
 /* maxint_t is max integer value supporting natively by CPU, depends on platform */
 #ifdef __x86_64
-  typedef uquad_t   umaxint_t; 
-  typedef uint_t    halfumi_t; 
-  typedef quad_t    maxint_t; 
-  typedef int       halfmi_t; 
+  typedef uquad_t   umaxint_t;
+  typedef uint_t    halfumi_t;
+  typedef quad_t    maxint_t;
+  typedef int       halfmi_t;
 #else
-  typedef ulong_t   umaxint_t; 
+  typedef ulong_t   umaxint_t;
   typedef ushort_t  halfumi_t;
   typedef int       maxint_t;
   typedef short     halfmi_t;
@@ -272,10 +272,10 @@ typedef quad_t   i64_t;
 
 #ifdef _YOYO_CORE_BUILTIN
 # define _YOYO_CORE_BUILTIN_CODE(Code) Code
-# define _YOYO_CORE_EXTERN 
+# define _YOYO_CORE_EXTERN
 #else
 # define _YOYO_CORE_BUILTIN_CODE(Code)
-# define _YOYO_CORE_EXTERN extern 
+# define _YOYO_CORE_EXTERN extern
 #endif
 
 #define Yo_MIN(a,b) ( (a) < (b) ? (a) : (b) )
@@ -328,17 +328,17 @@ enum _YOYO_ERRORS
     YOYO_RANGE_ERROR_GROUP          = 0x00800000,
     YOYO_CORRUPTED_ERROR_GROUP      = 0x01000000,
     YOYO_STORAGE_ERROR_GROUP        = 0x02000000,
-    
+
     YOYO_XXXX_ERROR_GROUP           = 0x7fff0000,
     YO_RERAISE_CURRENT_ERROR        = 0x7fff7fff,
-    
+
     YOYO_TRACED_ERROR_GROUP     = YOYO_FATAL_ERROR_GROUP
                                 |YOYO_RANGE_ERROR_GROUP
                                 |YOYO_SELFCHECK_ERROR_GROUP,
-    
+
     YOYO_ERROR_BASE             = 0x00008000,
     YOYO_ERROR_USER             = YOYO_USER_ERROR_GROUP|0,
-    
+
     YOYO_ERROR_OUT_OF_MEMORY    = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+1),
     YOYO_FATAL_ERROR            = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+2),
     YOYO_ERROR_DYNCO_CORRUPTED  = YOYO_FATAL_ERROR_GROUP|(YOYO_ERROR_BASE+3),
@@ -402,7 +402,7 @@ __No_Return void _Yo_Raise(int err,char *msg,char *filename,int lineno);
 # define __Xchg_Interlock if (0) {;} else
 # define __Xchg_Sync(Lx)  if (0) {;} else
 # define Yo_Wait_Xchg_Lock(Ptr)
-# define Yo_Xchg_Unlock(Ptr)  
+# define Yo_Xchg_Unlock(Ptr)
 
 # define __Mtx_Sync(Mtx)  if (0) {;} else
 
@@ -456,7 +456,7 @@ void Yo_Xchg_Unlock_Proc(int volatile *p) _YOYO_CORE_BUILTIN_CODE({Yo_Atomic_Cmp
 quad_t Eight_To_Quad(void *b)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    uint_t q0,q1;    
+    uint_t q0,q1;
     q0 =   (unsigned int)((unsigned char*)b)[0]
               | ((unsigned int)((unsigned char*)b)[1] << 8)
               | ((unsigned int)((unsigned char*)b)[2] << 16)
@@ -576,22 +576,22 @@ _YOYO_CORE_EXTERN byte_t Bitcount_8_Q[]
    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 
    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 
+   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+   7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+   8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
 #endif
  ;
 
-#define Bitcount_8(q) (Bitcount_8_Q[(q)&0x0ff])  
+#define Bitcount_8(q) (Bitcount_8_Q[(q)&0x0ff])
 uint_t Bitcount_Of( uint_t u )
 #ifdef _YOYO_CORE_BUILTIN
     {
@@ -609,7 +609,7 @@ uint_t Bitcount_Of( uint_t u )
 uint_t Min_Pow2(uint_t a)
 #ifdef _YOYO_CORE_BUILTIN
   {
-    if ( a ) --a; 
+    if ( a ) --a;
     return 1<<Bitcount_Of(a);
   }
 #endif
@@ -670,7 +670,7 @@ void *Yo_Zero_Malloc_Npl(int size)
   }
 #endif
   ;
-  
+
 void *Yo_Resize_Npl(void *p,int size,int granularity)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -801,7 +801,7 @@ YOYO_C_SUPPORT_INFO *Yo_Extend_Csup_JmpBuf()
 #ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
-    nfo = Yo_Realloc_Npl(nfo,sizeof(YOYO_C_SUPPORT_INFO) 
+    nfo = Yo_Realloc_Npl(nfo,sizeof(YOYO_C_SUPPORT_INFO)
               + (nfo->jb_count - YOYO_INI_JB_COUNT + YOYO_EXT_JB_COUNT)*sizeof(YOYO_JMPBUF));
     nfo->jb_count += YOYO_EXT_JB_COUNT;
     Yo_Tls_Set(Yo_Csup_Nfo_Tls,nfo);
@@ -814,7 +814,7 @@ void Yo_Extend_Csup_Autopool()
 #ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
-    uint_t ncount = nfo->auto_count + YOYO_EXT_POOL_COUNT; 
+    uint_t ncount = nfo->auto_count + YOYO_EXT_POOL_COUNT;
     nfo->auto_pool = Yo_Realloc_Npl(nfo->auto_pool,sizeof(*nfo->auto_pool)*ncount);
     nfo->auto_count = ncount;
     //nfo->auto_top = ncount;
@@ -826,7 +826,7 @@ void Yo_Pool_Marker_Tag(void *o) _YOYO_CORE_BUILTIN_CODE({});
 
 
 YOYO_AUTORELEASE *Yo_Find_Ptr_In_Pool(YOYO_C_SUPPORT_INFO *nfo, void *p)
-#ifdef _YOYO_CORE_BUILTIN  
+#ifdef _YOYO_CORE_BUILTIN
   {
     int n = nfo->auto_top;
     while ( n >= 0 )
@@ -839,7 +839,7 @@ YOYO_AUTORELEASE *Yo_Find_Ptr_In_Pool(YOYO_C_SUPPORT_INFO *nfo, void *p)
   }
 #endif
   ;
-  
+
 #define Yo_Push_Scope() Yo_Pool_Ptr(0,Yo_Pool_Marker_Tag)
 #define Yo_Pool(Ptr) Yo_Pool_Ptr(Ptr,0)
 
@@ -852,22 +852,22 @@ void *Yo_Pool_Ptr(void *ptr,void *cleanup)
         YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
         if ( !nfo ) nfo = Yo_Acquire_Csup_Nfo();
         STRICT_REQUIRE( (cleanup == Yo_Pool_Marker_Tag)
-                      ||(cleanup == Yo_Unrefe) 
+                      ||(cleanup == Yo_Unrefe)
                       ||!Yo_Find_Ptr_In_Pool(nfo,ptr) );
 
         ++nfo->auto_top;
         STRICT_REQUIRE(nfo->auto_top <= nfo->auto_count);
-        
+
         if ( nfo->auto_top == nfo->auto_count )
           Yo_Extend_Csup_Autopool();
         nfo->auto_pool[nfo->auto_top].ptr = ptr;
-        nfo->auto_pool[nfo->auto_top].cleanup = cleanup?cleanup:free; 
+        nfo->auto_pool[nfo->auto_top].cleanup = cleanup?cleanup:free;
       }
     return ptr;
   }
 #endif
   ;
-  
+
 #define Yo_Release(Pooled) ((void)Yo_Unpool((Pooled),1))
 #define Yo_Retain(Pooled) Yo_Unpool((Pooled),0)
 
@@ -884,7 +884,7 @@ void *Yo_Unpool(void *pooled,int do_cleanup)
               {
                 YOYO_AUTORELEASE *q = &nfo->auto_pool[n];
                 if ( do_cleanup && q->ptr ) q->cleanup(q->ptr);
-                
+
                 if ( nfo->jb_top < 0 || nfo->jb[nfo->jb_top].auto_top < n )
                   {
                     if ( nfo->auto_top != n )
@@ -896,7 +896,7 @@ void *Yo_Unpool(void *pooled,int do_cleanup)
                     q->ptr = 0;
                     q->cleanup = 0;
                   }
-                
+
                 break; // while
               }
             --n;
@@ -925,7 +925,7 @@ void *Yo_Unwind_Scope(void *pooled,int min_top,void *mark)
             if ( q->ptr && (q->cleanup != Yo_Pool_Marker_Tag) )
               {
                 if ( !pooled || q->ptr != pooled )
-                  { 
+                  {
                     q->cleanup(q->ptr);
                     //++counter;
                   }
@@ -949,7 +949,7 @@ void *Yo_Unwind_Scope(void *pooled,int min_top,void *mark)
   }
 #endif
   ;
-  
+
 #define Yo_Refresh(Old,New) Yo_Refresh_Ptr(Old,New,0)
 void *Yo_Refresh_Ptr(void *old,void *new,void *cleaner)
 #ifdef _YOYO_CORE_BUILTIN
@@ -1021,7 +1021,7 @@ void *Yo_Resize(void *p,unsigned size,int granularity)
   }
 #endif
   ;
-  
+
 #if defined _YOYO_CORE_BUILTIN && defined __windoze && defined __VSCPRINTF
 int _vscprintf(char *fmt,va_list va)
   {
@@ -1029,8 +1029,8 @@ int _vscprintf(char *fmt,va_list va)
     return vsprintf(simulate,fmt,va);
   }
 #endif
-  
-  
+
+
 int Yo_Detect_Required_Buffer_Size(char *fmt,va_list va)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -1062,10 +1062,10 @@ char *Yo_Format_(char *fmt,va_list va)
 
 char *Yo_Format_Npl(char *fmt,...)
   _YOYO_CORE_BUILTIN_CODE({va_list va;char *t; va_start(va,fmt); t = Yo_Format_(fmt,va);va_end(va); return t;});
-  
-char *Yo_Format(char *fmt,...) 
+
+char *Yo_Format(char *fmt,...)
   _YOYO_CORE_BUILTIN_CODE({va_list va;char *t; va_start(va,fmt); t = Yo_Pool(Yo_Format_(fmt,va));va_end(va); return t;});
-  
+
 void Yo_Print_FILE(FILE *st, char *text, unsigned flags)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -1153,7 +1153,7 @@ void *Yo_Object_Extend( void *o, char *func_name, void *func )
     YOYO_FUNCTABLE *f;
     if ( !T )
       Yo_Raise(YOYO_ERROR_NULL_PTR,__yoTa("failed to extend nullptr",0),__Yo_FILE__,__LINE__);
-    
+
     if ( T->dynamic )
       {
         if ( (T->dynamic->contsig >> 8) == YOYO_DYNCO_ATS )
@@ -1166,19 +1166,19 @@ void *Yo_Object_Extend( void *o, char *func_name, void *func )
         T->dynamic = Yo_Malloc_Npl(sizeof(YOYO_DYNAMIC));
         T->dynamic->contsig = YOYO_DYNCO_NYD<<8;
       }
-      
+
     T->dynamic->typeid = Yo_Atomic_Increment(&Yo_Typeid_Counter);
     f = T->dynamic->funcs+(T->dynamic->contsig&0x0ff);
     ++T->dynamic->contsig;
     f->name = func_name;
     f->func = func;
-    
+
     return o;
   }
 #endif
   ;
 
-enum { YOYO_OBJECT_SIGNATURE =  0x4f594f59 /*'YOYO'*/  }; 
+enum { YOYO_OBJECT_SIGNATURE =  0x4f594f59 /*'YOYO'*/  };
 
 void *Yo_Object_Clone(int size, void *orign)
 #ifdef _YOYO_CORE_BUILTIN
@@ -1187,12 +1187,12 @@ void *Yo_Object_Clone(int size, void *orign)
     YOYO_OBJECT *T = YOYO_BASE(orign);
     if ( !T )
       Yo_Raise(YOYO_ERROR_NULL_PTR,__yoTa("failed to clone nullptr",0),__Yo_FILE__,__LINE__);
-    
+
     o = Yo_Malloc_Npl(sizeof(YOYO_OBJECT)+size);
     o->signature = YOYO_OBJECT_SIGNATURE;
     o->rc = 1;
     memcpy(o+1,orign,size);
-    
+
     if ( T->dynamic )
       {
         if ( (T->dynamic->contsig>>8) == YOYO_DYNCO_ATS )
@@ -1205,7 +1205,7 @@ void *Yo_Object_Clone(int size, void *orign)
       }
     else
       o->dynamic = 0;
-    
+
     return Yo_Pool_Ptr(o+1,Yo_Unrefe);
   }
 #endif
@@ -1218,7 +1218,7 @@ void *Yo_Object(int size,YOYO_FUNCTABLE *tbl)
     o->signature = YOYO_OBJECT_SIGNATURE;
     o->rc = 1;
     o->dynamic = (YOYO_DYNAMIC*)tbl;
-    
+
     if ( tbl )
       {__Xchg_Interlock
         {
@@ -1247,7 +1247,7 @@ ulong_t Yo_Align(ulong_t val)
 
 void *Yo_Object_Dtor(int size,void *dtor)
 #ifdef _YOYO_CORE_BUILTIN
-  {  
+  {
     int Sz = Yo_Align(sizeof(YOYO_OBJECT)+size);
     YOYO_OBJECT *o = Yo_Malloc_Npl(Sz+sizeof(YOYO_DYNAMIC));
     memset(o,0,Sz+sizeof(YOYO_DYNAMIC));
@@ -1309,7 +1309,7 @@ void *Yo_Find_Method_Of(void **self,char *name,unsigned flags)
             else
               Yo_Fatal(YOYO_ERROR_DYNCO_CORRUPTED,o,__Yo_FILE__,__LINE__);
           }
-        else if (flags & YO_RAISE_ERROR) 
+        else if (flags & YO_RAISE_ERROR)
           Yo_Raise(YOYO_ERROR_METHOD_NOT_FOUND,name,__Yo_FILE__,__LINE__);
       }
     else if (flags & YO_RAISE_ERROR)
@@ -1318,7 +1318,7 @@ void *Yo_Find_Method_Of(void **self,char *name,unsigned flags)
   }
 #endif
   ;
-  
+
 void *Yo_Refe(void *p)
 #ifdef _YOYO_CORE_BUILTIN
   {
@@ -1332,7 +1332,7 @@ void *Yo_Refe(void *p)
 #ifdef _YOYO_CORE_BUILTIN
 void *Yo_Unrefe(void *p)
   {
-    if ( p && STRICT_CHECK(YOYO_SIGNAT_IS_OK(p)) 
+    if ( p && STRICT_CHECK(YOYO_SIGNAT_IS_OK(p))
            && !(Yo_Atomic_Decrement(&YOYO_RC(p))&0x7fffff) )
       {
         void (*destruct)(void *) = Yo_Find_Method_Of(&p,Oj_Destruct_OjMID,0);
@@ -1395,7 +1395,7 @@ int Oj_Count(void *self)
       default:
 
 YOYO_ERROR_INFO *Error_Info()
-#ifdef _YOYO_CORE_BUILTIN  
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     if ( nfo && nfo->err.code )
@@ -1405,9 +1405,9 @@ YOYO_ERROR_INFO *Error_Info()
   }
 #endif
   ;
-  
-char *Error_Message(void) 
-#ifdef _YOYO_CORE_BUILTIN  
+
+char *Error_Message(void)
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_ERROR_INFO *info = Error_Info();
     if ( info && info->msg )
@@ -1417,8 +1417,8 @@ char *Error_Message(void)
 #endif
   ;
 
-int Error_Code(void) 
-#ifdef _YOYO_CORE_BUILTIN  
+int Error_Code(void)
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_ERROR_INFO *info = Error_Info();
     if ( info )
@@ -1428,8 +1428,8 @@ int Error_Code(void)
 #endif
   ;
 
-char *Error_File(void) 
-#ifdef _YOYO_CORE_BUILTIN  
+char *Error_File(void)
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_ERROR_INFO *info = Error_Info();
     if ( info && info->filename )
@@ -1439,8 +1439,8 @@ char *Error_File(void)
 #endif
   ;
 
-int Error_Line(void) 
-#ifdef _YOYO_CORE_BUILTIN  
+int Error_Line(void)
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_ERROR_INFO *info = Error_Info();
     if ( info )
@@ -1450,8 +1450,8 @@ int Error_Line(void)
 #endif
   ;
 
-char *Error_Print_N_Exit(char *prefix, int code) 
-#ifdef _YOYO_CORE_BUILTIN  
+char *Error_Print_N_Exit(char *prefix, int code)
+#ifdef _YOYO_CORE_BUILTIN
   {
     StdErr_Print_Nl(Yo_Format(__yoTa("%s: %s",0),prefix,Error_Message()));
     exit(code);
@@ -1463,29 +1463,29 @@ char *Error_Print_N_Exit(char *prefix, int code)
    (--((YOYO_C_SUPPORT_INFO *)Yo_Tls_Get(Yo_Csup_Nfo_Tls))->jb_top)
 
 YOYO_JMPBUF *Yo_Push_JmpBuf(void)
-#ifdef _YOYO_CORE_BUILTIN  
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_C_Support_Nfo();
     YOYO_JMPBUF *jb;
-    
+
     STRICT_REQUIRE(nfo->jb_top < nfo->jb_count);
     STRICT_REQUIRE(nfo->jb_top >= -1);
-    
-    if ( nfo->jb_top == nfo->jb_count-1 ) 
+
+    if ( nfo->jb_top == nfo->jb_count-1 )
       nfo = Yo_Extend_Csup_JmpBuf();
     ++nfo->jb_top;
 
     jb = &nfo->jb[nfo->jb_top];
     memset(jb->locks,0,sizeof(jb->locks));
     jb->auto_top = nfo->auto_top+1;
-    
+
     return jb;
   }
 #endif
   ;
 
 void Yo_JmpBuf_Push_Cs(void *cs,Yo_JMPBUF_Unlock unlock)
-#ifdef _YOYO_CORE_BUILTIN  
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     STRICT_REQUIRE ( cs );
@@ -1497,7 +1497,7 @@ void Yo_JmpBuf_Push_Cs(void *cs,Yo_JMPBUF_Unlock unlock)
           {
             int i;
             YOYO_JMPBUF_LOCK *locks = nfo->jb[nfo->jb_top].locks;
-            for ( i = YOYO_MAX_CS_COUNT-1; i >= 0; --i ) 
+            for ( i = YOYO_MAX_CS_COUNT-1; i >= 0; --i )
               if ( !locks[i].cs )
                 {
                   locks[i].cs = cs;
@@ -1511,9 +1511,9 @@ void Yo_JmpBuf_Push_Cs(void *cs,Yo_JMPBUF_Unlock unlock)
 #endif
   ;
 
-  
+
 void Yo_JmpBuf_Pop_Cs(void *cs)
-#ifdef _YOYO_CORE_BUILTIN  
+#ifdef _YOYO_CORE_BUILTIN
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     if ( nfo && cs )
@@ -1521,10 +1521,10 @@ void Yo_JmpBuf_Pop_Cs(void *cs)
         STRICT_REQUIRE(nfo->jb_top < nfo->jb_count);
         STRICT_REQUIRE(nfo->jb_top >= -1);
         if ( nfo->jb_top > -1 && !nfo->stats.unwinding )
-          { 
+          {
             int i;
             YOYO_JMPBUF_LOCK *locks = nfo->jb[nfo->jb_top].locks;
-            for ( i = YOYO_MAX_CS_COUNT-1; i >= 0; --i ) 
+            for ( i = YOYO_MAX_CS_COUNT-1; i >= 0; --i )
               if ( locks[i].cs == cs )
                 {
                   memset(&locks[i],0,sizeof(locks[i]));
@@ -1536,7 +1536,7 @@ void Yo_JmpBuf_Pop_Cs(void *cs)
   }
 #endif
   ;
-  
+
 char *Yo_Btrace(void);
 
 #ifdef _YOYO_CORE_BUILTIN
@@ -1544,18 +1544,18 @@ __No_Return void _Yo_Raise(int err,char *msg,char *filename,int lineno)
   {
     YOYO_C_SUPPORT_INFO *nfo = Yo_Tls_Get(Yo_Csup_Nfo_Tls);
     STRICT_REQUIRE( !nfo || nfo->jb_top < nfo->jb_count );
-    
+
     printf(__yoTa("err: %d, msg: %s, filename: %s, lineno: %d\n",0),err,msg,filename,lineno);
-    
+
     if ( err == YO_RERAISE_CURRENT_ERROR && (!nfo || !nfo->err.code) )
       Yo_Fatal(YOYO_ERROR_UNEXPECTED,__yoTa("no errors occured yet",0),filename,lineno);
-    
+
     if ( nfo && nfo->jb_top >= 0 && !nfo->stats.unwinding )
       {
-        int i; 
+        int i;
         char *old_msg = nfo->err.msg;
         YOYO_JMPBUF_LOCK *locks = nfo->jb[nfo->jb_top].locks;
-        
+
         if ( err != YO_RERAISE_CURRENT_ERROR )
           {
             nfo->err.msg = msg ? strdup(msg) : 0;
@@ -1565,19 +1565,19 @@ __No_Return void _Yo_Raise(int err,char *msg,char *filename,int lineno)
             nfo->err.bt_count = backtrace(nfo->err.bt_cbk,YOYO_MAX_ERROR_BTRACE);
             free( old_msg );
           }
-          
-        for ( i = YOYO_MAX_CS_COUNT-1; i >= 0; --i ) 
-          if (  locks[i].cs ) 
+
+        for ( i = YOYO_MAX_CS_COUNT-1; i >= 0; --i )
+          if (  locks[i].cs )
             locks[i].unlock(locks[i].cs);
-        
+
         Yo_Unwind_Scope(0,nfo->jb[nfo->jb_top].auto_top,0);
-        
+
         --nfo->jb_top;
         STRICT_REQUIRE(nfo->jb_top >= -1);
-        
+
       #ifdef _TRACEXPT
         StdErr_Print_Nl(Yo_Btrace());
-      #endif  
+      #endif
         longjmp(nfo->jb[nfo->jb_top+1].b,err?err:-1);
       }
     else
@@ -1623,12 +1623,12 @@ char *Yo_Btrace_Format(int frames, void **cbk)
     char *bt = Yo_Malloc(max_bt);
     char *bt_p = bt;
     int i;
-    
+
     i = snprintf(bt_p,max_bt,__yoTa("--backtrace--",0));
     bt_p+=i;
     max_bt-=i;
     memset(bt_p,0,max_bt--);
-    
+
     for ( i = 0; i < frames; ++i )
       {
       #ifdef __windoze
@@ -1636,8 +1636,8 @@ char *Yo_Btrace_Format(int frames, void **cbk)
         char c = '+';
         int l = snprintf(bt_p,max_bt,__yoTa("\n %-2d=> %s %c%x (%p at %s)",0),
            i,
-           "", 
-           c, 
+           "",
+           c,
            dif>0?dif:-dif,
            cbk[i],
            Yo__basename("basename"));
@@ -1653,11 +1653,11 @@ char *Yo_Btrace_Format(int frames, void **cbk)
         if ( dladdr(cbk[i], &dlinfo) )
           {
             int dif = (char*)cbk[i]-(char*)dlinfo.dli_saddr;
-            char c = dif > 0?'+':'-'; 
+            char c = dif > 0?'+':'-';
             int l = snprintf(bt_p,max_bt,__yoTa("\n %-2d=> %s %c%x (%p at %s)",0),
                i,
-               dlinfo.dli_sname, 
-               c, 
+               dlinfo.dli_sname,
+               c,
                dif>0?dif:-dif,
                cbk[i],
                Yo__basename((char*)dlinfo.dli_fname));
@@ -1669,7 +1669,7 @@ char *Yo_Btrace_Format(int frames, void **cbk)
           }
       #endif
       }
-    
+
     return bt;
   }
 #endif
@@ -1691,22 +1691,22 @@ int backtrace( void **cbk, int count )
   {
     return 0;
   }
-  
+
 #elif defined __GNUC__ && defined _YOYO_CORE_BUILTIN \
-    && !(defined __APPLE__ || defined __linux__) 
+    && !(defined __APPLE__ || defined __linux__)
 
 typedef struct _YOYO_BACKTRACE
   {
     void **cbk;
     int count;
   } YOYO_BACKTRACE;
-  
+
 _Unwind_Reason_Code backtrace_Helper(struct _Unwind_Context* ctx, YOYO_BACKTRACE *bt)
   {
-    if ( bt->count ) 
+    if ( bt->count )
       {
         void *eip = (void*)_Unwind_GetIP(ctx);
-        if ( eip ) 
+        if ( eip )
           {
             *bt->cbk++ = eip;
             --bt->count;
@@ -1715,7 +1715,7 @@ _Unwind_Reason_Code backtrace_Helper(struct _Unwind_Context* ctx, YOYO_BACKTRACE
       }
     return _URC_NORMAL_STOP;
   }
-  
+
 int backtrace( void **cbk, int count )
   {
     YOYO_BACKTRACE T = { cbk, count };
@@ -1766,7 +1766,7 @@ __No_Return void _Yo_Fatal(int err,void *ctx,char *filename,int lineno)
         default:
           {
             char err_pfx[60];
-            sprintf(err_pfx,__yoTa("unexpected(%08x)",0),err); 
+            sprintf(err_pfx,__yoTa("unexpected(%08x)",0),err);
             Yo_Btrace_N_Abort(err_pfx,ctx,filename,lineno);
           }
       }
@@ -1797,18 +1797,18 @@ char *Yo_Error_Format()
   }
 #endif
   ;
-  
+
 __No_Return void Error_Exit(char *pfx)
 #ifdef _YOYO_CORE_BUILTIN
   {
     int code = Error_Code();
     char *msg = Error_Message();
-    
+
   #ifndef _BACKTRACE
     if ( (code & YOYO_TRACED_ERROR_GROUP) || !Error_Info()->msg )
   #endif
       StdErr_Print_Nl(Yo_Error_Format_Btrace());
-        
+
     if ( code == YOYO_ERROR_USER )
       StdErr_Print_Nl(Yo_Format(__yoTa("\n%s: %s",0),(pfx?pfx:__yoTa("error",0)),msg));
     else if ( YOYO_ERROR_IS_USER_ERROR(code) )
@@ -1949,11 +1949,11 @@ void Yo_Elm_Resize_Npl(void **inout, int L, int type_width, int *capacity_ptr)
   {
     int requires = 0;
     int capacity = capacity_ptr?*capacity_ptr:0;
-    
+
     if ( L )
       {
         requires = (L+1)*type_width;
-        
+
         if ( *inout )
           {
             if ( !capacity )
@@ -1968,7 +1968,7 @@ void Yo_Elm_Resize_Npl(void **inout, int L, int type_width, int *capacity_ptr)
           {
             if ( capacity < requires )
               capacity = Min_Pow2(requires);
-              
+
             *inout = Yo_Malloc_Npl(capacity);
           }
       }
@@ -1977,13 +1977,13 @@ void Yo_Elm_Resize_Npl(void **inout, int L, int type_width, int *capacity_ptr)
   }
 #endif
   ;
-  
+
 #define __Elm_Insert_Npl(MemPptr,Pos,Count,S,L,Width,CpsPtr) Yo_Elm_Insert_Npl((void**)MemPptr,Pos,Count,S,L,Width,CpsPtr)
 int Yo_Elm_Insert_Npl(void **inout, int pos, int count, void *S, int L, int type_width, int *capacity_ptr)
 #ifdef _YOYO_CORE_BUILTIN
   {
     STRICT_REQUIRE(pos <= count);
-    
+
     if ( L < 0 ) /* inserting Z-string */
       switch ( type_width )
         {
@@ -1995,8 +1995,8 @@ int Yo_Elm_Insert_Npl(void **inout, int pos, int count, void *S, int L, int type
     if ( L )
       {
         Yo_Elm_Resize_Npl(inout,count+L,type_width,capacity_ptr);
-        
-        if ( pos < count ) 
+
+        if ( pos < count )
           memmove((byte_t*)*inout+(pos+L)*type_width,(byte_t*)*inout+pos*type_width,(count-pos)*type_width);
         memcpy((byte_t*)*inout+pos*type_width, S, L*type_width);
         count += L;
@@ -2016,7 +2016,7 @@ int Yo_Elm_Insert(void **inout, int pos, int count, void *S, int L, int type_wid
     int r = Yo_Elm_Insert_Npl(inout,pos,count,S,L,type_width,capacity_ptr);
     if ( *inout != old )
       {
-        if ( old ) 
+        if ( old )
           Yo_Refresh_Ptr(old,*inout,0);
         else
           Yo_Pool_Ptr(*inout,0);
@@ -2033,4 +2033,3 @@ int Yo_Elm_Insert(void **inout, int pos, int count, void *S, int L, int type_wid
 #define __Elm_Append_Npl(Mem,Count,S,L,Width,CpsPtr) Yo_Elm_Append_Npl((void**)Mem,Count,S,L,Width,CpsPtr)
 
 #endif /* C_once_6973F3BA_26FA_434D_9ED9_FF5389CE421C */
-
